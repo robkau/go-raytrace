@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"io/ioutil"
+)
 
 type projectile struct {
 	x tuple //point
@@ -23,7 +25,7 @@ func main() {
 
 	p := projectile{
 		newPoint(0, 1, 0),
-		newVector(1, 1, 0).normalize(),
+		newVector(4, 7, 0),
 	}
 
 	e := environment{
@@ -31,11 +33,18 @@ func main() {
 		newVector(-0.01, 0, 0),
 	}
 
+	canvasHeight := 500
+	c := newCanvas(500, 500)
+
 	for {
-		fmt.Printf(fmt.Sprintf("Current position: %v\n", p.x))
 		if p.x.y <= 0 {
 			break
 		}
+
+		c.setPixel(int(p.x.x), canvasHeight-int(p.x.y)-1, color{128, 128, 128})
+
 		p = tick(e, p)
 	}
+
+	ioutil.WriteFile("output.ppm", []byte(c.toPPM()), 0755)
 }
