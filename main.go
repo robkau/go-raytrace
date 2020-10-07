@@ -41,7 +41,7 @@ func main() {
 			break
 		}
 
-		c.setPixel(int(p.x.x), canvasHeight-int(p.x.y)-1, color{128, 128, 128})
+		c.setPixel(int(p.x.x+0.5), canvasHeight-int(p.x.y+0.5)-1, color{128, 128, 128})
 
 		p = tick(e, p)
 	}
