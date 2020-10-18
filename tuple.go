@@ -14,6 +14,10 @@ type tuple struct {
 	c float64
 }
 
+func newTuple(x, y, z, w float64) tuple {
+	return tuple{x, y, z, w}
+}
+
 func newPoint(x, y, z float64) tuple {
 	return tuple{x, y, z, point}
 }
@@ -28,6 +32,13 @@ func (t tuple) isPoint() bool {
 
 func (t tuple) isVector() bool {
 	return t.c == vector
+}
+
+func (t tuple) equals(o tuple) bool {
+	return almostEqual(t.x, o.x) &&
+		almostEqual(t.y, o.y) &&
+		almostEqual(t.z, o.z) &&
+		almostEqual(t.c, o.c)
 }
 
 func (t tuple) add(other tuple) tuple {

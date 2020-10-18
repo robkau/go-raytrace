@@ -36,6 +36,24 @@ func Test_NewVector(t *testing.T) {
 	assert.False(t, u.isPoint())
 }
 
+func Test_Equals(t *testing.T) {
+	a := newTuple(1, 2, 3, 4)
+	b := newTuple(1, 2, 3, 4)
+	c := newTuple(1.000001, 2, 3, 4)
+
+	assert.True(t, a.equals(a))
+	assert.True(t, b.equals(b))
+	assert.True(t, c.equals(c))
+
+	assert.True(t, a.equals(b))
+	assert.True(t, b.equals(a))
+
+	assert.False(t, a.equals(c))
+	assert.False(t, b.equals(c))
+	assert.False(t, c.equals(a))
+	assert.False(t, c.equals(b))
+}
+
 func Test_AddTuple_VectorAndVector(t *testing.T) {
 	a := newVector(1, 2, 3)
 	b := newVector(-1, -1, -1)
