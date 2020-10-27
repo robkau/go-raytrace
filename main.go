@@ -1,50 +1,35 @@
 package main
 
-import (
-	"io/ioutil"
-)
-
-type projectile struct {
-	x tuple //point
-	v tuple //vector // todo: refactor and take advantage of interface/types to enforce this
-}
-
-type environment struct {
-	gravity tuple
-	wind    tuple
-}
-
-func tick(e environment, p projectile) projectile {
-	return projectile{
-		x: p.x.add(p.v),
-		v: p.v.add(e.gravity).add(e.wind),
-	}
-}
+import "io/ioutil"
 
 func main() {
+	wallSize := 7.0
+	half := wallSize / 2
+	wallZ := 10.0
+	canvasPixels := 100
+	pixelSize := wallSize / float64(canvasPixels)
 
-	p := projectile{
-		newPoint(0, 1, 0),
-		newVector(4, 7, 0),
-	}
+	origin := newPoint(0, 0, -5)
+	canvas := newCanvas(canvasPixels, canvasPixels)
+	s := newSphereWith(scale(1.2, 1, 1))
 
-	e := environment{
-		newVector(0, -0.1, 0),
-		newVector(-0.01, 0, 0),
-	}
+	for i := 0; i < canvasPixels; i++ {
+		worldY := half - pixelSize*float64(i)
 
-	canvasHeight := 500
-	c := newCanvas(500, 500)
+		for j := 0; j < canvasPixels; j++ {
+			worldX := -half + pixelSize*float64(j)
 
-	for {
-		if p.x.y <= 0 {
-			break
+			position := newPoint(worldX, worldY, wallZ)
+			r := rayWith(origin, position.sub(origin).normalize())
+
+			xs := s.intersect(r)
+			_, ok := xs.hit()
+			if ok {
+				canvas.setPixel(j, i, color{255, 0, 0})
+			}
 		}
 
-		c.setPixel(int(p.x.x+0.5), canvasHeight-int(p.x.y+0.5)-1, color{128, 128, 128})
-
-		p = tick(e, p)
 	}
 
-	ioutil.WriteFile("output.ppm", []byte(c.toPPM()), 0755)
+	ioutil.WriteFile("output.ppm", []byte(canvas.toPPM()), 0755)
 }
