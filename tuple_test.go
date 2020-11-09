@@ -279,3 +279,21 @@ func Test_CrossProductB(t *testing.T) {
 
 	assert.Equal(t, newVector(1, -2, 1), c)
 }
+
+func Test_Reflect45(t *testing.T) {
+	v := newVector(1, -1, 0)
+	n := newVector(0, 1, 0)
+
+	r := v.reflect(n)
+
+	assert.Equal(t, newVector(1, 1, 0), r)
+}
+
+func Test_ReflectSlanted(t *testing.T) {
+	v := newVector(0, -1, 0)
+	n := newVector(math.Sqrt2/2, math.Sqrt2/2, 0)
+
+	r := v.reflect(n)
+
+	assert.True(t, newVector(1, 0, 0).equals(r))
+}

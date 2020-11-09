@@ -1,5 +1,7 @@
 package main
 
+import "math"
+
 type color struct {
 	r float64
 	g float64
@@ -41,4 +43,13 @@ func (c color) equal(other color) bool {
 	return almostEqual(c.r, other.r) &&
 		almostEqual(c.g, other.g) &&
 		almostEqual(c.b, other.b)
+}
+
+func (c color) roundTo(places int) color {
+	scale := math.Pow10(places)
+	return color{
+		r: math.Round(c.r*scale) / scale,
+		g: math.Round(c.g*scale) / scale,
+		b: math.Round(c.b*scale) / scale,
+	}
 }

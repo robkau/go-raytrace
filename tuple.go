@@ -101,6 +101,20 @@ func (t tuple) dot(other tuple) float64 {
 	return t.x*other.x + t.y*other.y + t.z*other.z + t.c*other.c
 }
 
+func (t tuple) reflect(n tuple) tuple {
+	return t.sub(n.mul(2).mul(t.dot(n)))
+}
+
+func (t tuple) roundTo(places int) tuple {
+	scale := math.Pow10(places)
+	return tuple{
+		x: math.Round(t.x*scale) / scale,
+		y: math.Round(t.y*scale) / scale,
+		z: math.Round(t.z*scale) / scale,
+		c: t.c,
+	}
+}
+
 func cross(a tuple, b tuple) tuple {
 	return tuple{
 		a.y*b.z - a.z*b.y,

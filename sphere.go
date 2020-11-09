@@ -4,11 +4,13 @@ import "math"
 
 type sphere struct {
 	t x4Matrix
+	m material
 }
 
 func newSphere() sphere {
 	return sphere{
 		t: newIdentityMatrixX4(),
+		m: newMaterial(),
 	}
 }
 
@@ -21,6 +23,14 @@ func newSphereWith(t x4Matrix) sphere {
 func (s sphere) setTransform(t x4Matrix) sphere {
 	s.t = t
 	return s
+}
+
+func (s sphere) normalAt(p tuple) tuple {
+	objectPoint := s.t.invert().mulTuple(p)
+	objectNormal := objectPoint.sub(newPoint(0, 0, 0))
+	worldNormal := s.t.invert().transpose().mulTuple(objectNormal)
+	worldNormal.c = vector
+	return worldNormal.normalize()
 }
 
 func (s sphere) intersect(r ray) intersections {
