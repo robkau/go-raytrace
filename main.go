@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	width  = 400
-	height = 400
+	width  = 75
+	height = 75
 )
 
 func main() {
@@ -55,38 +55,44 @@ func main() {
 	w.addLight(newPointLight(newPoint(-10, 10, -10), color{1, 1, 1}))
 
 	c := newCamera(width, height, math.Pi/3)
-	c.transform = viewTransform(newPoint(0, 1.5, -5),
+	c.transform = viewTransform(newPoint(0, 1.5, -3),
 		newPoint(0, 1, 0),
 		newVector(0, 1, 0))
 
-	cnv := c.render(w)
-	runnerImage = ebiten.NewImageFromImage(cnv.toImage())
+	g := &Game{
+		c: c,
+		w: w,
+	}
 
 	ebiten.SetWindowSize(width, height)
 	ebiten.SetWindowTitle("go-raytrace")
-	if err := ebiten.RunGame(&Game{}); err != nil {
+	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
 }
 
-// ebiten stuff
-var (
-	runnerImage *ebiten.Image
-)
-
 type Game struct {
+	img *ebiten.Image
+
 	count int
+	c     camera
+	w     world
 }
 
 func (g *Game) Update() error {
 	g.count++
-	//runnerImage = ebiten.NewImageFromImage(canvas.toImage())
+	g.c.transform = g.c.transform.mulX4Matrix(rotateY(math.Pi / 10))
+	g.img = ebiten.NewImageFromImage(g.c.render(g.w).toImage())
+
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	if g.img == nil {
+		return
+	}
 	op := &ebiten.DrawImageOptions{}
-	screen.DrawImage(runnerImage, op)
+	screen.DrawImage(g.img, op)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
