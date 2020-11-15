@@ -86,3 +86,41 @@ func Test_Hit_NonePositive(t *testing.T) {
 
 	assert.False(t, ok)
 }
+
+func Test_Compute(t *testing.T) {
+	r := rayWith(newPoint(0, 0, -5), newVector(0, 0, 1))
+	s := newSphere()
+
+	i := newIntersection(4, s)
+	c := i.compute(r)
+
+	assert.Equal(t, i.t, c.t)
+	assert.Equal(t, i.o, c.object)
+	assert.Equal(t, newPoint(0, 0, -1), c.point)
+	assert.Equal(t, newVector(0, 0, -1), c.eyev)
+	assert.Equal(t, newVector(0, 0, -1), c.normalv)
+
+}
+
+func Test_Compute_Outside(t *testing.T) {
+	r := rayWith(newPoint(0, 0, -5), newVector(0, 0, 1))
+	s := newSphere()
+
+	i := newIntersection(4, s)
+	c := i.compute(r)
+
+	assert.False(t, c.inside)
+}
+
+func Test_Compute_Inside(t *testing.T) {
+	r := rayWith(newPoint(0, 0, 0), newVector(0, 0, 1))
+	s := newSphere()
+
+	i := newIntersection(1, s)
+	c := i.compute(r)
+
+	assert.Equal(t, newPoint(0, 0, 1), c.point)
+	assert.Equal(t, newVector(0, 0, -1), c.eyev)
+	assert.True(t, c.inside)
+	assert.Equal(t, newVector(0, 0, -1), c.normalv)
+}

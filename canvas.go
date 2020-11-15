@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"image"
+	gocolor "image/color"
 	"strings"
 )
 
@@ -10,6 +12,13 @@ type canvas struct {
 	width  int
 	height int
 }
+
+const (
+	ppmFileHeader    = "P3"
+	ppmMaxWidth      = 70
+	ppmMinColorValue = 0
+	ppmMaxColorValue = 255
+)
 
 func newCanvas(width, height int) canvas {
 	return canvas{
@@ -39,10 +48,24 @@ func (c canvas) setPixel(x int, y int, col color) {
 	c.pixels[y*c.width+x] = col
 }
 
-const ppmFileHeader = "P3"
-const ppmMaxWidth = 70
-const ppmMinColorValue = 0
-const ppmMaxColorValue = 255
+func (c canvas) toImage() image.Image {
+	upLeft := image.Point{0, 0}
+	lowRight := image.Point{c.width, c.height}
+
+	img := image.NewRGBA(image.Rectangle{upLeft, lowRight})
+
+	for x := 0; x < c.width; x++ {
+		for y := 0; y < c.height; y++ {
+			p := c.getPixel(x, y)
+			img.Set(x, y, gocolor.RGBA{
+				uint8(clamp(p.r*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue)),
+				uint8(clamp(p.g*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue)),
+				uint8(clamp(p.b*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue)),
+				0xff})
+		}
+	}
+	return img
+}
 
 func (c canvas) toPPM() string {
 

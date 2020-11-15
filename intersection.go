@@ -2,10 +2,6 @@ package main
 
 import "sort"
 
-type intersections struct {
-	i []intersection
-}
-
 type intersection struct {
 	t float64
 	o sphere
@@ -15,15 +11,38 @@ func newIntersection(t float64, o sphere) intersection {
 	return intersection{t, o}
 }
 
-func newIntersections(is ...intersection) intersections {
-	in := intersections{}
-	for _, i := range is {
-		in.i = append(in.i, i)
+type intersectionComputed struct {
+	t       float64
+	object  sphere
+	inside  bool
+	point   tuple
+	eyev    tuple
+	normalv tuple
+}
+
+func (i intersection) compute(r ray) intersectionComputed {
+	c := intersectionComputed{}
+	c.t = i.t
+	c.object = i.o
+	c.point = r.position(c.t)
+	c.eyev = r.direction.neg()
+	c.normalv = c.object.normalAt(c.point)
+
+	if c.normalv.dot(c.eyev) < 0 {
+		c.inside = true
+		c.normalv = c.normalv.neg()
 	}
-	sort.Slice(in.i, func(i, j int) bool {
-		return in.i[i].t < in.i[j].t
-	})
-	return in
+	return c
+}
+
+type intersections struct {
+	i []intersection
+}
+
+func newIntersections(s ...intersection) intersections {
+	is := intersections{}
+	is.add(s...)
+	return is
 }
 
 func (is intersections) hit() (intersection, bool) {
@@ -33,4 +52,20 @@ func (is intersections) hit() (intersection, bool) {
 		}
 	}
 	return intersection{}, false
+}
+
+func (is *intersections) add(s ...intersection) {
+	if len(s) < 1 {
+		return
+	}
+	for _, i := range s {
+		is.i = append(is.i, i)
+	}
+	sort.Slice(is.i, func(i, j int) bool {
+		return is.i[i].t < is.i[j].t
+	})
+}
+
+func (is *intersections) addFrom(s intersections) {
+	is.add(s.i...)
 }
