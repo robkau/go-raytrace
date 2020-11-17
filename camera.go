@@ -1,6 +1,9 @@
 package main
 
-import "math"
+import (
+	"math"
+	"sync"
+)
 
 type camera struct {
 	hSize      int
@@ -48,15 +51,25 @@ func (c camera) rayForPixel(px int, py int) ray {
 	return rayWith(origin, direction)
 }
 
-func (c camera) render(w world) canvas {
+func (c camera) render(w world, numGoRoutines int) canvas {
 	image := newCanvas(c.hSize, c.vSize)
 
-	for y := 0; y < c.vSize-1; y++ {
-		for x := 0; x < c.hSize-1; x++ {
-			r := c.rayForPixel(x, y)
-			c := w.colorAt(r)
-			image.setPixel(x, y, c)
-		}
+	wg := sync.WaitGroup{}
+	pixelsPerWorker := len(image.pixels) / numGoRoutines
+	for i := 0; i < len(image.pixels); i += pixelsPerWorker {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			for j := i; j < i+pixelsPerWorker && j < len(image.pixels); j++ {
+				x := j % c.vSize
+				y := j / c.vSize
+
+				r := c.rayForPixel(x, y)
+				c := w.colorAt(r)
+				image.setPixel(x, y, c)
+			}
+		}(i)
 	}
+	wg.Wait()
 	return image
 }

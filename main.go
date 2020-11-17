@@ -4,11 +4,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"log"
 	"math"
+	"time"
 )
 
 const (
-	width  = 75
-	height = 75
+	width = 200
 )
 
 func main() {
@@ -54,17 +54,20 @@ func main() {
 
 	w.addLight(newPointLight(newPoint(-10, 10, -10), color{1, 1, 1}))
 
-	c := newCamera(width, height, math.Pi/3)
+	c := newCamera(width, width, math.Pi/3)
 	c.transform = viewTransform(newPoint(0, 1.5, -3),
 		newPoint(0, 1, 0),
 		newVector(0, 1, 0))
 
 	g := &Game{
-		c: c,
-		w: w,
+		c:    c,
+		w:    w,
+		ng:   1,
+		per:  10,
+		last: time.Now(),
 	}
 
-	ebiten.SetWindowSize(width, height)
+	ebiten.SetWindowSize(width, width)
 	ebiten.SetWindowTitle("go-raytrace")
 	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
@@ -77,13 +80,22 @@ type Game struct {
 	count int
 	c     camera
 	w     world
+
+	ng   int
+	last time.Time
+	per  int
 }
 
 func (g *Game) Update() error {
 	g.count++
+	if g.count%g.per == 0 {
+		elapsed := time.Now().Sub(g.last)
+		g.last = time.Now()
+		log.Printf("update took %dms avg with %d render goroutines", int(elapsed.Milliseconds())/g.per, g.ng)
+		g.ng++
+	}
 	g.c.transform = g.c.transform.mulX4Matrix(rotateY(math.Pi / 10))
-	g.img = ebiten.NewImageFromImage(g.c.render(g.w).toImage())
-
+	g.img = ebiten.NewImageFromImage(g.c.render(g.w, g.ng).toImage())
 	return nil
 }
 
