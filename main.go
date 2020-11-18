@@ -4,11 +4,13 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"log"
 	"math"
+	"runtime"
+	"sync"
 	"time"
 )
 
 const (
-	width = 200
+	width = 300
 )
 
 func main() {
@@ -60,11 +62,12 @@ func main() {
 		newVector(0, 1, 0))
 
 	g := &Game{
-		c:    c,
-		w:    w,
-		ng:   1,
-		per:  10,
-		last: time.Now(),
+		c:      c,
+		w:      w,
+		canvas: newCanvas(c.hSize, c.vSize),
+		ng:     1,
+		per:    10,
+		last:   time.Now(),
 	}
 
 	ebiten.SetWindowSize(width, width)
@@ -75,36 +78,44 @@ func main() {
 }
 
 type Game struct {
-	img *ebiten.Image
-
-	count int
-	c     camera
-	w     world
+	count  int
+	c      camera
+	w      world
+	canvas canvas
 
 	ng   int
 	last time.Time
 	per  int
+
+	imgRw sync.RWMutex
 }
 
 func (g *Game) Update() error {
 	g.count++
-	if g.count%g.per == 0 {
-		elapsed := time.Now().Sub(g.last)
-		g.last = time.Now()
-		log.Printf("update took %dms avg with %d render goroutines", int(elapsed.Milliseconds())/g.per, g.ng)
-		g.ng++
+
+	if g.count == 1 {
+		go func() {
+			for {
+				pi := g.c.pixelChan(g.w, runtime.NumCPU())
+				for p := range pi {
+					// todo buffer locally and lock less
+					g.imgRw.Lock()
+					g.canvas.setPixel(p.x, p.y, p.c)
+					g.imgRw.Unlock()
+				}
+				g.c.transform = g.c.transform.mulX4Matrix(rotateY(math.Pi / 30))
+			}
+		}()
 	}
-	g.c.transform = g.c.transform.mulX4Matrix(rotateY(math.Pi / 10))
-	g.img = ebiten.NewImageFromImage(g.c.render(g.w, g.ng).toImage())
+
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	if g.img == nil {
-		return
-	}
+	g.imgRw.Lock()
+	defer g.imgRw.Unlock()
 	op := &ebiten.DrawImageOptions{}
-	screen.DrawImage(g.img, op)
+	screen.DrawImage(ebiten.NewImageFromImage(g.canvas.toImage()), op)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

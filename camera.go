@@ -73,3 +73,43 @@ func (c camera) render(w world, numGoRoutines int) canvas {
 	wg.Wait()
 	return image
 }
+
+type pixelInfo struct {
+	x int
+	y int
+	c color
+}
+
+func (c camera) pixelChan(w world, numGoRoutines int) <-chan pixelInfo {
+	pi := make(chan pixelInfo, c.hSize*c.vSize)
+
+	go func() {
+		wg := sync.WaitGroup{}
+		pixelsPerWorker := (c.hSize * c.vSize) / numGoRoutines
+		for i := 0; i < c.hSize*c.vSize; i += pixelsPerWorker {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				for j := i; j < i+pixelsPerWorker && j < c.hSize*c.vSize; j++ {
+					x := j % c.vSize
+					y := j / c.vSize
+
+					r := c.rayForPixel(x, y)
+					c := w.colorAt(r)
+
+					pi <- pixelInfo{
+						x: x,
+						y: y,
+						c: c,
+					}
+
+				}
+
+			}(i)
+		}
+		wg.Wait()
+		close(pi)
+	}()
+
+	return pi
+}
