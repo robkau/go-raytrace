@@ -96,3 +96,46 @@ func Test_RayIntersectionBehind_Color(t *testing.T) {
 
 	assert.Equal(t, w.objects[1].m.color, c)
 }
+
+func Test_NoShadow(t *testing.T) {
+	w := defaultWorld()
+	p := newPoint(0, 10, 0)
+
+	assert.False(t, w.isShadowed(p))
+}
+
+func Test_NoShadow_LightInBetween(t *testing.T) {
+	w := defaultWorld()
+	p := newPoint(10, -10, 10)
+
+	assert.True(t, w.isShadowed(p))
+}
+
+func Test_NoShadow_ObjectBehindLight(t *testing.T) {
+	w := defaultWorld()
+	p := newPoint(-20, 20, -20)
+
+	assert.False(t, w.isShadowed(p))
+}
+
+func Test_NoShadow_ObjectBehindPoint(t *testing.T) {
+	w := defaultWorld()
+	p := newPoint(-2, 2, -2)
+
+	assert.False(t, w.isShadowed(p))
+}
+
+func Test_ShadeHit_HasShadow(t *testing.T) {
+	w := newWorld()
+	w.addLight(newPointLight(newPoint(0, 0, -10), color{1, 1, 1}))
+	s1 := newSphere()
+	w.addObject(s1)
+	s2 := newSphereWith(translate(0, 0, 10))
+	w.addObject(s2)
+	r := rayWith(newPoint(0, 0, 5), newVector(0, 0, 1))
+	i := newIntersection(4, s2)
+	comps := i.compute(r)
+	c := w.shadeHit(comps)
+
+	assert.Equal(t, color{0.1, 0.1, 0.1}, c)
+}

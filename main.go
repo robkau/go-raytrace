@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	width = 300
+	width = 100
 )
 
 func main() {
@@ -103,7 +103,9 @@ func (g *Game) Update() error {
 					g.canvas.setPixel(p.x, p.y, p.c)
 					g.imgRw.Unlock()
 				}
+				g.imgRw.Lock()
 				g.c.transform = g.c.transform.mulX4Matrix(rotateY(math.Pi / 30))
+				g.imgRw.Unlock()
 			}
 		}()
 	}

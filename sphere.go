@@ -15,9 +15,9 @@ func newSphere() sphere {
 }
 
 func newSphereWith(t x4Matrix) sphere {
-	return sphere{
-		t: t,
-	}
+	s := newSphere()
+	s.t = t
+	return s
 }
 
 func (s sphere) setTransform(t x4Matrix) sphere {

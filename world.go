@@ -49,7 +49,12 @@ func (w *world) intersect(r ray) intersections {
 }
 
 func (w *world) shadeHit(c intersectionComputed) color {
-	return lighting(c.object.m, w.lightSources[0], c.point, c.eyev, c.normalv)
+	col := color{}
+	for _, l := range w.lightSources {
+		col = col.add(lighting(c.object.m, l, c.overPoint, c.eyev, c.normalv, w.isShadowed(c.overPoint)))
+	}
+
+	return col
 }
 
 func (w *world) colorAt(r ray) color {
@@ -61,4 +66,22 @@ func (w *world) colorAt(r ray) color {
 
 	cs := i.compute(r)
 	return w.shadeHit(cs)
+}
+
+func (w *world) isShadowed(p tuple) bool {
+	for _, l := range w.lightSources {
+		v := l.position.sub(p)
+		distance := v.mag()
+		direction := v.normalize()
+
+		r := rayWith(p, direction)
+		intersections := w.intersect(r)
+		h, ok := intersections.hit()
+		if ok && h.t < distance {
+			return true
+		} else {
+			continue
+		}
+	}
+	return false
 }

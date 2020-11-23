@@ -15,7 +15,7 @@ func newPointLight(p tuple, i color) pointLight {
 }
 
 // lighting calculates Phong lighting
-func lighting(m material, l pointLight, p tuple, eyev tuple, nv tuple) color {
+func lighting(m material, l pointLight, p tuple, eyev tuple, nv tuple, shaded bool) color {
 	effectiveColor := m.color.mul(l.intensity)
 	lightv := l.position.sub(p).normalize()
 	ambient := effectiveColor.mulBy(m.ambient)
@@ -40,5 +40,9 @@ func lighting(m material, l pointLight, p tuple, eyev tuple, nv tuple) color {
 		}
 	}
 
-	return ambient.add(diffuse).add(specular)
+	if shaded {
+		return ambient
+	} else {
+		return ambient.add(diffuse).add(specular)
+	}
 }

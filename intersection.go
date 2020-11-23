@@ -12,12 +12,13 @@ func newIntersection(t float64, o sphere) intersection {
 }
 
 type intersectionComputed struct {
-	t       float64
-	object  sphere
-	inside  bool
-	point   tuple
-	eyev    tuple
-	normalv tuple
+	t         float64
+	object    sphere
+	inside    bool
+	point     tuple
+	overPoint tuple
+	eyev      tuple
+	normalv   tuple
 }
 
 func (i intersection) compute(r ray) intersectionComputed {
@@ -32,6 +33,9 @@ func (i intersection) compute(r ray) intersectionComputed {
 		c.inside = true
 		c.normalv = c.normalv.neg()
 	}
+
+	c.overPoint = c.point.add(c.normalv.mul(floatComparisonEpsilon))
+
 	return c
 }
 
