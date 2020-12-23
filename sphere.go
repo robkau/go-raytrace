@@ -20,23 +20,19 @@ func newSphereWith(t x4Matrix) sphere {
 	return s
 }
 
-func (s sphere) setTransform(t x4Matrix) sphere {
-	s.t = t
-	return s
+func (s sphere) normalAt(p tuple) tuple {
+	return normalAt(p, s.t, s.localNormalAt)
 }
 
-func (s sphere) normalAt(p tuple) tuple {
-	objectPoint := s.t.invert().mulTuple(p)
-	objectNormal := objectPoint.sub(newPoint(0, 0, 0))
-	worldNormal := s.t.invert().transpose().mulTuple(objectNormal)
-	worldNormal.c = vector
-	return worldNormal.normalize()
+func (s sphere) localNormalAt(p tuple) tuple {
+	return p.sub(newPoint(0, 0, 0))
 }
 
 func (s sphere) intersect(r ray) intersections {
-	// apply inverse sphere transformation onto ray
-	r = r.transform(s.t.invert())
+	return intersect(r, s.t, s.localIntersect)
+}
 
+func (s sphere) localIntersect(r ray) intersections {
 	sr := r.origin.sub(newPoint(0, 0, 0))
 	a := r.direction.dot(r.direction)
 	b := 2 * r.direction.dot(sr)
@@ -58,4 +54,22 @@ func (s sphere) intersect(r ray) intersections {
 			o: s,
 		},
 	)
+}
+
+func (s sphere) getTransform() x4Matrix {
+	return s.t
+}
+
+func (s sphere) setTransform(m x4Matrix) shape {
+	s.t = m
+	return s
+}
+
+func (s sphere) getMaterial() material {
+	return s.m
+}
+
+func (s sphere) setMaterial(m material) shape {
+	s.m = m
+	return s
 }

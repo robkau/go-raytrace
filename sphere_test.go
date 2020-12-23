@@ -18,11 +18,11 @@ func Test_NewSphere_HasDefaultMaterial(t *testing.T) {
 }
 
 func Test_Sphere_SetTransform(t *testing.T) {
-	s := newSphere()
+	var s shape = newSphere()
 	tr := translate(2, 3, 4)
 	s = s.setTransform(tr)
 
-	assert.Equal(t, tr, s.t)
+	assert.Equal(t, tr, s.getTransform())
 }
 
 func Test_Sphere_SetMaterial(t *testing.T) {

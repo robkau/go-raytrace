@@ -4,16 +4,16 @@ import "sort"
 
 type intersection struct {
 	t float64
-	o sphere
+	o shape
 }
 
-func newIntersection(t float64, o sphere) intersection {
+func newIntersection(t float64, o shape) intersection {
 	return intersection{t, o}
 }
 
 type intersectionComputed struct {
 	t         float64
-	object    sphere
+	object    shape
 	inside    bool
 	point     tuple
 	overPoint tuple

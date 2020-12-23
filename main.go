@@ -15,36 +15,44 @@ const (
 
 func main() {
 
-	floor := newSphere()
+	var floor shape = newPlane()
 	floor = floor.setTransform(scale(10, 0.01, 10))
-	floor.m.color = color{1, 0.9, 0.9}
-	floor.m.specular = 0
+	m := floor.getMaterial()
+	m.color = color{1, 0.9, 0.9}
+	m.specular = 0
+	floor = floor.setMaterial(m)
 
-	leftWall := newSphere()
-	leftWall = leftWall.setTransform(translate(0, 0, 5).mulX4Matrix(rotateY(-math.Pi / 4).mulX4Matrix(rotateX(math.Pi / 2).mulX4Matrix(scale(10, 0.01, 10)))))
-	leftWall.m = floor.m
+	var leftWall shape = newPlane()
+	leftWall = leftWall.setTransform(translate(0, 0, 5).mulX4Matrix(rotateY(-math.Pi / 4).mulX4Matrix(rotateX(math.Pi / 2))))
+	leftWall = leftWall.setMaterial(floor.getMaterial())
 
-	rightWall := newSphere()
-	rightWall = rightWall.setTransform(translate(0, 0, 5).mulX4Matrix(rotateY(math.Pi / 4).mulX4Matrix(rotateX(math.Pi / 2).mulX4Matrix(scale(10, 0.01, 10)))))
-	rightWall.m = floor.m
+	var rightWall shape = newPlane()
+	rightWall = rightWall.setTransform(translate(0, 0, 5).mulX4Matrix(rotateY(math.Pi / 4).mulX4Matrix(rotateX(math.Pi / 2))))
+	rightWall.setMaterial(floor.getMaterial())
 
-	middle := newSphere()
+	var middle shape = newSphere()
 	middle = middle.setTransform(translate(-0.5, 1, 0.5))
-	middle.m.color = color{0.1, 1, 0.5}
-	middle.m.diffuse = 0.7
-	middle.m.specular = 0.3
+	m = middle.getMaterial()
+	m.color = color{0.1, 1, 0.5}
+	m.diffuse = 0.7
+	m.specular = 0.3
+	middle = middle.setMaterial(m)
 
-	right := newSphere()
+	var right shape = newSphere()
 	right = right.setTransform(translate(1.5, 0.5, -0.5).mulX4Matrix(scale(0.5, 0.5, 0.5)))
-	right.m.color = color{0.5, 1, 0.1}
-	right.m.diffuse = 0.7
-	right.m.specular = 0.3
+	m = right.getMaterial()
+	m.color = color{0.5, 1, 0.1}
+	m.diffuse = 0.7
+	m.specular = 0.3
+	right = right.setMaterial(m)
 
-	left := newSphere()
+	var left shape = newSphere()
 	left = left.setTransform(translate(-1.5, 0.33, -0.75).mulX4Matrix(scale(0.33, 0.33, 0.33)))
-	left.m.color = color{1, 0.8, 0.1}
-	left.m.diffuse = 0.7
-	left.m.specular = 0.3
+	m = left.getMaterial()
+	m.color = color{1, 0.8, 0.1}
+	m.diffuse = 0.7
+	m.specular = 0.3
+	left = left.setMaterial(m)
 
 	w := newWorld()
 	w.addObject(floor)
@@ -99,6 +107,7 @@ func (g *Game) Update() error {
 				pi := g.c.pixelChan(g.w, runtime.NumCPU())
 				for p := range pi {
 					// todo buffer locally and lock less
+					// maybe maintain two canvases. update a different one each frame. swap which canvas to display each frame.
 					g.imgRw.Lock()
 					g.canvas.setPixel(p.x, p.y, p.c)
 					g.imgRw.Unlock()

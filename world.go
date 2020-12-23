@@ -1,13 +1,13 @@
 package main
 
 type world struct {
-	objects      []sphere
+	objects      []shape
 	lightSources []pointLight
 }
 
 func newWorld() world {
 	return world{
-		objects:      []sphere{},
+		objects:      []shape{},
 		lightSources: []pointLight{},
 	}
 }
@@ -15,10 +15,12 @@ func newWorld() world {
 func defaultWorld() world {
 	w := newWorld()
 
-	s := newSphere()
-	s.m.color = color{0.8, 1.0, 0.6}
-	s.m.diffuse = 0.7
-	s.m.specular = 0.2
+	var s shape = newSphere()
+	m := s.getMaterial()
+	m.color = color{0.8, 1.0, 0.6}
+	m.diffuse = 0.7
+	m.specular = 0.2
+	s = s.setMaterial(m)
 	w.addObject(s)
 
 	s = newSphere()
@@ -31,7 +33,7 @@ func defaultWorld() world {
 	return w
 }
 
-func (w *world) addObject(s sphere) {
+func (w *world) addObject(s shape) {
 	w.objects = append(w.objects, s)
 }
 
@@ -51,7 +53,7 @@ func (w *world) intersect(r ray) intersections {
 func (w *world) shadeHit(c intersectionComputed) color {
 	col := color{}
 	for _, l := range w.lightSources {
-		col = col.add(lighting(c.object.m, l, c.overPoint, c.eyev, c.normalv, w.isShadowed(c.overPoint)))
+		col = col.add(lighting(c.object.getMaterial(), l, c.overPoint, c.eyev, c.normalv, w.isShadowed(c.overPoint)))
 	}
 
 	return col

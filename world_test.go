@@ -19,7 +19,7 @@ func Test_DefaultWorld(t *testing.T) {
 	sA.m.color = color{0.8, 1.0, 0.6}
 	sA.m.diffuse = 0.7
 	sA.m.specular = 0.2
-	sB := newSphere()
+	var sB shape = newSphere()
 	sB = sB.setTransform(scale(0.5, 0.5, 0.5))
 
 	assert.Len(t, w.objects, 2)
@@ -87,14 +87,18 @@ func Test_RayHit_Color(t *testing.T) {
 
 func Test_RayIntersectionBehind_Color(t *testing.T) {
 	w := defaultWorld()
-	w.objects[0].m.ambient = 1
-	w.objects[1].m.ambient = 1
+	m := w.objects[0].getMaterial()
+	m.ambient = 1
+	w.objects[0] = w.objects[0].setMaterial(m)
+	m = w.objects[1].getMaterial()
+	m.ambient = 1
+	w.objects[1] = w.objects[1].setMaterial(m)
 
 	r := rayWith(newPoint(0, 0, 0.75), newVector(0, 0, -1))
 
 	c := w.colorAt(r)
 
-	assert.Equal(t, w.objects[1].m.color, c)
+	assert.Equal(t, w.objects[1].getMaterial().color, c)
 }
 
 func Test_NoShadow(t *testing.T) {
