@@ -9,6 +9,7 @@ type shape interface {
 	setMaterial(material) shape
 }
 
+// invert ray from object's transformation matrix then call shape-specific normal logic
 func normalAt(p tuple, t x4Matrix, lnaf func(tuple) tuple) tuple {
 	localPoint := t.invert().mulTuple(p)
 	localNormal := lnaf(localPoint)
@@ -17,6 +18,7 @@ func normalAt(p tuple, t x4Matrix, lnaf func(tuple) tuple) tuple {
 	return worldNormal.normalize()
 }
 
+// invert ray from object's transformation matrix then call shape-specific intersection logic
 func intersect(r ray, t x4Matrix, lif func(ray) intersections) intersections {
 	lr := r.transform(t.invert())
 	return lif(lr)
