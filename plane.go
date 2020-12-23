@@ -14,7 +14,7 @@ func newPlane() plane {
 	}
 }
 
-func newplaneWith(t x4Matrix) plane {
+func newPlaneWith(t x4Matrix) plane {
 	p := newPlane()
 	p.t = t
 	return p
