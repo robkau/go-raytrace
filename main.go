@@ -24,26 +24,26 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	var floor shapes.Shape = shapes.NewPlane()
-	//floor = floor.SetTransform(geom.Scale(4, 4, 4))
 	m := floor.GetMaterial()
 	m.Color = colors.NewColor(1, 0.9, 0.9)
-
+	// alternating stripe patterns
 	p1 := patterns.NewStripePattern(patterns.NewSolidColorPattern(colors.RandomAnyColor()), patterns.NewSolidColorPattern(colors.RandomAnyColor()))
 	p1.SetTransform(geom.RotateY(math.Pi / 2).MulX4Matrix(geom.Scale(0.2, 0.2, 0.2)))
-
 	p2 := patterns.NewStripePattern(patterns.NewSolidColorPattern(colors.RandomAnyColor()), patterns.NewSolidColorPattern(colors.RandomAnyColor()))
 	p2.SetTransform(geom.Scale(0.2, 0.2, 0.2))
-
-	p3 := patterns.NewCheckerPattern(p1, p2)
-
-	m.Pattern = p3
+	// with perlin displacement in a checkerboard
+	p3 := patterns.NewCheckerPattern(patterns.NewPerlinPattern(p1, 0.3, 0.2, 3), patterns.NewPerlinPattern(p2, 0.3, 0.7, 7))
+	// with spraypaint style
+	p4 := patterns.NewSprayPaintPattern(p3, 0.04)
+	m.Pattern = p4
 	m.Specular = 0.2
 	floor = floor.SetMaterial(m)
 
 	var middle shapes.Shape = shapes.NewSphere()
 	middle = middle.SetTransform(geom.Translate(-0.5, 1, 0.5))
 	m = middle.GetMaterial()
-	m.Pattern = patterns.NewPositionAsColorPattern()
+	m.Pattern = patterns.NewPerlinPattern(patterns.NewStripePattern(patterns.NewSolidColorPattern(colors.RandomColor()), patterns.NewSolidColorPattern(colors.RandomAnyColor())), 0.5, 0.6, 4)
+	m.Pattern.SetTransform(geom.RotateX(math.Pi / 3).MulX4Matrix(geom.Scale(0.3, 0.3, 0.3)))
 	m.Color = colors.NewColor(0.1, 1, 0.5)
 	m.Diffuse = 0.7
 	m.Specular = 0.3
@@ -55,6 +55,8 @@ func main() {
 	m.Color = colors.NewColor(0.5, 1, 0.1)
 	m.Diffuse = 0.7
 	m.Specular = 0.3
+	m.Pattern = patterns.NewPerlinPattern(patterns.NewStripePattern(patterns.NewSolidColorPattern(colors.RandomColor()), patterns.NewSolidColorPattern(colors.RandomAnyColor())), 0.4, 0.7, 7)
+	m.Pattern.SetTransform(geom.RotateY(math.Pi / 3).MulX4Matrix(geom.Scale(0.4, 0.4, 0.4)))
 	right = right.SetMaterial(m)
 
 	var left shapes.Shape = shapes.NewSphere()
@@ -63,6 +65,8 @@ func main() {
 	m.Color = colors.NewColor(1, 0.8, 0.1)
 	m.Diffuse = 0.7
 	m.Specular = 0.3
+	m.Pattern = patterns.NewPerlinPattern(patterns.NewStripePattern(patterns.NewSolidColorPattern(colors.RandomColor()), patterns.NewSolidColorPattern(colors.RandomAnyColor())), 0.3, 0.8, 3)
+	m.Pattern.SetTransform(geom.RotateZ(math.Pi / 3).MulX4Matrix(geom.Scale(0.5, 0.5, 0.5)))
 	left = left.SetMaterial(m)
 
 	w := view.NewWorld()
@@ -88,6 +92,7 @@ func main() {
 	}
 
 	go func() {
+		// start rendering in background. draw one frame to canvas
 		pc := g.c.PixelChan(g.w, 8)
 		for p := range pc {
 			g.canvas.SetPixel(p.X, p.Y, p.C)
@@ -130,6 +135,7 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	// render frame in progress
 	op := &ebiten.DrawImageOptions{}
 	screen.DrawImage(ebiten.NewImageFromImage(g.canvas.ToImage()), op)
 }
