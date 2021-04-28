@@ -7,27 +7,23 @@ import (
 
 type BlendPattern struct {
 	basePattern
-	a Pattern
-	b Pattern
+	a         Pattern
+	b         Pattern
+	intensity float64
 }
 
-// todo unit test me
-
-func NewBlendPattern(a, b Pattern) *BlendPattern {
+func NewBlendPattern(a, b Pattern, i float64) *BlendPattern {
 	return &BlendPattern{
 		basePattern: newBasePattern(),
 		a:           a,
 		b:           b,
+		intensity:   i,
 	}
 }
 
-func NewBlendPatternC(a, b Pattern) Pattern {
-	return NewBlendPattern(a, b)
-}
-
 func (p *BlendPattern) ColorAt(t geom.Tuple) colors.Color {
-	added := p.a.ColorAt(t).Add(p.b.ColorAt(t))
-	return added.MulBy(0.5)
+	added := p.a.ColorAtShape(p.t, t).Add(p.b.ColorAtShape(p.t, t))
+	return added.MulBy(p.intensity)
 }
 
 func (p *BlendPattern) ColorAtShape(st geom.X4Matrix, t geom.Tuple) colors.Color {

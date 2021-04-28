@@ -24,18 +24,21 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	var floor shapes.Shape = shapes.NewPlane()
-	floor = floor.SetTransform(geom.Scale(10, 0.01, 10))
+	//floor = floor.SetTransform(geom.Scale(4, 4, 4))
 	m := floor.GetMaterial()
 	m.Color = colors.NewColor(1, 0.9, 0.9)
-	m.Pattern = patterns.NewGradientPattern(patterns.NewSolidColorPattern(colors.NewColor(1, 0.2, 0.4)), patterns.NewPositionAsColorPattern())
-	m.Specular = 0
+
+	p1 := patterns.NewStripePattern(patterns.NewSolidColorPattern(colors.RandomAnyColor()), patterns.NewSolidColorPattern(colors.RandomAnyColor()))
+	p1.SetTransform(geom.RotateY(math.Pi / 2).MulX4Matrix(geom.Scale(0.2, 0.2, 0.2)))
+
+	p2 := patterns.NewStripePattern(patterns.NewSolidColorPattern(colors.RandomAnyColor()), patterns.NewSolidColorPattern(colors.RandomAnyColor()))
+	p2.SetTransform(geom.Scale(0.2, 0.2, 0.2))
+
+	p3 := patterns.NewCheckerPattern(p1, p2)
+
+	m.Pattern = p3
+	m.Specular = 0.2
 	floor = floor.SetMaterial(m)
-
-	var leftWall shapes.Shape = shapes.NewPlane()
-	leftWall = leftWall.SetTransform(geom.Translate(0, 0, 5).MulX4Matrix(geom.RotateY(-math.Pi / 4).MulX4Matrix(geom.RotateX(math.Pi / 2))))
-
-	var rightWall shapes.Shape = shapes.NewPlane()
-	rightWall = rightWall.SetTransform(geom.Translate(0, 0, 5).MulX4Matrix(geom.RotateY(math.Pi / 4).MulX4Matrix(geom.RotateX(math.Pi / 2))))
 
 	var middle shapes.Shape = shapes.NewSphere()
 	middle = middle.SetTransform(geom.Translate(-0.5, 1, 0.5))
@@ -64,8 +67,6 @@ func main() {
 
 	w := view.NewWorld()
 	w.AddObject(floor)
-	w.AddObject(rightWall)
-	w.AddObject(leftWall)
 	w.AddObject(middle)
 	w.AddObject(right)
 	w.AddObject(left)
@@ -73,7 +74,7 @@ func main() {
 	w.AddLight(shapes.NewPointLight(geom.NewPoint(-10, 10, -10), colors.White()))
 
 	c := view.NewCamera(width, width, math.Pi/3)
-	c.Transform = geom.ViewTransform(geom.NewPoint(0, 1.5, -3),
+	c.Transform = geom.ViewTransform(geom.NewPoint(2, 4, -3),
 		geom.NewPoint(0, 1, 0),
 		geom.NewVector(0, 1, 0))
 
@@ -87,14 +88,10 @@ func main() {
 	}
 
 	go func() {
-		for {
-			pc := g.c.PixelChan(g.w, 8)
-			for p := range pc {
-				g.canvas.SetPixel(p.X, p.Y, p.C)
-			}
-			g.c.Transform = g.c.Transform.MulX4Matrix(geom.RotateY(math.Pi / 30))
+		pc := g.c.PixelChan(g.w, 8)
+		for p := range pc {
+			g.canvas.SetPixel(p.X, p.Y, p.C)
 		}
-
 	}()
 
 	f, err := os.Open("intro.wav")

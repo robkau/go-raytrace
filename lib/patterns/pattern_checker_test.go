@@ -13,6 +13,10 @@ func Test_CheckerPattern_RepeatsX(t *testing.T) {
 	assert.Equal(t, colors.White(), p.ColorAt(geom.NewPoint(0, 0, 0)))
 	assert.Equal(t, colors.White(), p.ColorAt(geom.NewPoint(0.99, 0, 0)))
 	assert.Equal(t, colors.Black(), p.ColorAt(geom.NewPoint(1.01, 0, 0)))
+
+	assert.Equal(t, colors.White(), p.ColorAt(geom.NewPoint(0, 0, 4)))
+	assert.Equal(t, colors.White(), p.ColorAt(geom.NewPoint(0.99, 0, 4)))
+	assert.Equal(t, colors.Black(), p.ColorAt(geom.NewPoint(1.01, 0, 4)))
 }
 
 func Test_CheckerPattern_RepeatsY(t *testing.T) {

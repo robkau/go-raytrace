@@ -67,7 +67,7 @@ func Test_RenderWorld(t *testing.T) {
 	up := geom.NewVector(0, 1, 0)
 	c.Transform = geom.ViewTransform(from, to, up)
 
-	image := c.render(w, 1)
+	image := c.Render(w, 1)
 
 	assert.Equal(t, colors.NewColor(0.38066, 0.47583, 0.2855), image.getPixel(5, 5).RoundTo(5))
 }

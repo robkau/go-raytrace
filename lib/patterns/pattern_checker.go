@@ -20,15 +20,11 @@ func NewCheckerPattern(a, b Pattern) *CheckerPattern {
 	}
 }
 
-func NewCheckerPatternC(a, b Pattern) Pattern {
-	return NewCheckerPattern(a, b)
-}
-
 func (p *CheckerPattern) ColorAt(t geom.Tuple) colors.Color {
-	if int(math.Abs(t.X)+math.Abs(t.Y)+math.Abs(t.Z))%2 == 0 {
-		return p.a.ColorAt(t)
+	if int(math.Floor(t.X)+math.Floor(t.Y)+math.Floor(t.Z))%2 == 0 {
+		return p.a.ColorAtShape(p.t, t)
 	}
-	return p.b.ColorAt(t)
+	return p.b.ColorAtShape(p.t, t)
 }
 
 func (p *CheckerPattern) ColorAtShape(st geom.X4Matrix, t geom.Tuple) colors.Color {
