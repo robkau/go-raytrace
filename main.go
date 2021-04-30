@@ -36,7 +36,9 @@ func main() {
 	// with spraypaint style
 	p4 := patterns.NewSprayPaintPattern(p3, 0.04)
 	m.Pattern = p4
+	m.Shininess = 1
 	m.Specular = 0.2
+	m.Reflective = 0.35
 	floor = floor.SetMaterial(m)
 
 	var middle shapes.Shape = shapes.NewSphere()
@@ -93,7 +95,7 @@ func main() {
 
 	go func() {
 		// start rendering in background. draw one frame to canvas
-		pc := g.c.PixelChan(g.w, 8)
+		pc := g.c.PixelChan(g.w, 4, 8)
 		for p := range pc {
 			g.canvas.SetPixel(p.X, p.Y, p.C)
 		}

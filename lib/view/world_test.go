@@ -5,6 +5,7 @@ import (
 	"go-raytrace/lib/colors"
 	"go-raytrace/lib/geom"
 	"go-raytrace/lib/shapes"
+	"math"
 	"testing"
 )
 
@@ -52,7 +53,7 @@ func Test_Shading_Intersection(t *testing.T) {
 
 	i := shapes.NewIntersection(4, s)
 	c := i.Compute(r)
-	cs := w.ShadeHit(c).RoundTo(5)
+	cs := w.ShadeHit(c, 0).RoundTo(5)
 
 	assert.Equal(t, colors.NewColor(0.38066, 0.47583, 0.2855), cs)
 }
@@ -65,7 +66,7 @@ func Test_Shading_Intersection_Inside(t *testing.T) {
 
 	i := shapes.NewIntersection(0.5, s)
 	c := i.Compute(r)
-	cs := w.ShadeHit(c).RoundTo(5)
+	cs := w.ShadeHit(c, 0).RoundTo(5)
 
 	assert.Equal(t, colors.NewColor(0.90498, 0.90498, 0.90498), cs)
 }
@@ -74,7 +75,7 @@ func Test_RayMissed_Color(t *testing.T) {
 	w := defaultWorld()
 	r := geom.RayWith(geom.NewPoint(0, 0, -5), geom.NewVector(0, 1, 0))
 
-	c := w.ColorAt(r)
+	c := w.ColorAt(r, 0)
 
 	assert.Equal(t, colors.Black(), c)
 }
@@ -83,7 +84,7 @@ func Test_RayHit_Color(t *testing.T) {
 	w := defaultWorld()
 	r := geom.RayWith(geom.NewPoint(0, 0, -5), geom.NewVector(0, 0, 1))
 
-	c := w.ColorAt(r).RoundTo(5)
+	c := w.ColorAt(r, 0).RoundTo(5)
 
 	assert.Equal(t, colors.NewColor(0.38066, 0.47583, 0.2855), c)
 }
@@ -99,7 +100,7 @@ func Test_RayIntersectionBehind_Color(t *testing.T) {
 
 	r := geom.RayWith(geom.NewPoint(0, 0, 0.75), geom.NewVector(0, 0, -1))
 
-	c := w.ColorAt(r)
+	c := w.ColorAt(r, 0)
 
 	assert.Equal(t, w.objects[1].GetMaterial().Color, c)
 }
@@ -142,7 +143,92 @@ func Test_ShadeHit_HasShadow(t *testing.T) {
 	r := geom.RayWith(geom.NewPoint(0, 0, 5), geom.NewVector(0, 0, 1))
 	i := shapes.NewIntersection(4, s2)
 	comps := i.Compute(r)
-	c := w.ShadeHit(comps)
+	c := w.ShadeHit(comps, 0)
 
 	assert.Equal(t, colors.NewColor(0.1, 0.1, 0.1), c)
+}
+
+func Test_NonReflectiveMaterial_ReflectedColor(t *testing.T) {
+	w := defaultWorld()
+	r := geom.RayWith(geom.NewPoint(0, 0, 0), geom.NewVector(0, 0, 1))
+	s := w.objects[1]
+	m := s.GetMaterial()
+	m.Ambient = 1
+	s.SetMaterial(m)
+	i := shapes.NewIntersection(1, s)
+	comps := i.Compute(r)
+	c := w.ReflectedColor(comps, 4)
+
+	// no reflection
+	assert.Equal(t, colors.NewColor(0.0, 0.0, 0.0), c)
+}
+
+func Test_ReflectiveMaterial_ReflectedColor(t *testing.T) {
+	w := defaultWorld()
+	r := geom.RayWith(geom.NewPoint(0, 0, -3), geom.NewVector(0, -math.Sqrt(2)/2, math.Sqrt(2)/2))
+	s := shapes.NewPlaneWith(geom.Translate(0, -1, 0))
+	m := s.GetMaterial()
+	m.Reflective = 0.5
+	ss := s.SetMaterial(m)
+	w.AddObject(ss)
+	i := shapes.NewIntersection(math.Sqrt(2), ss)
+	comps := i.Compute(r)
+	c := w.ReflectedColor(comps, 4)
+
+	// reflected
+	assert.Equal(t, colors.NewColor(0.19033, 0.23791, 0.14275), c.RoundTo(5))
+}
+
+func Test_ReflectiveMaterial_ReflectedColor_ShadeHit(t *testing.T) {
+	w := defaultWorld()
+	r := geom.RayWith(geom.NewPoint(0, 0, -3), geom.NewVector(0, -math.Sqrt(2)/2, math.Sqrt(2)/2))
+	s := shapes.NewPlaneWith(geom.Translate(0, -1, 0))
+	m := s.GetMaterial()
+	m.Reflective = 0.5
+	ss := s.SetMaterial(m)
+	w.AddObject(ss)
+	i := shapes.NewIntersection(math.Sqrt(2), ss)
+	comps := i.Compute(r)
+	c := w.ShadeHit(comps, 4)
+
+	// reflected
+	assert.Equal(t, colors.NewColor(0.87676, 0.92434, 0.82917), c.RoundTo(5))
+}
+
+func Test_ReflectiveMaterial_ReflectedColor_ShadeHit_NoReflectionsRemaining(t *testing.T) {
+	w := defaultWorld()
+	r := geom.RayWith(geom.NewPoint(0, 0, -3), geom.NewVector(0, -math.Sqrt(2)/2, math.Sqrt(2)/2))
+	s := shapes.NewPlaneWith(geom.Translate(0, -1, 0))
+	m := s.GetMaterial()
+	m.Reflective = 0.5
+	ss := s.SetMaterial(m)
+	w.AddObject(ss)
+	i := shapes.NewIntersection(math.Sqrt(2), ss)
+	comps := i.Compute(r)
+	c := w.ReflectedColor(comps, 0)
+
+	// not reflected
+	assert.Equal(t, colors.NewColor(0, 0, 0), c)
+}
+
+func Test_MutuallyReflecting_InfiniteRecursion(t *testing.T) {
+	w := NewWorld()
+	w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 0, 0), colors.NewColor(1, 1, 1)))
+
+	lower := shapes.NewPlaneWith(geom.Translate(0, -1, 0))
+	m := lower.GetMaterial()
+	m.Reflective = 1
+	lowerS := lower.SetMaterial(m)
+	w.AddObject(lowerS)
+
+	upper := shapes.NewPlaneWith(geom.Translate(0, 1, 0))
+	m = upper.GetMaterial()
+	m.Reflective = 1
+	upperS := upper.SetMaterial(m)
+	w.AddObject(upperS)
+
+	r := geom.RayWith(geom.NewPoint(0, 0, 0), geom.NewVector(0, 1, 0))
+
+	// just testing that the call finishes
+	assert.NotPanics(t, func() { w.ColorAt(r, 5) })
 }

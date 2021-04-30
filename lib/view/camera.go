@@ -53,7 +53,7 @@ func (c Camera) rayForPixel(px int, py int) geom.Ray {
 	return geom.RayWith(origin, direction)
 }
 
-func (c Camera) Render(w World, numGoRoutines int) Canvas {
+func (c Camera) Render(w World, rayBounces int, numGoRoutines int) Canvas {
 	image := NewCanvas(c.HSize, c.VSize)
 
 	wg := sync.WaitGroup{}
@@ -67,7 +67,7 @@ func (c Camera) Render(w World, numGoRoutines int) Canvas {
 				y := j / c.VSize
 
 				r := c.rayForPixel(x, y)
-				c := w.ColorAt(r)
+				c := w.ColorAt(r, rayBounces)
 				image.SetPixel(x, y, c)
 			}
 		}(i)
@@ -83,7 +83,7 @@ type PixelInfo struct {
 	LastInFrame bool
 }
 
-func (c Camera) PixelChan(w World, numGoRoutines int) <-chan PixelInfo {
+func (c Camera) PixelChan(w World, rayBounces int, numGoRoutines int) <-chan PixelInfo {
 	pi := make(chan PixelInfo, numGoRoutines*8)
 
 	cs := &coordinateSupplier{
@@ -100,7 +100,7 @@ func (c Camera) PixelChan(w World, numGoRoutines int) <-chan PixelInfo {
 				defer wg.Done()
 				for x, y := cs.next(); x != nextDone && y != nextDone; x, y = cs.next() {
 					r := c.rayForPixel(x, y)
-					c := w.ColorAt(r)
+					c := w.ColorAt(r, rayBounces)
 
 					pi <- PixelInfo{
 						X: x,
@@ -123,7 +123,8 @@ type coordinateSupplier struct {
 	width  int
 	height int
 	done   bool
-	rw     sync.RWMutex
+	// todo replace with atomic mod
+	rw sync.RWMutex
 }
 
 const nextDone = -1

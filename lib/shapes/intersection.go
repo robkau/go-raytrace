@@ -22,6 +22,7 @@ type IntersectionComputed struct {
 	OverPoint geom.Tuple
 	Eyev      geom.Tuple
 	Normalv   geom.Tuple
+	Reflectv  geom.Tuple
 }
 
 func (i Intersection) Compute(r geom.Ray) IntersectionComputed {
@@ -37,6 +38,7 @@ func (i Intersection) Compute(r geom.Ray) IntersectionComputed {
 		c.Normalv = c.Normalv.Neg()
 	}
 
+	c.Reflectv = r.Direction.Reflect(c.Normalv)
 	c.OverPoint = c.point.Add(c.Normalv.Mul(geom.FloatComparisonEpsilon))
 
 	return c

@@ -3,6 +3,7 @@ package shapes
 import (
 	"github.com/stretchr/testify/assert"
 	"go-raytrace/lib/geom"
+	"math"
 	"testing"
 )
 
@@ -124,4 +125,16 @@ func Test_Compute_Inside(t *testing.T) {
 	assert.Equal(t, geom.NewVector(0, 0, -1), c.Eyev)
 	assert.True(t, c.inside)
 	assert.Equal(t, geom.NewVector(0, 0, -1), c.Normalv)
+}
+
+func Test_Compute_ReflectionVector(t *testing.T) {
+	r := geom.RayWith(geom.NewPoint(0, 1, -1), geom.NewVector(0, -math.Sqrt(2)/2, math.Sqrt(2)/2))
+	s := NewPlane()
+
+	i := NewIntersection(math.Sqrt(2), s)
+	c := i.Compute(r)
+
+	assert.Equal(t, i.T, c.t)
+	assert.Equal(t, i.o, c.Object)
+	assert.Equal(t, geom.NewVector(0, math.Sqrt(2)/2, math.Sqrt(2)/2), c.Reflectv)
 }

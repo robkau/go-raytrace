@@ -56,16 +56,35 @@ func (w *World) Intersect(r geom.Ray) shapes.Intersections {
 	return is
 }
 
-func (w *World) ShadeHit(c shapes.IntersectionComputed) colors.Color {
+func (w *World) ShadeHit(c shapes.IntersectionComputed, remaining int) colors.Color {
 	col := colors.NewColor(0, 0, 0)
 	for _, l := range w.lightSources {
 		col = col.Add(shapes.Lighting(c.Object.GetMaterial(), c.Object, l, c.OverPoint, c.Eyev, c.Normalv, w.IsShadowed(c.OverPoint)))
 	}
 
-	return col
+	reflected := w.ReflectedColor(c, remaining)
+
+	return col.Add(reflected)
 }
 
-func (w *World) ColorAt(r geom.Ray) colors.Color {
+func (w *World) ReflectedColor(c shapes.IntersectionComputed, remaining int) colors.Color {
+	col := colors.NewColor(0, 0, 0)
+
+	if remaining <= 0 {
+		return col
+	}
+
+	if c.Object.GetMaterial().Reflective == 0 {
+		return col
+	}
+
+	reflectRay := geom.RayWith(c.OverPoint, c.Reflectv)
+	col = w.ColorAt(reflectRay, remaining-1)
+
+	return col.MulBy(c.Object.GetMaterial().Reflective)
+}
+
+func (w *World) ColorAt(r geom.Ray, remaining int) colors.Color {
 	is := w.Intersect(r)
 	i, ok := is.Hit()
 	if !ok {
@@ -73,7 +92,7 @@ func (w *World) ColorAt(r geom.Ray) colors.Color {
 	}
 
 	cs := i.Compute(r)
-	return w.ShadeHit(cs)
+	return w.ShadeHit(cs, remaining)
 }
 
 func (w *World) IsShadowed(p geom.Tuple) bool {
