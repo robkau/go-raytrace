@@ -66,6 +66,12 @@ func (w *World) ShadeHit(c shapes.IntersectionComputed, remaining int) colors.Co
 	reflected := w.ReflectedColor(c, remaining)
 	refracted := w.RefractedColor(c, remaining)
 
+	m := c.Object.GetMaterial()
+	if m.Reflective > 0 && m.Transparency > 0 {
+		reflectance := c.Schlick()
+		return col.Add(reflected.MulBy(reflectance)).Add(refracted.MulBy(1 - reflectance))
+	}
+
 	return col.Add(reflected).Add(refracted)
 }
 

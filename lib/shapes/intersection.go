@@ -2,6 +2,7 @@ package shapes
 
 import (
 	"go-raytrace/lib/geom"
+	"math"
 	"sort"
 )
 
@@ -86,6 +87,24 @@ func (i Intersection) Compute(r geom.Ray, xs Intersections) IntersectionComputed
 	}
 
 	return c
+}
+
+func (ic IntersectionComputed) Schlick() float64 {
+	cos := ic.Eyev.Dot(ic.Normalv)
+
+	if ic.N1 > ic.N2 {
+		n := ic.N1 / ic.N2
+		sin2T := n * n * (1.0 - cos*cos)
+		if sin2T > 1 {
+			return 1
+		}
+
+		cosT := math.Sqrt(1.0 - sin2T)
+		cos = cosT
+	}
+
+	r0 := math.Pow((ic.N1-ic.N2)/(ic.N1+ic.N2), 2)
+	return r0 + (1-r0)*math.Pow(1-cos, 5)
 }
 
 type Intersections struct {

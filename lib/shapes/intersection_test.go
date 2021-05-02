@@ -2,6 +2,7 @@ package shapes
 
 import (
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go-raytrace/lib/geom"
 	"math"
 	"testing"
@@ -197,6 +198,46 @@ func Test_Compute_RefractionScene(t *testing.T) {
 		c := xs.I[i].Compute(r, xs)
 		assert.Equal(t, e[i].n1, c.N1)
 		assert.Equal(t, e[i].n2, c.N2)
-
 	}
+}
+
+func Test_Schlick_TotalInternalReflection(t *testing.T) {
+	s := NewGlassSphere()
+	r := geom.RayWith(geom.NewPoint(0, 0, math.Sqrt(2)/2), geom.NewVector(0, 1, 0))
+	xs := NewIntersections(
+		NewIntersection(-math.Sqrt(2)/2, s),
+		NewIntersection(math.Sqrt(2)/2, s),
+	)
+	c := xs.I[1].Compute(r, xs)
+
+	reflectance := c.Schlick()
+
+	require.Equal(t, 1.0, reflectance)
+}
+
+func Test_Schlick_PerpendicularAngle(t *testing.T) {
+	s := NewGlassSphere()
+	r := geom.RayWith(geom.NewPoint(0, 0, 0), geom.NewVector(0, 1, 0))
+	xs := NewIntersections(
+		NewIntersection(-1, s),
+		NewIntersection(1, s),
+	)
+	c := xs.I[1].Compute(r, xs)
+
+	reflectance := c.Schlick()
+
+	require.True(t, geom.AlmostEqual(0.04, reflectance))
+}
+
+func Test_Schlick_N2Larger(t *testing.T) {
+	s := NewGlassSphere()
+	r := geom.RayWith(geom.NewPoint(0, 0.99, -2), geom.NewVector(0, 0, 1))
+	xs := NewIntersections(
+		NewIntersection(1.8589, s),
+	)
+	c := xs.I[0].Compute(r, xs)
+
+	reflectance := c.Schlick()
+
+	require.Less(t, math.Abs(0.48873-reflectance), 0.000001)
 }

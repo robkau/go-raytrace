@@ -177,6 +177,35 @@ func Test_ShadeHit_TransparentMaterial(t *testing.T) {
 	assert.Equal(t, colors.NewColor(0.93643, 0.68643, 0.68643), c.RoundTo(5))
 }
 
+func Test_ShadeHit_TransparentAndReflectiveMaterial(t *testing.T) {
+	w := defaultWorld()
+
+	floor := shapes.NewPlaneWith(geom.Translate(0, -1, 0))
+	m := floor.GetMaterial()
+	m.Reflective = 0.5
+	m.Transparency = 0.5
+	m.RefractiveIndex = 1.5
+	floorShape := floor.SetMaterial(m)
+	w.AddObject(floorShape)
+
+	ball := shapes.NewSphereWith(geom.Translate(0, -3.5, -0.5))
+	m = floor.GetMaterial()
+	m.Ambient = 0.5
+	m.Color = colors.NewColor(1, 0, 0)
+	ballShape := ball.SetMaterial(m)
+	w.AddObject(ballShape)
+
+	r := geom.RayWith(geom.NewPoint(0, 0, -3), geom.NewVector(0, -math.Sqrt(2)/2, math.Sqrt(2)/2))
+	xs := shapes.NewIntersections(
+		shapes.NewIntersection(math.Sqrt(2), floorShape),
+	)
+
+	comps := xs.I[0].Compute(r, xs)
+	c := w.ShadeHit(comps, 5)
+
+	assert.Equal(t, colors.NewColor(0.93392, 0.69643, 0.69243), c.RoundTo(5))
+}
+
 func Test_NonReflectiveMaterial_ReflectedColor(t *testing.T) {
 	w := defaultWorld()
 	r := geom.RayWith(geom.NewPoint(0, 0, 0), geom.NewVector(0, 0, 1))

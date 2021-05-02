@@ -10,71 +10,61 @@ import (
 	"go-raytrace/lib/shapes"
 	"go-raytrace/lib/view"
 	"log"
-	"math"
 	"math/rand"
 	"os"
 	"time"
 )
 
 const (
-	width = 600
+	width = 555
 )
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	var floor shapes.Shape = shapes.NewPlane()
-	m := floor.GetMaterial()
-	m.Color = colors.NewColor(1, 0.9, 0.9)
-	// alternating stripe patterns
-	p1 := patterns.NewStripePattern(patterns.NewSolidColorPattern(colors.RandomAnyColor()), patterns.NewSolidColorPattern(colors.RandomAnyColor()))
-	p1.SetTransform(geom.RotateY(math.Pi / 2).MulX4Matrix(geom.Scale(0.2, 0.2, 0.2)))
-	p2 := patterns.NewStripePattern(patterns.NewSolidColorPattern(colors.RandomAnyColor()), patterns.NewSolidColorPattern(colors.RandomAnyColor()))
-	p2.SetTransform(geom.Scale(0.2, 0.2, 0.2))
-	// with perlin displacement in a checkerboard
-	p3 := patterns.NewCheckerPattern(patterns.NewPerlinPattern(p1, 0.3, 0.2, 3), patterns.NewPerlinPattern(p2, 0.3, 0.7, 7))
-	// with spraypaint style
-	p4 := patterns.NewSprayPaintPattern(p3, 0.04)
-	m.Pattern = p4
-	m.Shininess = 0.5
-	m.Specular = 0.2
-	m.Reflective = 0.35
-	floor = floor.SetMaterial(m)
+	var wall shapes.Shape = shapes.NewPlane()
+	m := wall.GetMaterial()
+	m.Pattern = patterns.NewSprayPaintPattern(patterns.NewCheckerPattern(patterns.NewSolidColorPattern(colors.NewColor(0.15, 0.15, 0.15)), patterns.NewSolidColorPattern(colors.NewColor(0.85, 0.85, 0.85))), 0.05)
+	m.Ambient = 0.8
+	m.Diffuse = 0.2
+	m.Specular = 0
+	wall = wall.SetMaterial(m)
+	wall = wall.SetTransform(geom.Translate(0, 0, 10).MulX4Matrix(geom.RotateX(1.5708)))
 
-	var middle shapes.Shape = shapes.NewSphere()
-	middle = middle.SetTransform(geom.Translate(-0.5, 1, 0.5))
-	m = middle.GetMaterial()
-	m.Pattern = patterns.NewPerlinPattern(patterns.NewStripePattern(patterns.NewSolidColorPattern(colors.RandomColor()), patterns.NewSolidColorPattern(colors.RandomAnyColor())), 0.5, 0.6, 4)
-	m.Pattern.SetTransform(geom.RotateX(math.Pi / 3).MulX4Matrix(geom.Scale(0.3, 0.3, 0.3)))
-	m.Color = colors.NewColor(0.1, 1, 0.5)
-	m.Diffuse = 0.7
-	m.Specular = 0.3
-	middle = middle.SetMaterial(m)
+	var ball shapes.Shape = shapes.NewGlassSphere()
+	m = ball.GetMaterial()
+	m.Color = colors.NewColor(1, 1, 1)
+	m.Diffuse = 0
+	m.Ambient = 0
+	m.Specular = 0.9
+	m.Shininess = 300
+	m.Transparency = 0.9
+	m.Reflective = 0.9
+	m.RefractiveIndex = 1.5
+	ball = ball.SetMaterial(m)
 
-	var right shapes.Shape = shapes.NewSphere()
-	right = right.SetTransform(geom.Translate(1.5, 0.5, -0.5).MulX4Matrix(geom.Scale(0.5, 0.5, 0.5)))
-	m = right.GetMaterial()
-	m.Color = colors.NewColor(0.5, 1, 0.1)
-	m.Diffuse = 0.7
-	m.Specular = 0.3
-	m.Pattern = patterns.NewPerlinPattern(patterns.NewStripePattern(patterns.NewSolidColorPattern(colors.RandomColor()), patterns.NewSolidColorPattern(colors.RandomAnyColor())), 0.4, 0.7, 7)
-	m.Pattern.SetTransform(geom.RotateY(math.Pi / 3).MulX4Matrix(geom.Scale(0.4, 0.4, 0.4)))
-	right = right.SetMaterial(m)
-
-	var left shapes.Shape = shapes.NewGlassSphere()
-	left = left.SetTransform(geom.Translate(-1.5, 0.33, -0.75).MulX4Matrix(geom.Scale(0.33, 0.33, 0.33)))
+	var center shapes.Shape = shapes.NewGlassSphere()
+	center = center.SetTransform(geom.Scale(0.5, 0.5, 0.5))
+	m = center.GetMaterial()
+	m.Color = colors.NewColor(1, 1, 1)
+	m.Diffuse = 0
+	m.Ambient = 0
+	m.Specular = 0.9
+	m.Shininess = 300
+	m.Transparency = 0.9
+	m.Reflective = 0.9
+	m.RefractiveIndex = 1.0000034
+	center = center.SetMaterial(m)
 
 	w := view.NewWorld()
-	w.AddObject(floor)
-	w.AddObject(middle)
-	w.AddObject(right)
-	w.AddObject(left)
+	w.AddObject(wall)
+	w.AddObject(ball)
+	w.AddObject(center)
+	w.AddLight(shapes.NewPointLight(geom.NewPoint(2, 10, -5), colors.NewColor(0.9, 0.9, 0.9)))
 
-	w.AddLight(shapes.NewPointLight(geom.NewPoint(-10, 10, -10), colors.White()))
-
-	c := view.NewCamera(width, width, math.Pi/3)
-	c.Transform = geom.ViewTransform(geom.NewPoint(2, 4, -3),
-		geom.NewPoint(0, 1, 0),
+	c := view.NewCamera(width, width, 0.45)
+	c.Transform = geom.ViewTransform(geom.NewPoint(0, 0, -5),
+		geom.NewPoint(0, 0, 0),
 		geom.NewVector(0, 1, 0))
 
 	g := &Game{
@@ -88,7 +78,7 @@ func main() {
 
 	go func() {
 		// start rendering in background. draw one frame to canvas
-		pc := g.c.PixelChan(g.w, 4, 8)
+		pc := g.c.PixelChan(g.w, 4, 4)
 		for p := range pc {
 			g.canvas.SetPixel(p.X, p.Y, p.C)
 		}
