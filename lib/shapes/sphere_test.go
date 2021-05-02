@@ -18,6 +18,15 @@ func Test_NewSphere_HasDefaultMaterial(t *testing.T) {
 	assert.Equal(t, NewMaterial(), s.M)
 }
 
+func Test_NewGlassSphere(t *testing.T) {
+	s := NewGlassSphere()
+	m := s.GetMaterial()
+
+	assert.Equal(t, geom.NewIdentityMatrixX4(), s.GetTransform())
+	assert.Equal(t, 1.0, m.Transparency)
+	assert.Equal(t, 1.5, m.RefractiveIndex)
+}
+
 func Test_Sphere_SetTransform(t *testing.T) {
 	var s Shape = NewSphere()
 	tr := geom.Translate(2, 3, 4)

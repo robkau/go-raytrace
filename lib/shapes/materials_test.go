@@ -18,6 +18,8 @@ func Test_DefaultMaterial(t *testing.T) {
 	assert.Equal(t, 0.9, m.Specular)
 	assert.Equal(t, 200.0, m.Shininess)
 	assert.Equal(t, 0.0, m.Reflective)
+	assert.Equal(t, 0.0, m.Transparency)
+	assert.Equal(t, 1.0, m.RefractiveIndex)
 }
 
 func Test_Light_Eye_Inline(t *testing.T) {
@@ -97,7 +99,7 @@ func Test_HitShouldOffsetPoint(t *testing.T) {
 	r := geom.RayWith(geom.NewPoint(0, 0, -5), geom.NewVector(0, 0, 1))
 	shape := NewSphereWith(geom.Translate(0, 0, 1))
 	i := NewIntersection(5, shape)
-	comps := i.Compute(r)
+	comps := i.Compute(r, NoIntersections)
 
 	assert.True(t, comps.OverPoint.Z < -geom.FloatComparisonEpsilon/2)
 	assert.True(t, comps.point.Z > comps.OverPoint.Z)

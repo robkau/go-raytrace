@@ -118,6 +118,7 @@ func (c Camera) PixelChan(w World, rayBounces int, numGoRoutines int) <-chan Pix
 }
 
 type coordinateSupplier struct {
+	// todo option for order (asc, desc, random)
 	x      int
 	y      int
 	width  int

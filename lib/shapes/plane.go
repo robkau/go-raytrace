@@ -6,14 +6,16 @@ import (
 )
 
 type Plane struct {
-	t geom.X4Matrix
-	m Material
+	t  geom.X4Matrix
+	m  Material
+	id string
 }
 
 func NewPlane() Plane {
 	return Plane{
-		t: geom.NewIdentityMatrixX4(),
-		m: NewMaterial(),
+		t:  geom.NewIdentityMatrixX4(),
+		m:  NewMaterial(),
+		id: newId(),
 	}
 }
 
@@ -21,6 +23,10 @@ func NewPlaneWith(t geom.X4Matrix) Plane {
 	p := NewPlane()
 	p.t = t
 	return p
+}
+
+func (p Plane) Id() string {
+	return p.id
 }
 
 func (p Plane) NormalAt(pt geom.Tuple) geom.Tuple {

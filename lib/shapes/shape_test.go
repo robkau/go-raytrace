@@ -95,6 +95,10 @@ func (t *testShape) Intersect(r geom.Ray) Intersections {
 	return Intersections{}
 }
 
+func (t *testShape) Id() string {
+	return ""
+}
+
 func (t *testShape) NormalAt(p geom.Tuple) geom.Tuple {
 	localPoint := t.t.Invert().MulTuple(p)
 	localNormal := geom.NewVector(localPoint.X, localPoint.Y, localPoint.Z)

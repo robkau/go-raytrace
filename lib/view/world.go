@@ -4,6 +4,7 @@ import (
 	"go-raytrace/lib/colors"
 	"go-raytrace/lib/geom"
 	"go-raytrace/lib/shapes"
+	"math"
 )
 
 type World struct {
@@ -63,8 +64,9 @@ func (w *World) ShadeHit(c shapes.IntersectionComputed, remaining int) colors.Co
 	}
 
 	reflected := w.ReflectedColor(c, remaining)
+	refracted := w.RefractedColor(c, remaining)
 
-	return col.Add(reflected)
+	return col.Add(reflected).Add(refracted)
 }
 
 func (w *World) ReflectedColor(c shapes.IntersectionComputed, remaining int) colors.Color {
@@ -84,6 +86,30 @@ func (w *World) ReflectedColor(c shapes.IntersectionComputed, remaining int) col
 	return col.MulBy(c.Object.GetMaterial().Reflective)
 }
 
+func (w *World) RefractedColor(c shapes.IntersectionComputed, remaining int) colors.Color {
+	col := colors.NewColor(0, 0, 0)
+	if remaining == 0 || // limited recursion
+		c.Object.GetMaterial().Transparency == 0 { // opaque material
+		return col
+	}
+
+	nRatio := c.N1 / c.N2
+	cosI := c.Eyev.Dot(c.Normalv)
+	sin2T := nRatio * nRatio * (1 - cosI*cosI)
+	if sin2T > 1 {
+		// total internal refraction
+		return col
+	}
+
+	cosT := math.Sqrt(1.0 - sin2T)
+
+	direction := c.Normalv.Mul(nRatio*cosI - cosT).Sub(c.Eyev.Mul(nRatio))
+	refractedRay := geom.RayWith(c.UnderPoint, direction)
+
+	col = w.ColorAt(refractedRay, remaining-1).MulBy(c.Object.GetMaterial().Transparency)
+	return col
+}
+
 func (w *World) ColorAt(r geom.Ray, remaining int) colors.Color {
 	is := w.Intersect(r)
 	i, ok := is.Hit()
@@ -91,7 +117,7 @@ func (w *World) ColorAt(r geom.Ray, remaining int) colors.Color {
 		return colors.Black()
 	}
 
-	cs := i.Compute(r)
+	cs := i.Compute(r, is)
 	return w.ShadeHit(cs, remaining)
 }
 

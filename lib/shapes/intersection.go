@@ -10,22 +10,31 @@ type Intersection struct {
 	o Shape
 }
 
+var NoIntersections = Intersections{}
+
 func NewIntersection(t float64, o Shape) Intersection {
 	return Intersection{t, o}
 }
 
-type IntersectionComputed struct {
-	t         float64
-	Object    Shape
-	inside    bool
-	point     geom.Tuple
-	OverPoint geom.Tuple
-	Eyev      geom.Tuple
-	Normalv   geom.Tuple
-	Reflectv  geom.Tuple
+func (i Intersection) Hit() bool {
+	return i.T > 0
 }
 
-func (i Intersection) Compute(r geom.Ray) IntersectionComputed {
+type IntersectionComputed struct {
+	t          float64
+	Object     Shape
+	inside     bool
+	point      geom.Tuple
+	OverPoint  geom.Tuple
+	UnderPoint geom.Tuple
+	Eyev       geom.Tuple
+	Normalv    geom.Tuple
+	Reflectv   geom.Tuple
+	N1         float64
+	N2         float64
+}
+
+func (i Intersection) Compute(r geom.Ray, xs Intersections) IntersectionComputed {
 	c := IntersectionComputed{}
 	c.t = i.T
 	c.Object = i.o
@@ -38,8 +47,43 @@ func (i Intersection) Compute(r geom.Ray) IntersectionComputed {
 		c.Normalv = c.Normalv.Neg()
 	}
 
+	// reflection
 	c.Reflectv = r.Direction.Reflect(c.Normalv)
 	c.OverPoint = c.point.Add(c.Normalv.Mul(geom.FloatComparisonEpsilon))
+	c.UnderPoint = c.point.Sub(c.Normalv.Mul(geom.FloatComparisonEpsilon))
+
+	// refraction
+	containers := []Shape{}
+	for _, x := range xs.I {
+		if geom.AlmostEqual(i.T, x.T) && i.o.Id() == x.o.Id() {
+			if len(containers) == 0 {
+				c.N1 = 1
+			} else {
+				c.N1 = containers[len(containers)-1].GetMaterial().RefractiveIndex
+			}
+		}
+
+		found := false
+		for j, s := range containers {
+			if x.o.Id() == s.Id() {
+				found = true
+				containers = removeIndex(containers, j)
+				break
+			}
+		}
+		if !found {
+			containers = append(containers, x.o)
+		}
+
+		if geom.AlmostEqual(i.T, x.T) && i.o.Id() == x.o.Id() {
+			if len(containers) == 0 {
+				c.N2 = 1
+			} else {
+				c.N2 = containers[len(containers)-1].GetMaterial().RefractiveIndex
+			}
+			break
+		}
+	}
 
 	return c
 }
@@ -56,7 +100,7 @@ func NewIntersections(s ...Intersection) Intersections {
 
 func (is Intersections) Hit() (Intersection, bool) {
 	for _, i := range is.I {
-		if i.T >= 0 {
+		if i.Hit() {
 			return i, true
 		}
 	}
@@ -77,4 +121,8 @@ func (is *Intersections) Add(s ...Intersection) {
 
 func (is *Intersections) AddFrom(s Intersections) {
 	is.Add(s.I...)
+}
+
+func removeIndex(s []Shape, index int) []Shape {
+	return append(s[:index], s[index+1:]...)
 }

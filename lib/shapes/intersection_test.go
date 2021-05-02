@@ -94,7 +94,7 @@ func Test_Compute(t *testing.T) {
 	s := NewSphere()
 
 	i := NewIntersection(4, s)
-	c := i.Compute(r)
+	c := i.Compute(r, NoIntersections)
 
 	assert.Equal(t, i.T, c.t)
 	assert.Equal(t, i.o, c.Object)
@@ -109,7 +109,7 @@ func Test_Compute_Outside(t *testing.T) {
 	s := NewSphere()
 
 	i := NewIntersection(4, s)
-	c := i.Compute(r)
+	c := i.Compute(r, NoIntersections)
 
 	assert.False(t, c.inside)
 }
@@ -119,7 +119,7 @@ func Test_Compute_Inside(t *testing.T) {
 	s := NewSphere()
 
 	i := NewIntersection(1, s)
-	c := i.Compute(r)
+	c := i.Compute(r, NoIntersections)
 
 	assert.Equal(t, geom.NewPoint(0, 0, 1), c.point)
 	assert.Equal(t, geom.NewVector(0, 0, -1), c.Eyev)
@@ -127,14 +127,76 @@ func Test_Compute_Inside(t *testing.T) {
 	assert.Equal(t, geom.NewVector(0, 0, -1), c.Normalv)
 }
 
+func Test_Compute_UnderPoint(t *testing.T) {
+	r := geom.RayWith(geom.NewPoint(0, 0, -5), geom.NewVector(0, 0, 1))
+	s := NewGlassSphere()
+	ss := s.SetTransform(geom.Translate(0, 0, 1))
+
+	i := NewIntersection(5, ss)
+	c := i.Compute(r, NewIntersections(i))
+
+	assert.Greater(t, c.UnderPoint.Z, geom.FloatComparisonEpsilon/2)
+	assert.Less(t, c.point.Z, c.UnderPoint.Z)
+}
+
 func Test_Compute_ReflectionVector(t *testing.T) {
 	r := geom.RayWith(geom.NewPoint(0, 1, -1), geom.NewVector(0, -math.Sqrt(2)/2, math.Sqrt(2)/2))
 	s := NewPlane()
 
 	i := NewIntersection(math.Sqrt(2), s)
-	c := i.Compute(r)
+	c := i.Compute(r, NoIntersections)
 
 	assert.Equal(t, i.T, c.t)
 	assert.Equal(t, i.o, c.Object)
 	assert.Equal(t, geom.NewVector(0, math.Sqrt(2)/2, math.Sqrt(2)/2), c.Reflectv)
+}
+
+func Test_Compute_RefractionScene(t *testing.T) {
+	sA := NewGlassSphere()
+	sA.SetTransform(geom.Scale(2, 2, 2))
+	m := sA.GetMaterial()
+	m.RefractiveIndex = 1.5
+	ssA := sA.SetMaterial(m)
+
+	sB := NewGlassSphere()
+	sB.SetTransform(geom.Translate(0, 0, -0.25))
+	m = sB.GetMaterial()
+	m.RefractiveIndex = 2
+	ssB := sB.SetMaterial(m)
+
+	sC := NewGlassSphere()
+	sC.SetTransform(geom.Translate(0, 0, 0.25))
+	m = sC.GetMaterial()
+	m.RefractiveIndex = 2.5
+	ssC := sC.SetMaterial(m)
+
+	r := geom.RayWith(geom.NewPoint(0, 0, -4), geom.NewVector(0, 0, 1))
+	xs := Intersections{I: []Intersection{
+		{2, ssA},
+		{2.75, ssB},
+		{3.25, ssC},
+		{4.75, ssB},
+		{5.25, ssC},
+		{6, ssA},
+	}}
+
+	type expected struct {
+		n1 float64
+		n2 float64
+	}
+	e := []expected{
+		{1, 1.5},
+		{1.5, 2},
+		{2, 2.5},
+		{2.5, 2.5},
+		{2.5, 1.5},
+		{1.5, 1},
+	}
+
+	for i := 0; i < len(e); i++ {
+		c := xs.I[i].Compute(r, xs)
+		assert.Equal(t, e[i].n1, c.N1)
+		assert.Equal(t, e[i].n2, c.N2)
+
+	}
 }

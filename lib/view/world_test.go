@@ -4,6 +4,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go-raytrace/lib/colors"
 	"go-raytrace/lib/geom"
+	"go-raytrace/lib/patterns"
 	"go-raytrace/lib/shapes"
 	"math"
 	"testing"
@@ -27,8 +28,8 @@ func Test_DefaultWorld(t *testing.T) {
 	sB = sB.SetTransform(geom.Scale(0.5, 0.5, 0.5))
 
 	assert.Len(t, w.objects, 2)
-	assert.Contains(t, w.objects, sA)
-	assert.Contains(t, w.objects, sB)
+	assert.Equal(t, w.objects[0].GetMaterial(), sA.GetMaterial())
+	assert.Equal(t, w.objects[1].GetMaterial(), sB.GetMaterial())
 	assert.Len(t, w.lightSources, 1)
 	assert.Contains(t, w.lightSources, l)
 }
@@ -52,7 +53,7 @@ func Test_Shading_Intersection(t *testing.T) {
 	s := w.objects[0]
 
 	i := shapes.NewIntersection(4, s)
-	c := i.Compute(r)
+	c := i.Compute(r, shapes.NoIntersections)
 	cs := w.ShadeHit(c, 0).RoundTo(5)
 
 	assert.Equal(t, colors.NewColor(0.38066, 0.47583, 0.2855), cs)
@@ -65,7 +66,7 @@ func Test_Shading_Intersection_Inside(t *testing.T) {
 	s := w.objects[1]
 
 	i := shapes.NewIntersection(0.5, s)
-	c := i.Compute(r)
+	c := i.Compute(r, shapes.NoIntersections)
 	cs := w.ShadeHit(c, 0).RoundTo(5)
 
 	assert.Equal(t, colors.NewColor(0.90498, 0.90498, 0.90498), cs)
@@ -142,10 +143,38 @@ func Test_ShadeHit_HasShadow(t *testing.T) {
 	w.AddObject(s2)
 	r := geom.RayWith(geom.NewPoint(0, 0, 5), geom.NewVector(0, 0, 1))
 	i := shapes.NewIntersection(4, s2)
-	comps := i.Compute(r)
+	comps := i.Compute(r, shapes.NoIntersections)
 	c := w.ShadeHit(comps, 0)
 
 	assert.Equal(t, colors.NewColor(0.1, 0.1, 0.1), c)
+}
+
+func Test_ShadeHit_TransparentMaterial(t *testing.T) {
+	w := defaultWorld()
+
+	floor := shapes.NewPlaneWith(geom.Translate(0, -1, 0))
+	m := floor.GetMaterial()
+	m.Transparency = 0.5
+	m.RefractiveIndex = 1.5
+	floorShape := floor.SetMaterial(m)
+	w.AddObject(floorShape)
+
+	ball := shapes.NewSphereWith(geom.Translate(0, -3.5, -0.5))
+	m = floor.GetMaterial()
+	m.Ambient = 0.5
+	m.Color = colors.NewColor(1, 0, 0)
+	ballShape := ball.SetMaterial(m)
+	w.AddObject(ballShape)
+
+	r := geom.RayWith(geom.NewPoint(0, 0, -3), geom.NewVector(0, -math.Sqrt(2)/2, math.Sqrt(2)/2))
+	xs := shapes.NewIntersections(
+		shapes.NewIntersection(math.Sqrt(2), floorShape),
+	)
+
+	comps := xs.I[0].Compute(r, xs)
+	c := w.ShadeHit(comps, 5)
+
+	assert.Equal(t, colors.NewColor(0.93643, 0.68643, 0.68643), c.RoundTo(5))
 }
 
 func Test_NonReflectiveMaterial_ReflectedColor(t *testing.T) {
@@ -156,7 +185,7 @@ func Test_NonReflectiveMaterial_ReflectedColor(t *testing.T) {
 	m.Ambient = 1
 	s.SetMaterial(m)
 	i := shapes.NewIntersection(1, s)
-	comps := i.Compute(r)
+	comps := i.Compute(r, shapes.NoIntersections)
 	c := w.ReflectedColor(comps, 4)
 
 	// no reflection
@@ -172,7 +201,7 @@ func Test_ReflectiveMaterial_ReflectedColor(t *testing.T) {
 	ss := s.SetMaterial(m)
 	w.AddObject(ss)
 	i := shapes.NewIntersection(math.Sqrt(2), ss)
-	comps := i.Compute(r)
+	comps := i.Compute(r, shapes.NoIntersections)
 	c := w.ReflectedColor(comps, 4)
 
 	// reflected
@@ -188,7 +217,7 @@ func Test_ReflectiveMaterial_ReflectedColor_ShadeHit(t *testing.T) {
 	ss := s.SetMaterial(m)
 	w.AddObject(ss)
 	i := shapes.NewIntersection(math.Sqrt(2), ss)
-	comps := i.Compute(r)
+	comps := i.Compute(r, shapes.NoIntersections)
 	c := w.ShadeHit(comps, 4)
 
 	// reflected
@@ -204,7 +233,7 @@ func Test_ReflectiveMaterial_ReflectedColor_ShadeHit_NoReflectionsRemaining(t *t
 	ss := s.SetMaterial(m)
 	w.AddObject(ss)
 	i := shapes.NewIntersection(math.Sqrt(2), ss)
-	comps := i.Compute(r)
+	comps := i.Compute(r, shapes.NoIntersections)
 	c := w.ReflectedColor(comps, 0)
 
 	// not reflected
@@ -231,4 +260,94 @@ func Test_MutuallyReflecting_InfiniteRecursion(t *testing.T) {
 
 	// just testing that the call finishes
 	assert.NotPanics(t, func() { w.ColorAt(r, 5) })
+}
+
+func Test_RefractedColor_OpaqueSurface(t *testing.T) {
+	w := defaultWorld()
+	s := w.objects[0]
+	r := geom.RayWith(geom.NewPoint(0, 0, -5), geom.NewVector(0, 0, 1))
+
+	xs := shapes.NewIntersections(
+		shapes.NewIntersection(4, s),
+		shapes.NewIntersection(6, s),
+	)
+
+	comps := xs.I[0].Compute(r, xs)
+	c := w.RefractedColor(comps, 5)
+
+	assert.Equal(t, colors.NewColor(0, 0, 0), c)
+}
+
+func Test_RefractedColor_AtMaxRecursionDepth(t *testing.T) {
+	w := defaultWorld()
+	s := w.objects[0]
+	m := s.GetMaterial()
+	m.Transparency = 1
+	m.RefractiveIndex = 1.5
+	ss := s.SetMaterial(m)
+	w.objects[0] = ss
+
+	r := geom.RayWith(geom.NewPoint(0, 0, -5), geom.NewVector(0, 0, 1))
+
+	xs := shapes.NewIntersections(
+		shapes.NewIntersection(4, ss),
+		shapes.NewIntersection(6, ss),
+	)
+
+	comps := xs.I[0].Compute(r, xs)
+	c := w.RefractedColor(comps, 0)
+
+	assert.Equal(t, colors.NewColor(0, 0, 0), c)
+}
+
+func Test_RefractedColor_TotalInternalRefraction(t *testing.T) {
+	w := defaultWorld()
+	s := w.objects[0]
+	m := s.GetMaterial()
+	m.Transparency = 1
+	m.RefractiveIndex = 1.5
+	ss := s.SetMaterial(m)
+	w.objects[0] = ss
+
+	r := geom.RayWith(geom.NewPoint(0, 0, math.Sqrt(2)/2), geom.NewVector(0, 1, 0))
+
+	xs := shapes.NewIntersections(
+		shapes.NewIntersection(-math.Sqrt(2)/2, ss),
+		shapes.NewIntersection(math.Sqrt(2)/2, ss),
+	)
+
+	comps := xs.I[1].Compute(r, xs)
+	c := w.RefractedColor(comps, 5)
+
+	assert.Equal(t, colors.NewColor(0, 0, 0), c)
+}
+
+func Test_RefractedColor_Ray(t *testing.T) {
+	w := defaultWorld()
+	sA := w.objects[0]
+	m := sA.GetMaterial()
+	m.Ambient = 1
+	m.Pattern = patterns.NewPositionAsColorPattern()
+	ssA := sA.SetMaterial(m)
+	w.objects[0] = ssA
+	sB := w.objects[1]
+	m = sB.GetMaterial()
+	m.Transparency = 1
+	m.RefractiveIndex = 1.5
+	ssB := sB.SetMaterial(m)
+	w.objects[1] = ssB
+
+	r := geom.RayWith(geom.NewPoint(0, 0, 0.1), geom.NewVector(0, 1, 0))
+
+	xs := shapes.NewIntersections(
+		shapes.NewIntersection(-0.9899, ssA),
+		shapes.NewIntersection(-0.4899, ssB),
+		shapes.NewIntersection(0.4899, ssB),
+		shapes.NewIntersection(0.9899, ssA),
+	)
+
+	comps := xs.I[2].Compute(r, xs)
+	c := w.RefractedColor(comps, 5)
+
+	assert.Equal(t, colors.NewColor(0, 0.99888, 0.04722), c.RoundTo(5))
 }

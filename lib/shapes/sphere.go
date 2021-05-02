@@ -6,14 +6,16 @@ import (
 )
 
 type Sphere struct {
-	t geom.X4Matrix
-	M Material
+	t  geom.X4Matrix
+	M  Material
+	id string
 }
 
 func NewSphere() Sphere {
 	return Sphere{
-		t: geom.NewIdentityMatrixX4(),
-		M: NewMaterial(),
+		t:  geom.NewIdentityMatrixX4(),
+		M:  NewMaterial(),
+		id: newId(),
 	}
 }
 
@@ -21,6 +23,20 @@ func NewSphereWith(t geom.X4Matrix) Sphere {
 	s := NewSphere()
 	s.t = t
 	return s
+}
+
+func NewGlassSphere() Sphere {
+	s := NewSphere()
+
+	m := NewMaterial()
+	m.Transparency = 1
+	m.RefractiveIndex = 1.5
+	s.M = m
+	return s
+}
+
+func (s Sphere) Id() string {
+	return s.id
 }
 
 func (s Sphere) NormalAt(p geom.Tuple) geom.Tuple {

@@ -36,7 +36,7 @@ func main() {
 	// with spraypaint style
 	p4 := patterns.NewSprayPaintPattern(p3, 0.04)
 	m.Pattern = p4
-	m.Shininess = 1
+	m.Shininess = 0.5
 	m.Specular = 0.2
 	m.Reflective = 0.35
 	floor = floor.SetMaterial(m)
@@ -61,15 +61,8 @@ func main() {
 	m.Pattern.SetTransform(geom.RotateY(math.Pi / 3).MulX4Matrix(geom.Scale(0.4, 0.4, 0.4)))
 	right = right.SetMaterial(m)
 
-	var left shapes.Shape = shapes.NewSphere()
+	var left shapes.Shape = shapes.NewGlassSphere()
 	left = left.SetTransform(geom.Translate(-1.5, 0.33, -0.75).MulX4Matrix(geom.Scale(0.33, 0.33, 0.33)))
-	m = left.GetMaterial()
-	m.Color = colors.NewColor(1, 0.8, 0.1)
-	m.Diffuse = 0.7
-	m.Specular = 0.3
-	m.Pattern = patterns.NewPerlinPattern(patterns.NewStripePattern(patterns.NewSolidColorPattern(colors.RandomColor()), patterns.NewSolidColorPattern(colors.RandomAnyColor())), 0.3, 0.8, 3)
-	m.Pattern.SetTransform(geom.RotateZ(math.Pi / 3).MulX4Matrix(geom.Scale(0.5, 0.5, 0.5)))
-	left = left.SetMaterial(m)
 
 	w := view.NewWorld()
 	w.AddObject(floor)
