@@ -22,14 +22,6 @@ func NewHollowGlassSphereScene(width int) (view.World, view.Camera) {
 
 	var ball shapes.Shape = shapes.NewGlassSphere()
 	m = ball.GetMaterial()
-	m.Color = colors.NewColor(1, 1, 1)
-	m.Diffuse = 0
-	m.Ambient = 0
-	m.Specular = 0.9
-	m.Shininess = 300
-	m.Transparency = 0.9
-	m.Reflective = 0.9
-	m.RefractiveIndex = 1.5
 	ball = ball.SetMaterial(m)
 
 	var hollowCenter shapes.Shape = shapes.NewGlassSphere()

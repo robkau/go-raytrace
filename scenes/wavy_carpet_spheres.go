@@ -47,20 +47,28 @@ func NewWavyCarpetSpheres(width int) (view.World, view.Camera) {
 	right = right.SetMaterial(m)
 
 	var left shapes.Shape = shapes.NewSphere()
-	left = left.SetTransform(geom.Translate(-1.5, 0.33, -0.75).MulX4Matrix(geom.Scale(0.33, 0.33, 0.33)))
+	left = left.SetTransform(geom.Translate(-1.3, 2.4, -0.75).MulX4Matrix(geom.Scale(0.23, 0.23, 0.23)))
 	m = left.GetMaterial()
 	m.Color = colors.NewColor(1, 0.8, 0.1)
 	m.Diffuse = 0.7
 	m.Specular = 0.3
-	m.Pattern = patterns.NewPerlinPattern(patterns.NewStripePattern(patterns.NewSolidColorPattern(colors.RandomColor()), patterns.NewSolidColorPattern(colors.RandomAnyColor())), 0.3, 0.8, 3)
+	m.Pattern = patterns.NewPerlinPattern(patterns.NewRingPattern(patterns.NewSolidColorPattern(colors.RandomAnyColor()), patterns.NewSolidColorPattern(colors.RandomColor())), 0.3, 0.8, 3)
 	m.Pattern.SetTransform(geom.RotateZ(math.Pi / 3).MulX4Matrix(geom.Scale(0.5, 0.5, 0.5)))
 	left = left.SetMaterial(m)
+
+	var glass shapes.Shape = shapes.NewGlassSphere()
+	glass = glass.SetTransform(geom.Translate(-1.3, 2.4, 3.75).MulX4Matrix(geom.RotateY(-math.Pi / 6.2).MulX4Matrix(geom.RotateZ(math.Pi / 8))).MulX4Matrix(geom.Scale(1.73, 1.73, 0.13)))
+	m = glass.GetMaterial()
+	m.Reflective = 1
+	m.Transparency = 0
+	glass = glass.SetMaterial(m)
 
 	w := view.NewWorld()
 	w.AddObject(floor)
 	w.AddObject(middle)
 	w.AddObject(right)
 	w.AddObject(left)
+	w.AddObject(glass)
 
 	w.AddLight(shapes.NewPointLight(geom.NewPoint(-10, 10, -10), colors.White()))
 

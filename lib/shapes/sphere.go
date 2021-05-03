@@ -30,7 +30,12 @@ func NewGlassSphere() Sphere {
 	s := NewSphere()
 
 	m := NewMaterial()
-	m.Transparency = 1
+	m.Diffuse = 0
+	m.Ambient = 0
+	m.Specular = 0.9
+	m.Shininess = 300
+	m.Transparency = 0.95
+	m.Reflective = 0.9
 	m.RefractiveIndex = 1.5
 	s.M = m
 	return s

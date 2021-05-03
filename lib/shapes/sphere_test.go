@@ -23,7 +23,7 @@ func Test_NewGlassSphere(t *testing.T) {
 	m := s.GetMaterial()
 
 	assert.Equal(t, geom.NewIdentityMatrixX4(), s.GetTransform())
-	assert.Equal(t, 1.0, m.Transparency)
+	assert.Equal(t, 0.95, m.Transparency)
 	assert.Equal(t, 1.5, m.RefractiveIndex)
 }
 

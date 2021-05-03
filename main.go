@@ -12,11 +12,11 @@ import (
 )
 
 const (
-	width = 444
+	width = 777
 )
 
 func main() {
-	w, c := scenes.NewPondScene(width)
+	w, c := scenes.NewHollowGlassSphereScene(width)
 
 	g := &Game{
 		c:      c,
@@ -51,6 +51,7 @@ func main() {
 	}
 }
 
+// Game struct implements ebiten.Game
 type Game struct {
 	count  int
 	c      view.Camera
