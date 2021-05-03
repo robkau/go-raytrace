@@ -136,7 +136,7 @@ func (w *World) IsShadowed(p geom.Tuple) bool {
 		r := geom.RayWith(p, direction)
 		intersections := w.Intersect(r)
 		h, ok := intersections.Hit()
-		if ok && h.T < distance {
+		if ok && h.T < distance && !h.O.GetShadowless() {
 			return true
 		} else {
 			continue

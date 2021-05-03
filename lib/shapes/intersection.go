@@ -8,7 +8,7 @@ import (
 
 type Intersection struct {
 	T float64
-	o Shape
+	O Shape
 }
 
 var NoIntersections = Intersections{}
@@ -38,7 +38,7 @@ type IntersectionComputed struct {
 func (i Intersection) Compute(r geom.Ray, xs Intersections) IntersectionComputed {
 	c := IntersectionComputed{}
 	c.t = i.T
-	c.Object = i.o
+	c.Object = i.O
 	c.point = r.Position(c.t)
 	c.Eyev = r.Direction.Neg()
 	c.Normalv = c.Object.NormalAt(c.point)
@@ -56,7 +56,7 @@ func (i Intersection) Compute(r geom.Ray, xs Intersections) IntersectionComputed
 	// refraction
 	containers := []Shape{}
 	for _, x := range xs.I {
-		if geom.AlmostEqual(i.T, x.T) && i.o.Id() == x.o.Id() {
+		if geom.AlmostEqual(i.T, x.T) && i.O.Id() == x.O.Id() {
 			if len(containers) == 0 {
 				c.N1 = 1
 			} else {
@@ -66,17 +66,17 @@ func (i Intersection) Compute(r geom.Ray, xs Intersections) IntersectionComputed
 
 		found := false
 		for j, s := range containers {
-			if x.o.Id() == s.Id() {
+			if x.O.Id() == s.Id() {
 				found = true
 				containers = removeIndex(containers, j)
 				break
 			}
 		}
 		if !found {
-			containers = append(containers, x.o)
+			containers = append(containers, x.O)
 		}
 
-		if geom.AlmostEqual(i.T, x.T) && i.o.Id() == x.o.Id() {
+		if geom.AlmostEqual(i.T, x.T) && i.O.Id() == x.O.Id() {
 			if len(containers) == 0 {
 				c.N2 = 1
 			} else {

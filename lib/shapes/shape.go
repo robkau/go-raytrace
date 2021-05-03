@@ -13,6 +13,8 @@ type Shape interface {
 	GetMaterial() Material
 	SetMaterial(Material) Shape
 	Id() string
+	GetShadowless() bool
+	SetShadowless(s bool) Shape
 }
 
 // invert ray from object's transformation matrix then call shape-specific normal logic

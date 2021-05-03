@@ -6,9 +6,10 @@ import (
 )
 
 type Plane struct {
-	t  geom.X4Matrix
-	m  Material
-	id string
+	t          geom.X4Matrix
+	m          Material
+	id         string
+	shadowless bool
 }
 
 func NewPlane() Plane {
@@ -64,5 +65,14 @@ func (p Plane) GetMaterial() Material {
 
 func (p Plane) SetMaterial(m Material) Shape {
 	p.m = m
+	return p
+}
+
+func (p Plane) GetShadowless() bool {
+	return p.shadowless
+}
+
+func (p Plane) SetShadowless(s bool) Shape {
+	p.shadowless = s
 	return p
 }

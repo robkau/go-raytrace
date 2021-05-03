@@ -12,7 +12,7 @@ func Test_IntersectionHoldsSphere(t *testing.T) {
 	s := NewSphere()
 	i := NewIntersection(3.5, s)
 
-	assert.Equal(t, s, i.o)
+	assert.Equal(t, s, i.O)
 	assert.Equal(t, 3.5, i.T)
 
 }
@@ -98,7 +98,7 @@ func Test_Compute(t *testing.T) {
 	c := i.Compute(r, NoIntersections)
 
 	assert.Equal(t, i.T, c.t)
-	assert.Equal(t, i.o, c.Object)
+	assert.Equal(t, i.O, c.Object)
 	assert.Equal(t, geom.NewPoint(0, 0, -1), c.point)
 	assert.Equal(t, geom.NewVector(0, 0, -1), c.Eyev)
 	assert.Equal(t, geom.NewVector(0, 0, -1), c.Normalv)
@@ -148,7 +148,7 @@ func Test_Compute_ReflectionVector(t *testing.T) {
 	c := i.Compute(r, NoIntersections)
 
 	assert.Equal(t, i.T, c.t)
-	assert.Equal(t, i.o, c.Object)
+	assert.Equal(t, i.O, c.Object)
 	assert.Equal(t, geom.NewVector(0, math.Sqrt(2)/2, math.Sqrt(2)/2), c.Reflectv)
 }
 

@@ -6,9 +6,10 @@ import (
 )
 
 type Sphere struct {
-	t  geom.X4Matrix
-	M  Material
-	id string
+	t          geom.X4Matrix
+	M          Material
+	id         string
+	shadowless bool
 }
 
 func NewSphere() Sphere {
@@ -66,11 +67,11 @@ func (s Sphere) LocalIntersect(r geom.Ray) Intersections {
 	return NewIntersections(
 		Intersection{
 			T: (-b - math.Sqrt(d)) / (2 * a),
-			o: s,
+			O: s,
 		},
 		Intersection{
 			T: (-b + math.Sqrt(d)) / (2 * a),
-			o: s,
+			O: s,
 		},
 	)
 }
@@ -90,5 +91,14 @@ func (s Sphere) GetMaterial() Material {
 
 func (s Sphere) SetMaterial(m Material) Shape {
 	s.M = m
+	return s
+}
+
+func (s Sphere) GetShadowless() bool {
+	return s.shadowless
+}
+
+func (s Sphere) SetShadowless(ss bool) Shape {
+	s.shadowless = ss
 	return s
 }

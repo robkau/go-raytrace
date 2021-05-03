@@ -105,8 +105,8 @@ func Test_RayIntersectSphere_ObjectSet(t *testing.T) {
 	xs := s.Intersect(r)
 
 	assert.Len(t, xs.I, 2)
-	assert.Equal(t, s, xs.I[0].o)
-	assert.Equal(t, s, xs.I[1].o)
+	assert.Equal(t, s, xs.I[0].O)
+	assert.Equal(t, s, xs.I[1].O)
 }
 
 func Test_ScaledSphere_Intersect_Ray(t *testing.T) {

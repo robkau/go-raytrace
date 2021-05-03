@@ -77,9 +77,10 @@ func Test_NormalTransformedShape(t *testing.T) {
 }
 
 type testShape struct {
-	t        geom.X4Matrix
-	m        Material
-	savedRay geom.Ray
+	t          geom.X4Matrix
+	m          Material
+	savedRay   geom.Ray
+	shadowless bool
 }
 
 func newTestShape() *testShape {
@@ -123,4 +124,13 @@ func (t *testShape) GetMaterial() Material {
 func (t *testShape) SetMaterial(m Material) Shape {
 	t.m = m
 	return t // make interface happy
+}
+
+func (t *testShape) GetShadowless() bool {
+	return t.shadowless
+}
+
+func (t *testShape) SetShadowless(s bool) Shape {
+	t.shadowless = s
+	return t
 }

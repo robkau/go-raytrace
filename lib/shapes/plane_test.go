@@ -43,7 +43,7 @@ func Test_Plane_Intersect_Ray_Above(t *testing.T) {
 
 	assert.Len(t, xs.I, 1)
 	assert.Equal(t, 1.0, xs.I[0].T)
-	assert.Equal(t, p, xs.I[0].o)
+	assert.Equal(t, p, xs.I[0].O)
 }
 
 func Test_Plane_Intersect_Ray_Below(t *testing.T) {
@@ -54,5 +54,5 @@ func Test_Plane_Intersect_Ray_Below(t *testing.T) {
 
 	assert.Len(t, xs.I, 1)
 	assert.Equal(t, 1.0, xs.I[0].T)
-	assert.Equal(t, p, xs.I[0].o)
+	assert.Equal(t, p, xs.I[0].O)
 }
