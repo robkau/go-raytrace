@@ -59,6 +59,7 @@ func (w *World) Intersect(r geom.Ray) shapes.Intersections {
 
 func (w *World) ShadeHit(c shapes.IntersectionComputed, remaining int) colors.Color {
 	col := colors.NewColor(0, 0, 0)
+
 	for _, l := range w.lightSources {
 		col = col.Add(shapes.Lighting(c.Object.GetMaterial(), c.Object, l, c.OverPoint, c.Eyev, c.Normalv, w.IsShadowed(c.OverPoint)))
 	}
@@ -136,6 +137,7 @@ func (w *World) IsShadowed(p geom.Tuple) bool {
 		r := geom.RayWith(p, direction)
 		intersections := w.Intersect(r)
 		h, ok := intersections.Hit()
+		// shadowless object does not cast shadows onto other objects
 		if ok && h.T < distance && !h.O.GetShadowless() {
 			return true
 		} else {

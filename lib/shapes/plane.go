@@ -26,6 +26,12 @@ func NewPlaneWith(t geom.X4Matrix) Plane {
 	return p
 }
 
+func NewGlassPlane() Plane {
+	p := NewPlane()
+	p.m = NewGlassMaterial()
+	return p
+}
+
 func (p Plane) Id() string {
 	return p.id
 }

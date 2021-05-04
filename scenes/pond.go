@@ -20,9 +20,9 @@ func NewPondScene(width int) (view.World, view.Camera) {
 	m.Ambient = 0.1
 	m.Specular = 0.5
 	m.Shininess = 300
-	m.Transparency = 0.3
+	m.Transparency = 0.5
 	m.Reflective = 0.9
-	m.RefractiveIndex = 1.233
+	m.RefractiveIndex = 1.333
 	waterSurface = waterSurface.SetMaterial(m)
 	waterSurface = waterSurface.SetShadowless(true)
 
@@ -32,7 +32,7 @@ func NewPondScene(width int) (view.World, view.Camera) {
 	m.Color = colors.NewColor(5, 5, 5)
 	m.Specular = 0.1
 	m.Diffuse = 0.7
-	m.Pattern = patterns.NewRingPattern(patterns.NewSolidColorPattern(colors.RandomColor()), patterns.NewSolidColorPattern(colors.RandomColor()))
+	m.Pattern = patterns.NewPerlinPattern(patterns.NewCheckerPattern(patterns.NewSolidColorPattern(colors.Brown()), patterns.NewSolidColorPattern(colors.Black())), 1, 0.5, 3)
 	dirtSurface = dirtSurface.SetMaterial(m)
 	dirtSurface = dirtSurface.SetTransform(geom.Translate(0, -10, 0))
 
@@ -48,22 +48,23 @@ func NewPondScene(width int) (view.World, view.Camera) {
 
 	// halfway submerged sphere
 	var floater shapes.Shape = shapes.NewSphere()
-	floater = floater.SetTransform(geom.Translate(-5.5, -0.25, 0.5).MulX4Matrix(geom.Scale(2.3, 2.3, 2.3)))
+	floater = floater.SetTransform(geom.Translate(-2.5, -0.25, 1.5).MulX4Matrix(geom.Scale(2.3, 2.3, 2.3)))
 	m = floater.GetMaterial()
 	m.Pattern = patterns.NewCheckerPattern(patterns.NewSolidColorPattern(colors.Red()), patterns.NewSolidColorPattern(colors.White()))
 	m.Diffuse = 0.7
 	m.Specular = 0.3
+	m.Pattern.SetTransform(geom.Scale(0.4, 0.4, 0.4))
 	floater = floater.SetMaterial(m)
 
 	// light above plane
-	w.AddLight(shapes.NewPointLight(geom.NewPoint(2, 12, -5), colors.NewColor(0.9, 0.9, 0.9)))
+	w.AddLight(shapes.NewPointLight(geom.NewPoint(2, 12, -5), colors.NewColor(1.9, 1.4, 1.4)))
 	w.AddObject(waterSurface)
 	w.AddObject(dirtSurface)
 	w.AddObject(middle)
 	w.AddObject(floater)
 
 	c := view.NewCamera(width, width, 0.45)
-	c.Transform = geom.ViewTransform(geom.NewPoint(15, 7, -7),
+	c.Transform = geom.ViewTransform(geom.NewPoint(18, 5, -10),
 		geom.NewPoint(0, 0, 0),
 		geom.NewVector(0, 1, 0))
 

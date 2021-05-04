@@ -12,11 +12,11 @@ import (
 )
 
 const (
-	width = 777
+	width = 555
 )
 
 func main() {
-	w, c := scenes.NewHollowGlassSphereScene(width)
+	w, c := scenes.NewPondScene(width)
 
 	g := &Game{
 		c:      c,

@@ -29,3 +29,15 @@ func NewMaterial() Material {
 		RefractiveIndex: 1,
 	}
 }
+
+func NewGlassMaterial() Material {
+	m := NewMaterial()
+	m.Diffuse = 0
+	m.Ambient = 0
+	m.Specular = 0.9
+	m.Shininess = 300
+	m.Transparency = 0.95
+	m.Reflective = 0.9
+	m.RefractiveIndex = 1.5
+	return m
+}

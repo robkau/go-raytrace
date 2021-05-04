@@ -28,6 +28,10 @@ func Blue() Color {
 	return Color{R: 0, G: 0, B: 1}
 }
 
+func Brown() Color {
+	return Color{R: 0.40, G: 0.26, B: 0.13}
+}
+
 func Green() Color {
 	return Color{R: 0, G: 1, B: 0}
 }

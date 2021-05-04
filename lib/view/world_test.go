@@ -380,3 +380,35 @@ func Test_RefractedColor_Ray(t *testing.T) {
 
 	assert.Equal(t, colors.NewColor(0, 0.99888, 0.04722), c.RoundTo(5))
 }
+
+func Test_Shadowless_NotShadeOthers(t *testing.T) {
+	w := NewWorld()
+	w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 0, -10), colors.White()))
+	var s1 shapes.Shape = shapes.NewSphere()
+	s1 = s1.SetShadowless(true)
+	w.AddObject(s1)
+	s2 := shapes.NewSphereWith(geom.Translate(0, 0, 10))
+	w.AddObject(s2)
+	r := geom.RayWith(geom.NewPoint(0, 0, 5), geom.NewVector(0, 0, 1))
+	i := shapes.NewIntersection(4, s2)
+	comps := i.Compute(r, shapes.NoIntersections)
+	c := w.ShadeHit(comps, 0)
+
+	assert.Equal(t, colors.NewColor(1.9, 1.9, 1.9), c)
+}
+
+func Test_Shadowless_NotShadedByOthers(t *testing.T) {
+	w := NewWorld()
+	w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 0, -10), colors.White()))
+	s1 := shapes.NewSphere()
+	w.AddObject(s1)
+	var s2 shapes.Shape = shapes.NewSphereWith(geom.Translate(0, 0, 10))
+	s2 = s2.SetShadowless(true)
+	w.AddObject(s2)
+	r := geom.RayWith(geom.NewPoint(0, 0, 5), geom.NewVector(0, 0, 1))
+	i := shapes.NewIntersection(4, s2)
+	comps := i.Compute(r, shapes.NoIntersections)
+	c := w.ShadeHit(comps, 0)
+
+	assert.Equal(t, colors.NewColor(1.9, 1.9, 1.9), c)
+}
