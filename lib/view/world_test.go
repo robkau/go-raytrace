@@ -397,13 +397,13 @@ func Test_Shadowless_NotShadeOthers(t *testing.T) {
 	assert.Equal(t, colors.NewColor(1.9, 1.9, 1.9), c)
 }
 
-func Test_Shadowless_NotShadedByOthers(t *testing.T) {
+func Test_UnShaded_NotShadedByOthers(t *testing.T) {
 	w := NewWorld()
 	w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 0, -10), colors.White()))
 	s1 := shapes.NewSphere()
 	w.AddObject(s1)
 	var s2 shapes.Shape = shapes.NewSphereWith(geom.Translate(0, 0, 10))
-	s2 = s2.SetShadowless(true)
+	s2 = s2.SetShaded(false)
 	w.AddObject(s2)
 	r := geom.RayWith(geom.NewPoint(0, 0, 5), geom.NewVector(0, 0, 1))
 	i := shapes.NewIntersection(4, s2)

@@ -5,7 +5,7 @@ This repository is me implementing a ray tracer in Go by following "The Ray Trac
 * The book lays out a language-agnostic TDD plan for implementing a ray tracer from scratch
 * I added Go library ebiten to animate the raytracer output to a window
 
-----
+---
 
 ## Examples
 *Chapter 11: Spheres and mirror*

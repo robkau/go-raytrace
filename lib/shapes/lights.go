@@ -51,8 +51,8 @@ func Lighting(m Material, s Shape, l PointLight, p geom.Tuple, eyev geom.Tuple, 
 		}
 	}
 
-	// shadowless object does not have shadows cast onto it
-	if shaded && !s.GetShadowless() {
+	// unshaded object does not have shadows cast onto it
+	if shaded && s.GetShaded() {
 		return ambient
 	} else {
 		return ambient.Add(diffuse).Add(specular)

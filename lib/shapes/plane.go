@@ -10,6 +10,7 @@ type Plane struct {
 	m          Material
 	id         string
 	shadowless bool
+	unshaded   bool
 }
 
 func NewPlane() Plane {
@@ -80,5 +81,14 @@ func (p Plane) GetShadowless() bool {
 
 func (p Plane) SetShadowless(s bool) Shape {
 	p.shadowless = s
+	return p
+}
+
+func (p Plane) GetShaded() bool {
+	return !p.unshaded
+}
+
+func (p Plane) SetShaded(s bool) Shape {
+	p.unshaded = !s
 	return p
 }

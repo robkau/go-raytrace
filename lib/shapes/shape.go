@@ -15,6 +15,8 @@ type Shape interface {
 	Id() string
 	GetShadowless() bool
 	SetShadowless(s bool) Shape
+	GetShaded() bool
+	SetShaded(s bool) Shape
 }
 
 // invert ray from object's transformation matrix then call shape-specific normal logic

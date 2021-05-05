@@ -10,6 +10,7 @@ type Sphere struct {
 	M          Material
 	id         string
 	shadowless bool
+	unshaded   bool
 }
 
 func NewSphere() Sphere {
@@ -98,5 +99,14 @@ func (s Sphere) GetShadowless() bool {
 
 func (s Sphere) SetShadowless(ss bool) Shape {
 	s.shadowless = ss
+	return s
+}
+
+func (s Sphere) GetShaded() bool {
+	return !s.unshaded
+}
+
+func (s Sphere) SetShaded(ss bool) Shape {
+	s.unshaded = !ss
 	return s
 }

@@ -13,6 +13,7 @@ func NewPondScene(width int) (view.World, view.Camera) {
 	w := view.NewWorld()
 
 	// transparent plane
+	// todo NewWater(xyzwh)
 	var waterSurface shapes.Shape = shapes.NewPlane()
 	m := waterSurface.GetMaterial()
 	m.Color = colors.NewColor(0, 0.5, 1)
@@ -21,10 +22,11 @@ func NewPondScene(width int) (view.World, view.Camera) {
 	m.Specular = 0.5
 	m.Shininess = 300
 	m.Transparency = 0.5
-	m.Reflective = 0.9
-	m.RefractiveIndex = 1.333
+	m.Reflective = 0.3
+	m.RefractiveIndex = 1.13333
 	waterSurface = waterSurface.SetMaterial(m)
 	waterSurface = waterSurface.SetShadowless(true)
+	waterSurface = waterSurface.SetShaded(false)
 
 	// floor under water
 	var dirtSurface shapes.Shape = shapes.NewPlane()
@@ -38,7 +40,7 @@ func NewPondScene(width int) (view.World, view.Camera) {
 
 	// sphere underwater on floor
 	var middle shapes.Shape = shapes.NewSphere()
-	middle = middle.SetTransform(geom.Translate(-1.5, -7, -1.5))
+	middle = middle.SetTransform(geom.Translate(-1.5, -5, -1.5))
 	m = middle.GetMaterial()
 	m.Pattern = patterns.NewCheckerPattern(patterns.NewSolidColorPattern(colors.Red()), patterns.NewSolidColorPattern(colors.White()))
 	m.Pattern.SetTransform(geom.RotateX(math.Pi / 3).MulX4Matrix(geom.Scale(0.3, 0.3, 0.3)))
@@ -55,6 +57,7 @@ func NewPondScene(width int) (view.World, view.Camera) {
 	m.Specular = 0.3
 	m.Pattern.SetTransform(geom.Scale(0.4, 0.4, 0.4))
 	floater = floater.SetMaterial(m)
+	floater = floater.SetShadowless(true)
 
 	// light above plane
 	w.AddLight(shapes.NewPointLight(geom.NewPoint(2, 12, -5), colors.NewColor(1.9, 1.4, 1.4)))

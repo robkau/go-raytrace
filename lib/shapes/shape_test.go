@@ -81,6 +81,7 @@ type testShape struct {
 	m          Material
 	savedRay   geom.Ray
 	shadowless bool
+	unshaded   bool
 }
 
 func newTestShape() *testShape {
@@ -132,5 +133,14 @@ func (t *testShape) GetShadowless() bool {
 
 func (t *testShape) SetShadowless(s bool) Shape {
 	t.shadowless = s
+	return t
+}
+
+func (t *testShape) GetShaded() bool {
+	return !t.unshaded
+}
+
+func (t *testShape) SetShaded(s bool) Shape {
+	t.unshaded = !s
 	return t
 }
