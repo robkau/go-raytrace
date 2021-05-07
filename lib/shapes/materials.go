@@ -36,7 +36,7 @@ func NewGlassMaterial() Material {
 	m.Ambient = 0
 	m.Specular = 0.9
 	m.Shininess = 300
-	m.Transparency = 0.95
+	m.Transparency = 0.99
 	m.Reflective = 0.9
 	m.RefractiveIndex = 1.5
 	return m

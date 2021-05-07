@@ -16,7 +16,7 @@ const (
 )
 
 func main() {
-	w, c := scenes.NewPondScene(width)
+	w, c := scenes.NewRoomScene(width)
 
 	g := &Game{
 		c:      c,
@@ -26,7 +26,7 @@ func main() {
 
 	go func() {
 		// start rendering in background. draw one frame to canvas
-		pc := g.c.PixelChan(g.w, 6, runtime.NumCPU()/2)
+		pc := g.c.PixelChan(g.w, 5, runtime.NumCPU()/2)
 		for p := range pc {
 			g.canvas.SetPixel(p.X, p.Y, p.C)
 		}
