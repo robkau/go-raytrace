@@ -69,7 +69,7 @@ func NewPondScene(width int) (view.World, view.Camera) {
 	c := view.NewCamera(width, width, 0.45)
 	c.Transform = geom.ViewTransform(geom.NewPoint(18, 5, -10),
 		geom.NewPoint(0, 0, 0),
-		geom.NewVector(0, 1, 0))
+		geom.UpVector())
 
 	return w, c
 }

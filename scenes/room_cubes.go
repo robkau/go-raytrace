@@ -78,7 +78,7 @@ func NewRoomScene(width int) (view.World, view.Camera) {
 	c := view.NewCamera(width, width, 0.45)
 	c.Transform = geom.ViewTransform(cameraPos,
 		cameraLookingAt,
-		geom.NewVector(0, 1, 0))
+		geom.UpVector())
 
 	return w, c
 }

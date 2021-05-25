@@ -31,6 +31,11 @@ func Lighting(m Material, s Shape, l PointLight, p geom.Tuple, eyev geom.Tuple, 
 	lightv := l.Position.Sub(p).Normalize()
 	ambient := effectiveColor.MulBy(m.Ambient)
 
+	if shaded && s.GetShaded() {
+		// object is in the shade, and able to be shaded. no lighting to calculate
+		return ambient
+	}
+
 	lightDotNormal := lightv.Dot(nv)
 
 	diffuse := colors.NewColor(0, 0, 0)
@@ -51,10 +56,5 @@ func Lighting(m Material, s Shape, l PointLight, p geom.Tuple, eyev geom.Tuple, 
 		}
 	}
 
-	// unshaded object does not have shadows cast onto it
-	if shaded && s.GetShaded() {
-		return ambient
-	} else {
-		return ambient.Add(diffuse).Add(specular)
-	}
+	return ambient.Add(diffuse).Add(specular)
 }

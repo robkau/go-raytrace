@@ -28,6 +28,10 @@ func NewVector(x, y, z float64) Tuple {
 	return Tuple{x, y, z, Vector}
 }
 
+func UpVector() Tuple {
+	return NewVector(0, 1, 0)
+}
+
 func (t Tuple) IsPoint() bool {
 	return t.C == point
 }

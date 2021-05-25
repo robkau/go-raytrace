@@ -75,7 +75,7 @@ func NewWavyCarpetSpheres(width int) (view.World, view.Camera) {
 	c := view.NewCamera(width, width, math.Pi/3)
 	c.Transform = geom.ViewTransform(geom.NewPoint(2, 4, -3),
 		geom.NewPoint(0, 1, 0),
-		geom.NewVector(0, 1, 0))
+		geom.UpVector())
 
 	return w, c
 }

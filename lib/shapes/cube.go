@@ -60,7 +60,7 @@ func (c Cube) Intersect(r geom.Ray) Intersections {
 }
 
 func (c Cube) LocalIntersect(r geom.Ray) Intersections {
-	// todo optimize
+	// todo optimization possible
 	xtMin, xtMax := checkAxis(r.Origin.X, r.Direction.X)
 	ytMin, ytMax := checkAxis(r.Origin.Y, r.Direction.Y)
 	ztMin, ztMax := checkAxis(r.Origin.Z, r.Direction.Z)
