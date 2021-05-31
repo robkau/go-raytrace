@@ -56,7 +56,7 @@ type Game struct {
 	count  int
 	c      view.Camera
 	w      view.World
-	canvas view.Canvas
+	canvas *view.Canvas
 }
 
 func (g *Game) Update() error {

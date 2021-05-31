@@ -19,7 +19,8 @@ func Test_NewSphere_HasDefaultMaterial(t *testing.T) {
 }
 
 func Test_NewGlassSphere(t *testing.T) {
-	s := NewGlassSphere()
+	s := NewSphere()
+	s.SetMaterial(NewGlassMaterial())
 	m := s.GetMaterial()
 
 	assert.Equal(t, geom.NewIdentityMatrixX4(), s.GetTransform())
@@ -30,7 +31,7 @@ func Test_NewGlassSphere(t *testing.T) {
 func Test_Sphere_SetTransform(t *testing.T) {
 	var s Shape = NewSphere()
 	tr := geom.Translate(2, 3, 4)
-	s = s.SetTransform(tr)
+	s.SetTransform(tr)
 
 	assert.Equal(t, tr, s.GetTransform())
 }
@@ -110,7 +111,8 @@ func Test_RayIntersectSphere_ObjectSet(t *testing.T) {
 }
 
 func Test_ScaledSphere_Intersect_Ray(t *testing.T) {
-	s := NewSphereWith(geom.Scale(2, 2, 2))
+	s := NewSphere()
+	s.SetTransform(geom.Scale(2, 2, 2))
 	r := geom.RayWith(geom.NewPoint(0, 0, -5), geom.NewVector(0, 0, 1))
 
 	xs := s.Intersect(r)
@@ -121,7 +123,8 @@ func Test_ScaledSphere_Intersect_Ray(t *testing.T) {
 }
 
 func Test_TranslatedSphere_Intersect_Ray(t *testing.T) {
-	s := NewSphereWith(geom.Translate(5, 0, 0))
+	s := NewSphere()
+	s.SetTransform(geom.Translate(5, 0, 0))
 	r := geom.RayWith(geom.NewPoint(0, 0, -5), geom.NewVector(0, 0, 1))
 
 	xs := s.Intersect(r)
@@ -162,7 +165,8 @@ func Test_NormalXYZ(t *testing.T) {
 }
 
 func Test_Normal_Translated(t *testing.T) {
-	s := NewSphereWith(geom.Translate(0, 1, 0))
+	s := NewSphere()
+	s.SetTransform(geom.Translate(0, 1, 0))
 
 	n := s.NormalAt(geom.NewPoint(0, 1.70711, -0.70711)).RoundTo(5)
 
@@ -170,7 +174,8 @@ func Test_Normal_Translated(t *testing.T) {
 }
 
 func Test_Normal_ScaledAndRotated(t *testing.T) {
-	s := NewSphereWith(geom.Scale(1, 0.5, 1).MulX4Matrix(geom.RotateZ(math.Pi / 5)))
+	s := NewSphere()
+	s.SetTransform(geom.Scale(1, 0.5, 1).MulX4Matrix(geom.RotateZ(math.Pi / 5)))
 
 	n := s.NormalAt(geom.NewPoint(0, math.Sqrt2/2, -math.Sqrt2/2)).RoundTo(5)
 

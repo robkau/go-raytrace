@@ -24,44 +24,45 @@ func NewWavyCarpetSpheres(width int) (view.World, view.Camera) {
 	p4 := patterns.NewSprayPaintPattern(p3, 0.04)
 	m.Pattern = p4
 	m.Specular = 0.2
-	floor = floor.SetMaterial(m)
+	floor.SetMaterial(m)
 
 	var middle shapes.Shape = shapes.NewSphere()
-	middle = middle.SetTransform(geom.Translate(-0.5, 1, 0.5))
+	middle.SetTransform(geom.Translate(-0.5, 1, 0.5))
 	m = middle.GetMaterial()
 	m.Pattern = patterns.NewPerlinPattern(patterns.NewStripePattern(patterns.NewSolidColorPattern(colors.RandomColor()), patterns.NewSolidColorPattern(colors.RandomAnyColor())), 0.5, 0.6, 4)
 	m.Pattern.SetTransform(geom.RotateX(math.Pi / 3).MulX4Matrix(geom.Scale(0.3, 0.3, 0.3)))
 	m.Color = colors.NewColor(0.1, 1, 0.5)
 	m.Diffuse = 0.7
 	m.Specular = 0.3
-	middle = middle.SetMaterial(m)
+	middle.SetMaterial(m)
 
 	var right shapes.Shape = shapes.NewSphere()
-	right = right.SetTransform(geom.Translate(1.5, 0.5, -0.5).MulX4Matrix(geom.Scale(0.5, 0.5, 0.5)))
+	right.SetTransform(geom.Translate(1.5, 0.5, -0.5).MulX4Matrix(geom.Scale(0.5, 0.5, 0.5)))
 	m = right.GetMaterial()
 	m.Color = colors.NewColor(0.5, 1, 0.1)
 	m.Diffuse = 0.7
 	m.Specular = 0.3
 	m.Pattern = patterns.NewPerlinPattern(patterns.NewStripePattern(patterns.NewSolidColorPattern(colors.RandomColor()), patterns.NewSolidColorPattern(colors.RandomAnyColor())), 0.4, 0.7, 7)
 	m.Pattern.SetTransform(geom.RotateY(math.Pi / 3).MulX4Matrix(geom.Scale(0.4, 0.4, 0.4)))
-	right = right.SetMaterial(m)
+	right.SetMaterial(m)
 
 	var left shapes.Shape = shapes.NewSphere()
-	left = left.SetTransform(geom.Translate(-1.3, 2.4, -0.75).MulX4Matrix(geom.Scale(0.23, 0.23, 0.23)))
+	left.SetTransform(geom.Translate(-1.3, 2.4, -0.75).MulX4Matrix(geom.Scale(0.23, 0.23, 0.23)))
 	m = left.GetMaterial()
 	m.Color = colors.NewColor(1, 0.8, 0.1)
 	m.Diffuse = 0.7
 	m.Specular = 0.3
 	m.Pattern = patterns.NewPerlinPattern(patterns.NewRingPattern(patterns.NewSolidColorPattern(colors.RandomAnyColor()), patterns.NewSolidColorPattern(colors.RandomColor())), 0.3, 0.8, 3)
 	m.Pattern.SetTransform(geom.RotateZ(math.Pi / 3).MulX4Matrix(geom.Scale(0.5, 0.5, 0.5)))
-	left = left.SetMaterial(m)
+	left.SetMaterial(m)
 
-	var glass shapes.Shape = shapes.NewGlassSphere()
-	glass = glass.SetTransform(geom.Translate(-1.3, 2.4, 3.75).MulX4Matrix(geom.RotateY(-math.Pi / 6.2).MulX4Matrix(geom.RotateZ(math.Pi / 8))).MulX4Matrix(geom.Scale(1.73, 1.73, 0.13)))
+	var glass shapes.Shape = shapes.NewSphere()
+	glass.SetMaterial(shapes.NewGlassMaterial())
+	glass.SetTransform(geom.Translate(-1.3, 2.4, 3.75).MulX4Matrix(geom.RotateY(-math.Pi / 6.2).MulX4Matrix(geom.RotateZ(math.Pi / 8))).MulX4Matrix(geom.Scale(1.73, 1.73, 0.13)))
 	m = glass.GetMaterial()
 	m.Reflective = 1
 	m.Transparency = 0
-	glass = glass.SetMaterial(m)
+	glass.SetMaterial(m)
 
 	w := view.NewWorld()
 	w.AddObject(floor)

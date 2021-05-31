@@ -18,16 +18,17 @@ func NewCappedCylinderScene(width int) (view.World, view.Camera) {
 	cyl.M.Color = colors.Red()
 
 	// glass sphere partially enveloping cylinder
-	var gs shapes.Shape = shapes.NewGlassSphere()
-	gs = gs.SetTransform(geom.Translate(0, 7, 0).MulX4Matrix(geom.Scale(2.6, 2.6, 2.6)))
+	gs := shapes.NewSphere()
+	gs.SetMaterial(shapes.NewGlassMaterial())
+	gs.SetTransform(geom.Translate(0, 7, 0).MulX4Matrix(geom.Scale(2.6, 2.6, 2.6)))
 
 	// with a conical hat on top
-	var cone shapes.Shape = shapes.NewUnitCone(true)
-	cone = cone.SetTransform(geom.Scale(1.3, 1, 1.3).MulX4Matrix(geom.Translate(0, 10.4, 0)))
+	cone := shapes.NewUnitCone(true)
+	cone.SetTransform(geom.Scale(1.3, 1, 1.3).MulX4Matrix(geom.Translate(0, 10.4, 0)))
 	m := cone.GetMaterial()
 	m.Pattern = patterns.NewRingPattern(patterns.NewSolidColorPattern(colors.RandomAnyColor()), patterns.NewSolidColorPattern(colors.RandomAnyColor()))
 	m.Pattern.SetTransform(geom.Scale(0.2, 0.2, 0.2))
-	cone = cone.SetMaterial(m)
+	cone.SetMaterial(m)
 
 	// floor and ceiling as one cube
 	// (the ceiling is too short but it looks cool)
@@ -36,7 +37,7 @@ func NewCappedCylinderScene(width int) (view.World, view.Camera) {
 	m.Color = colors.Brown()
 	m.Reflective = 0
 	m.Transparency = 0
-	floorAndCeiling = floorAndCeiling.SetMaterial(m)
+	floorAndCeiling.SetMaterial(m)
 
 	// walls as another cube
 	var walls = sizedCubeAt(0, 0, 0, 20, 100, 20)
@@ -44,7 +45,7 @@ func NewCappedCylinderScene(width int) (view.World, view.Camera) {
 	m.Reflective = 0
 	m.Transparency = 0
 	m.Color = colors.Blue()
-	walls = walls.SetMaterial(m)
+	walls.SetMaterial(m)
 
 	// light above
 	w.AddLight(shapes.NewPointLight(geom.NewPoint(5, 10, -3), colors.NewColor(1.9, 1.4, 1.4)))

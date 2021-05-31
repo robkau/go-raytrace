@@ -27,11 +27,11 @@ func defaultWorld() World {
 	m.Color = colors.NewColor(0.8, 1.0, 0.6)
 	m.Diffuse = 0.7
 	m.Specular = 0.2
-	s = s.SetMaterial(m)
+	s.SetMaterial(m)
 	w.AddObject(s)
 
 	s = shapes.NewSphere()
-	s = s.SetTransform(geom.Scale(0.5, 0.5, 0.5))
+	s.SetTransform(geom.Scale(0.5, 0.5, 0.5))
 	w.AddObject(s)
 
 	l := shapes.NewPointLight(geom.NewPoint(-10, 10, -10), colors.White())

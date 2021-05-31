@@ -24,8 +24,8 @@ func Test_DefaultWorld(t *testing.T) {
 	sA.M.Color = colors.NewColor(0.8, 1.0, 0.6)
 	sA.M.Diffuse = 0.7
 	sA.M.Specular = 0.2
-	var sB shapes.Shape = shapes.NewSphere()
-	sB = sB.SetTransform(geom.Scale(0.5, 0.5, 0.5))
+	sB := shapes.NewSphere()
+	sB.SetTransform(geom.Scale(0.5, 0.5, 0.5))
 
 	assert.Len(t, w.objects, 2)
 	assert.Equal(t, w.objects[0].GetMaterial(), sA.GetMaterial())
@@ -94,10 +94,10 @@ func Test_RayIntersectionBehind_Color(t *testing.T) {
 	w := defaultWorld()
 	m := w.objects[0].GetMaterial()
 	m.Ambient = 1
-	w.objects[0] = w.objects[0].SetMaterial(m)
+	w.objects[0].SetMaterial(m)
 	m = w.objects[1].GetMaterial()
 	m.Ambient = 1
-	w.objects[1] = w.objects[1].SetMaterial(m)
+	w.objects[1].SetMaterial(m)
 
 	r := geom.RayWith(geom.NewPoint(0, 0, 0.75), geom.NewVector(0, 0, -1))
 
@@ -139,7 +139,8 @@ func Test_ShadeHit_HasShadow(t *testing.T) {
 	w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 0, -10), colors.White()))
 	s1 := shapes.NewSphere()
 	w.AddObject(s1)
-	s2 := shapes.NewSphereWith(geom.Translate(0, 0, 10))
+	s2 := shapes.NewSphere()
+	s2.SetTransform(geom.Translate(0, 0, 10))
 	w.AddObject(s2)
 	r := geom.RayWith(geom.NewPoint(0, 0, 5), geom.NewVector(0, 0, 1))
 	i := shapes.NewIntersection(4, s2)
@@ -152,23 +153,25 @@ func Test_ShadeHit_HasShadow(t *testing.T) {
 func Test_ShadeHit_TransparentMaterial(t *testing.T) {
 	w := defaultWorld()
 
-	floor := shapes.NewPlaneWith(geom.Translate(0, -1, 0))
+	floor := shapes.NewPlane()
+	floor.SetTransform(geom.Translate(0, -1, 0))
 	m := floor.GetMaterial()
 	m.Transparency = 0.5
 	m.RefractiveIndex = 1.5
-	floorShape := floor.SetMaterial(m)
-	w.AddObject(floorShape)
+	floor.SetMaterial(m)
+	w.AddObject(floor)
 
-	ball := shapes.NewSphereWith(geom.Translate(0, -3.5, -0.5))
-	m = floor.GetMaterial()
+	ball := shapes.NewSphere()
+	ball.SetTransform(geom.Translate(0, -3.5, -0.5))
+	m = ball.GetMaterial()
 	m.Ambient = 0.5
 	m.Color = colors.NewColor(1, 0, 0)
-	ballShape := ball.SetMaterial(m)
-	w.AddObject(ballShape)
+	ball.SetMaterial(m)
+	w.AddObject(ball)
 
 	r := geom.RayWith(geom.NewPoint(0, 0, -3), geom.NewVector(0, -math.Sqrt(2)/2, math.Sqrt(2)/2))
 	xs := shapes.NewIntersections(
-		shapes.NewIntersection(math.Sqrt(2), floorShape),
+		shapes.NewIntersection(math.Sqrt(2), floor),
 	)
 
 	comps := xs.I[0].Compute(r, xs)
@@ -180,24 +183,26 @@ func Test_ShadeHit_TransparentMaterial(t *testing.T) {
 func Test_ShadeHit_TransparentAndReflectiveMaterial(t *testing.T) {
 	w := defaultWorld()
 
-	floor := shapes.NewPlaneWith(geom.Translate(0, -1, 0))
+	floor := shapes.NewPlane()
+	floor.SetTransform(geom.Translate(0, -1, 0))
 	m := floor.GetMaterial()
 	m.Reflective = 0.5
 	m.Transparency = 0.5
 	m.RefractiveIndex = 1.5
-	floorShape := floor.SetMaterial(m)
-	w.AddObject(floorShape)
+	floor.SetMaterial(m)
+	w.AddObject(floor)
 
-	ball := shapes.NewSphereWith(geom.Translate(0, -3.5, -0.5))
-	m = floor.GetMaterial()
+	ball := shapes.NewSphere()
+	ball.SetTransform(geom.Translate(0, -3.5, -0.5))
+	m = ball.GetMaterial()
 	m.Ambient = 0.5
 	m.Color = colors.NewColor(1, 0, 0)
-	ballShape := ball.SetMaterial(m)
-	w.AddObject(ballShape)
+	ball.SetMaterial(m)
+	w.AddObject(ball)
 
 	r := geom.RayWith(geom.NewPoint(0, 0, -3), geom.NewVector(0, -math.Sqrt(2)/2, math.Sqrt(2)/2))
 	xs := shapes.NewIntersections(
-		shapes.NewIntersection(math.Sqrt(2), floorShape),
+		shapes.NewIntersection(math.Sqrt(2), floor),
 	)
 
 	comps := xs.I[0].Compute(r, xs)
@@ -224,12 +229,13 @@ func Test_NonReflectiveMaterial_ReflectedColor(t *testing.T) {
 func Test_ReflectiveMaterial_ReflectedColor(t *testing.T) {
 	w := defaultWorld()
 	r := geom.RayWith(geom.NewPoint(0, 0, -3), geom.NewVector(0, -math.Sqrt(2)/2, math.Sqrt(2)/2))
-	s := shapes.NewPlaneWith(geom.Translate(0, -1, 0))
+	s := shapes.NewPlane()
+	s.SetTransform(geom.Translate(0, -1, 0))
 	m := s.GetMaterial()
 	m.Reflective = 0.5
-	ss := s.SetMaterial(m)
-	w.AddObject(ss)
-	i := shapes.NewIntersection(math.Sqrt(2), ss)
+	s.SetMaterial(m)
+	w.AddObject(s)
+	i := shapes.NewIntersection(math.Sqrt(2), s)
 	comps := i.Compute(r, shapes.NoIntersections)
 	c := w.ReflectedColor(comps, 4)
 
@@ -240,12 +246,13 @@ func Test_ReflectiveMaterial_ReflectedColor(t *testing.T) {
 func Test_ReflectiveMaterial_ReflectedColor_ShadeHit(t *testing.T) {
 	w := defaultWorld()
 	r := geom.RayWith(geom.NewPoint(0, 0, -3), geom.NewVector(0, -math.Sqrt(2)/2, math.Sqrt(2)/2))
-	s := shapes.NewPlaneWith(geom.Translate(0, -1, 0))
+	s := shapes.NewPlane()
+	s.SetTransform(geom.Translate(0, -1, 0))
 	m := s.GetMaterial()
 	m.Reflective = 0.5
-	ss := s.SetMaterial(m)
-	w.AddObject(ss)
-	i := shapes.NewIntersection(math.Sqrt(2), ss)
+	s.SetMaterial(m)
+	w.AddObject(s)
+	i := shapes.NewIntersection(math.Sqrt(2), s)
 	comps := i.Compute(r, shapes.NoIntersections)
 	c := w.ShadeHit(comps, 4)
 
@@ -256,12 +263,13 @@ func Test_ReflectiveMaterial_ReflectedColor_ShadeHit(t *testing.T) {
 func Test_ReflectiveMaterial_ReflectedColor_ShadeHit_NoReflectionsRemaining(t *testing.T) {
 	w := defaultWorld()
 	r := geom.RayWith(geom.NewPoint(0, 0, -3), geom.NewVector(0, -math.Sqrt(2)/2, math.Sqrt(2)/2))
-	s := shapes.NewPlaneWith(geom.Translate(0, -1, 0))
+	s := shapes.NewPlane()
+	s.SetTransform(geom.Translate(0, -1, 0))
 	m := s.GetMaterial()
 	m.Reflective = 0.5
-	ss := s.SetMaterial(m)
-	w.AddObject(ss)
-	i := shapes.NewIntersection(math.Sqrt(2), ss)
+	s.SetMaterial(m)
+	w.AddObject(s)
+	i := shapes.NewIntersection(math.Sqrt(2), s)
 	comps := i.Compute(r, shapes.NoIntersections)
 	c := w.ReflectedColor(comps, 0)
 
@@ -273,17 +281,19 @@ func Test_MutuallyReflecting_InfiniteRecursion(t *testing.T) {
 	w := NewWorld()
 	w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 0, 0), colors.NewColor(1, 1, 1)))
 
-	lower := shapes.NewPlaneWith(geom.Translate(0, -1, 0))
+	lower := shapes.NewPlane()
+	lower.SetTransform(geom.Translate(0, -1, 0))
 	m := lower.GetMaterial()
 	m.Reflective = 1
-	lowerS := lower.SetMaterial(m)
-	w.AddObject(lowerS)
+	lower.SetMaterial(m)
+	w.AddObject(lower)
 
-	upper := shapes.NewPlaneWith(geom.Translate(0, 1, 0))
+	upper := shapes.NewPlane()
+	upper.SetTransform(geom.Translate(0, 1, 0))
 	m = upper.GetMaterial()
 	m.Reflective = 1
-	upperS := upper.SetMaterial(m)
-	w.AddObject(upperS)
+	upper.SetMaterial(m)
+	w.AddObject(upper)
 
 	r := geom.RayWith(geom.NewPoint(0, 0, 0), geom.NewVector(0, 1, 0))
 
@@ -313,14 +323,14 @@ func Test_RefractedColor_AtMaxRecursionDepth(t *testing.T) {
 	m := s.GetMaterial()
 	m.Transparency = 1
 	m.RefractiveIndex = 1.5
-	ss := s.SetMaterial(m)
-	w.objects[0] = ss
+	s.SetMaterial(m)
+	w.objects[0] = s
 
 	r := geom.RayWith(geom.NewPoint(0, 0, -5), geom.NewVector(0, 0, 1))
 
 	xs := shapes.NewIntersections(
-		shapes.NewIntersection(4, ss),
-		shapes.NewIntersection(6, ss),
+		shapes.NewIntersection(4, s),
+		shapes.NewIntersection(6, s),
 	)
 
 	comps := xs.I[0].Compute(r, xs)
@@ -335,14 +345,14 @@ func Test_RefractedColor_TotalInternalRefraction(t *testing.T) {
 	m := s.GetMaterial()
 	m.Transparency = 1
 	m.RefractiveIndex = 1.5
-	ss := s.SetMaterial(m)
-	w.objects[0] = ss
+	s.SetMaterial(m)
+	w.objects[0] = s
 
 	r := geom.RayWith(geom.NewPoint(0, 0, math.Sqrt(2)/2), geom.NewVector(0, 1, 0))
 
 	xs := shapes.NewIntersections(
-		shapes.NewIntersection(-math.Sqrt(2)/2, ss),
-		shapes.NewIntersection(math.Sqrt(2)/2, ss),
+		shapes.NewIntersection(-math.Sqrt(2)/2, s),
+		shapes.NewIntersection(math.Sqrt(2)/2, s),
 	)
 
 	comps := xs.I[1].Compute(r, xs)
@@ -357,22 +367,22 @@ func Test_RefractedColor_Ray(t *testing.T) {
 	m := sA.GetMaterial()
 	m.Ambient = 1
 	m.Pattern = patterns.NewPositionAsColorPattern()
-	ssA := sA.SetMaterial(m)
-	w.objects[0] = ssA
+	sA.SetMaterial(m)
+	w.objects[0] = sA
 	sB := w.objects[1]
 	m = sB.GetMaterial()
 	m.Transparency = 1
 	m.RefractiveIndex = 1.5
-	ssB := sB.SetMaterial(m)
-	w.objects[1] = ssB
+	sB.SetMaterial(m)
+	w.objects[1] = sB
 
 	r := geom.RayWith(geom.NewPoint(0, 0, 0.1), geom.NewVector(0, 1, 0))
 
 	xs := shapes.NewIntersections(
-		shapes.NewIntersection(-0.9899, ssA),
-		shapes.NewIntersection(-0.4899, ssB),
-		shapes.NewIntersection(0.4899, ssB),
-		shapes.NewIntersection(0.9899, ssA),
+		shapes.NewIntersection(-0.9899, sA),
+		shapes.NewIntersection(-0.4899, sB),
+		shapes.NewIntersection(0.4899, sB),
+		shapes.NewIntersection(0.9899, sA),
 	)
 
 	comps := xs.I[2].Compute(r, xs)
@@ -385,9 +395,10 @@ func Test_Shadowless_NotShadeOthers(t *testing.T) {
 	w := NewWorld()
 	w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 0, -10), colors.White()))
 	var s1 shapes.Shape = shapes.NewSphere()
-	s1 = s1.SetShadowless(true)
+	s1.SetShadowless(true)
 	w.AddObject(s1)
-	s2 := shapes.NewSphereWith(geom.Translate(0, 0, 10))
+	s2 := shapes.NewSphere()
+	s2.SetTransform(geom.Translate(0, 0, 10))
 	w.AddObject(s2)
 	r := geom.RayWith(geom.NewPoint(0, 0, 5), geom.NewVector(0, 0, 1))
 	i := shapes.NewIntersection(4, s2)
@@ -402,8 +413,9 @@ func Test_UnShaded_NotShadedByOthers(t *testing.T) {
 	w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 0, -10), colors.White()))
 	s1 := shapes.NewSphere()
 	w.AddObject(s1)
-	var s2 shapes.Shape = shapes.NewSphereWith(geom.Translate(0, 0, 10))
-	s2 = s2.SetShaded(false)
+	s2 := shapes.NewSphere()
+	s2.SetTransform(geom.Translate(0, 0, 10))
+	s2.SetShaded(false)
 	w.AddObject(s2)
 	r := geom.RayWith(geom.NewPoint(0, 0, 5), geom.NewVector(0, 0, 1))
 	i := shapes.NewIntersection(4, s2)

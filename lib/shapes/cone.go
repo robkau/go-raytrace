@@ -6,52 +6,35 @@ import (
 )
 
 type Cone struct {
+	baseShape
+
 	maximum float64
 	minimum float64
 	capped  bool
-
-	t          geom.X4Matrix
-	M          Material
-	id         string
-	shadowless bool
-	unshaded   bool
 }
 
-func NewCone(min, max float64, capped bool) Cone {
-	return Cone{
-		t:       geom.NewIdentityMatrixX4(),
-		M:       NewMaterial(),
-		id:      newId(),
-		minimum: min,
-		maximum: max,
-		capped:  capped,
+func NewCone(min, max float64, capped bool) *Cone {
+	return &Cone{
+		baseShape: newBaseShape(),
+		minimum:   min,
+		maximum:   max,
+		capped:    capped,
 	}
 }
 
-func NewUnitCone(capped bool) Cone {
-	return Cone{
-		t:       geom.NewIdentityMatrixX4(),
-		M:       NewMaterial(),
-		id:      newId(),
-		minimum: -1,
-		maximum: 0,
-		capped:  capped,
-	}
+func NewUnitCone(capped bool) *Cone {
+	return NewCone(-1, 0, capped)
 }
 
-func NewInfiniteCone() Cone {
+func NewInfiniteCone() *Cone {
 	return NewCone(math.Inf(-1), math.Inf(1), false)
 }
 
-func (c Cone) Id() string {
-	return c.id
-}
-
-func (c Cone) NormalAt(p geom.Tuple) geom.Tuple {
+func (c *Cone) NormalAt(p geom.Tuple) geom.Tuple {
 	return NormalAt(p, c.t, c.LocalNormalAt)
 }
 
-func (c Cone) LocalNormalAt(p geom.Tuple) geom.Tuple {
+func (c *Cone) LocalNormalAt(p geom.Tuple) geom.Tuple {
 	d := p.X*p.X + p.Z*p.Z
 
 	if d < 1 && p.Y >= c.maximum-geom.FloatComparisonEpsilon {
@@ -70,11 +53,11 @@ func (c Cone) LocalNormalAt(p geom.Tuple) geom.Tuple {
 	return geom.NewVector(p.X, y, p.Z)
 }
 
-func (c Cone) Intersect(r geom.Ray) Intersections {
+func (c *Cone) Intersect(r geom.Ray) Intersections {
 	return Intersect(r, c.t, c.LocalIntersect)
 }
 
-func (c Cone) LocalIntersect(r geom.Ray) Intersections {
+func (c *Cone) LocalIntersect(r geom.Ray) Intersections {
 	xs := NewIntersections()
 
 	a := r.Direction.X*r.Direction.X - r.Direction.Y*r.Direction.Y + r.Direction.Z*r.Direction.Z
@@ -120,7 +103,7 @@ func (c Cone) LocalIntersect(r geom.Ray) Intersections {
 	return xs
 }
 
-func (c Cone) intersectCaps(r geom.Ray, xs Intersections) Intersections {
+func (c *Cone) intersectCaps(r geom.Ray, xs Intersections) Intersections {
 	if !c.capped || geom.AlmostEqual(r.Direction.Y, 0) {
 		return xs
 	}
@@ -146,40 +129,4 @@ func checkConeCap(r geom.Ray, t float64, y float64) bool {
 
 	// radius of cap is always equal to current y value
 	return (x*x + z*z) <= math.Abs(y)
-}
-
-func (c Cone) GetTransform() geom.X4Matrix {
-	return c.t
-}
-
-func (c Cone) SetTransform(m geom.X4Matrix) Shape {
-	c.t = m
-	return c
-}
-
-func (c Cone) GetMaterial() Material {
-	return c.M
-}
-
-func (c Cone) SetMaterial(m Material) Shape {
-	c.M = m
-	return c
-}
-
-func (c Cone) GetShadowless() bool {
-	return c.shadowless
-}
-
-func (c Cone) SetShadowless(ss bool) Shape {
-	c.shadowless = ss
-	return c
-}
-
-func (c Cone) GetShaded() bool {
-	return !c.unshaded
-}
-
-func (c Cone) SetShaded(ss bool) Shape {
-	c.unshaded = !ss
-	return c
 }

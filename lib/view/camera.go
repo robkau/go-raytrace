@@ -53,7 +53,7 @@ func (c Camera) rayForPixel(px int, py int) geom.Ray {
 	return geom.RayWith(origin, direction)
 }
 
-func (c Camera) Render(w World, rayBounces int, numGoRoutines int) Canvas {
+func (c Camera) Render(w World, rayBounces int, numGoRoutines int) *Canvas {
 	image := NewCanvas(c.HSize, c.VSize)
 
 	wg := sync.WaitGroup{}

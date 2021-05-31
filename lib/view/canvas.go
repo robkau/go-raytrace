@@ -6,12 +6,14 @@ import (
 	"image"
 	gocolor "image/color"
 	"strings"
+	"sync"
 )
 
 type Canvas struct {
 	pixels []colors.Color
 	width  int
 	height int
+	rw     sync.RWMutex
 }
 
 const (
@@ -21,16 +23,16 @@ const (
 	ppmMaxColorValue = 255
 )
 
-func NewCanvas(width, height int) Canvas {
-	return Canvas{
+func NewCanvas(width, height int) *Canvas {
+	return &Canvas{
 		pixels: make([]colors.Color, width*height),
 		width:  width,
 		height: height,
 	}
 }
 
-func newCanvasWith(width int, height int, p colors.Color) Canvas {
-	c := Canvas{
+func newCanvasWith(width int, height int, p colors.Color) *Canvas {
+	c := &Canvas{
 		pixels: make([]colors.Color, width*height),
 		width:  width,
 		height: height,
@@ -41,15 +43,19 @@ func newCanvasWith(width int, height int, p colors.Color) Canvas {
 	return c
 }
 
-func (c Canvas) getPixel(x int, y int) colors.Color {
+func (c *Canvas) getPixel(x int, y int) colors.Color {
+	c.rw.RLock()
+	defer c.rw.RUnlock()
 	return c.pixels[y*c.width+x]
 }
 
-func (c Canvas) SetPixel(x int, y int, col colors.Color) {
+func (c *Canvas) SetPixel(x int, y int, col colors.Color) {
+	c.rw.Lock()
+	defer c.rw.Unlock()
 	c.pixels[y*c.width+x] = col
 }
 
-func (c Canvas) ToImage() image.Image {
+func (c *Canvas) ToImage() image.Image {
 	upLeft := image.Point{0, 0}
 	lowRight := image.Point{c.width, c.height}
 
@@ -68,7 +74,7 @@ func (c Canvas) ToImage() image.Image {
 	return img
 }
 
-func (c Canvas) toPPM() string {
+func (c *Canvas) toPPM() string {
 
 	b := strings.Builder{}
 	b.WriteString(fmt.Sprintf("%s\n", ppmFileHeader))

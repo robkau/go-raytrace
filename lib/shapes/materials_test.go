@@ -97,7 +97,8 @@ func Test_Eye_SurfaceDhaded(t *testing.T) {
 
 func Test_HitShouldOffsetPoint(t *testing.T) {
 	r := geom.RayWith(geom.NewPoint(0, 0, -5), geom.NewVector(0, 0, 1))
-	shape := NewSphereWith(geom.Translate(0, 0, 1))
+	shape := NewSphere()
+	shape.SetTransform(geom.Translate(0, 0, 1))
 	i := NewIntersection(5, shape)
 	comps := i.Compute(r, NoIntersections)
 

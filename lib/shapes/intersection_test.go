@@ -130,10 +130,11 @@ func Test_Compute_Inside(t *testing.T) {
 
 func Test_Compute_UnderPoint(t *testing.T) {
 	r := geom.RayWith(geom.NewPoint(0, 0, -5), geom.NewVector(0, 0, 1))
-	s := NewGlassSphere()
-	ss := s.SetTransform(geom.Translate(0, 0, 1))
+	s := NewSphere()
+	s.SetMaterial(NewGlassMaterial())
+	s.SetTransform(geom.Translate(0, 0, 1))
 
-	i := NewIntersection(5, ss)
+	i := NewIntersection(5, s)
 	c := i.Compute(r, NewIntersections(i))
 
 	assert.Greater(t, c.UnderPoint.Z, geom.FloatComparisonEpsilon/2)
@@ -153,32 +154,35 @@ func Test_Compute_ReflectionVector(t *testing.T) {
 }
 
 func Test_Compute_RefractionScene(t *testing.T) {
-	sA := NewGlassSphere()
+	sA := NewSphere()
+	sA.SetMaterial(NewGlassMaterial())
 	sA.SetTransform(geom.Scale(2, 2, 2))
 	m := sA.GetMaterial()
 	m.RefractiveIndex = 1.5
-	ssA := sA.SetMaterial(m)
+	sA.SetMaterial(m)
 
-	sB := NewGlassSphere()
+	sB := NewSphere()
+	sB.SetMaterial(NewGlassMaterial())
 	sB.SetTransform(geom.Translate(0, 0, -0.25))
 	m = sB.GetMaterial()
 	m.RefractiveIndex = 2
-	ssB := sB.SetMaterial(m)
+	sB.SetMaterial(m)
 
-	sC := NewGlassSphere()
+	sC := NewSphere()
+	sC.SetMaterial(NewGlassMaterial())
 	sC.SetTransform(geom.Translate(0, 0, 0.25))
 	m = sC.GetMaterial()
 	m.RefractiveIndex = 2.5
-	ssC := sC.SetMaterial(m)
+	sC.SetMaterial(m)
 
 	r := geom.RayWith(geom.NewPoint(0, 0, -4), geom.NewVector(0, 0, 1))
 	xs := Intersections{I: []Intersection{
-		{2, ssA},
-		{2.75, ssB},
-		{3.25, ssC},
-		{4.75, ssB},
-		{5.25, ssC},
-		{6, ssA},
+		{2, sA},
+		{2.75, sB},
+		{3.25, sC},
+		{4.75, sB},
+		{5.25, sC},
+		{6, sA},
 	}}
 
 	type expected struct {
@@ -202,7 +206,8 @@ func Test_Compute_RefractionScene(t *testing.T) {
 }
 
 func Test_Schlick_TotalInternalReflection(t *testing.T) {
-	s := NewGlassSphere()
+	s := NewSphere()
+	s.SetMaterial(NewGlassMaterial())
 	r := geom.RayWith(geom.NewPoint(0, 0, math.Sqrt(2)/2), geom.NewVector(0, 1, 0))
 	xs := NewIntersections(
 		NewIntersection(-math.Sqrt(2)/2, s),
@@ -216,7 +221,8 @@ func Test_Schlick_TotalInternalReflection(t *testing.T) {
 }
 
 func Test_Schlick_PerpendicularAngle(t *testing.T) {
-	s := NewGlassSphere()
+	s := NewSphere()
+	s.SetMaterial(NewGlassMaterial())
 	r := geom.RayWith(geom.NewPoint(0, 0, 0), geom.NewVector(0, 1, 0))
 	xs := NewIntersections(
 		NewIntersection(-1, s),
@@ -230,7 +236,8 @@ func Test_Schlick_PerpendicularAngle(t *testing.T) {
 }
 
 func Test_Schlick_N2Larger(t *testing.T) {
-	s := NewGlassSphere()
+	s := NewSphere()
+	s.SetMaterial(NewGlassMaterial())
 	r := geom.RayWith(geom.NewPoint(0, 0.99, -2), geom.NewVector(0, 0, 1))
 	xs := NewIntersections(
 		NewIntersection(1.8589, s),
