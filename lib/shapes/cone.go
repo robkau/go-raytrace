@@ -31,7 +31,7 @@ func NewInfiniteCone() *Cone {
 }
 
 func (c *Cone) NormalAt(p geom.Tuple) geom.Tuple {
-	return NormalAt(p, c.t, c.LocalNormalAt)
+	return NormalAt(c, p, c.LocalNormalAt)
 }
 
 func (c *Cone) LocalNormalAt(p geom.Tuple) geom.Tuple {

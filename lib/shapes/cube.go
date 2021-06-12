@@ -16,7 +16,7 @@ func NewCube() *Cube {
 }
 
 func (c *Cube) NormalAt(p geom.Tuple) geom.Tuple {
-	return NormalAt(p, c.t, c.LocalNormalAt)
+	return NormalAt(c, p, c.LocalNormalAt)
 }
 
 func (c *Cube) LocalNormalAt(p geom.Tuple) geom.Tuple {

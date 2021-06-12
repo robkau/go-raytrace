@@ -16,7 +16,7 @@ func NewSphere() *Sphere {
 }
 
 func (s *Sphere) NormalAt(p geom.Tuple) geom.Tuple {
-	return NormalAt(p, s.t, s.LocalNormalAt)
+	return NormalAt(s, p, s.LocalNormalAt)
 }
 
 func (s *Sphere) LocalNormalAt(p geom.Tuple) geom.Tuple {

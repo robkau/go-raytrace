@@ -16,7 +16,7 @@ func NewPlane() *Plane {
 }
 
 func (p *Plane) NormalAt(pt geom.Tuple) geom.Tuple {
-	return NormalAt(pt, p.t, p.LocalNormalAt)
+	return NormalAt(p, pt, p.LocalNormalAt)
 }
 
 func (p *Plane) LocalNormalAt(pt geom.Tuple) geom.Tuple {

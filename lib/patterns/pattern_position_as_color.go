@@ -3,6 +3,7 @@ package patterns
 import (
 	"go-raytrace/lib/colors"
 	"go-raytrace/lib/geom"
+	"go-raytrace/lib/shapes"
 )
 
 type PositionAsColorPattern struct {
@@ -23,6 +24,6 @@ func (p *PositionAsColorPattern) ColorAt(t geom.Tuple) colors.Color {
 	)
 }
 
-func (p *PositionAsColorPattern) ColorAtShape(st geom.X4Matrix, t geom.Tuple) colors.Color {
-	return ColorAtShape(p, st, t)
+func (p *PositionAsColorPattern) ColorAtShape(s shapes.Shape, t geom.Tuple) colors.Color {
+	return ColorAtShape(p, s.WorldToObject, t)
 }

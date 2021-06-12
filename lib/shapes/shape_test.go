@@ -76,6 +76,7 @@ func Test_NormalTransformedShape(t *testing.T) {
 }
 
 type testShape struct {
+	parent     Group
 	t          geom.X4Matrix
 	m          Material
 	savedRay   geom.Ray
@@ -94,6 +95,18 @@ func (t *testShape) Intersect(r geom.Ray) Intersections {
 	lr := r.Transform(t.t.Invert())
 	t.savedRay = lr
 	return Intersections{}
+}
+
+func (t *testShape) LocalIntersect(r geom.Ray) Intersections {
+	return NewIntersections()
+}
+
+func (t *testShape) WorldToObject(p geom.Tuple) geom.Tuple {
+	return p
+}
+
+func (t *testShape) NormalToWorld(normal geom.Tuple) geom.Tuple {
+	return normal
 }
 
 func (t *testShape) Id() string {
@@ -138,4 +151,12 @@ func (t *testShape) GetShaded() bool {
 
 func (t *testShape) SetShaded(s bool) {
 	t.unshaded = !s
+}
+
+func (t *testShape) GetParent() Group {
+	return t.parent
+}
+
+func (t *testShape) SetParent(g Group) {
+	t.parent = g
 }
