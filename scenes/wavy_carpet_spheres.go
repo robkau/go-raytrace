@@ -3,6 +3,7 @@ package scenes
 import (
 	"go-raytrace/lib/colors"
 	"go-raytrace/lib/geom"
+	"go-raytrace/lib/materials"
 	"go-raytrace/lib/patterns"
 	"go-raytrace/lib/shapes"
 	"go-raytrace/lib/view"
@@ -57,7 +58,7 @@ func NewWavyCarpetSpheres(width int) (view.World, view.Camera) {
 	left.SetMaterial(m)
 
 	var glass shapes.Shape = shapes.NewSphere()
-	glass.SetMaterial(shapes.NewGlassMaterial())
+	glass.SetMaterial(materials.NewGlassMaterial())
 	glass.SetTransform(geom.Translate(-1.3, 2.4, 3.75).MulX4Matrix(geom.RotateY(-math.Pi / 6.2).MulX4Matrix(geom.RotateZ(math.Pi / 8))).MulX4Matrix(geom.Scale(1.73, 1.73, 0.13)))
 	m = glass.GetMaterial()
 	m.Reflective = 1

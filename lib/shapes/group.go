@@ -2,6 +2,7 @@ package shapes
 
 import (
 	"go-raytrace/lib/geom"
+	"go-raytrace/lib/materials"
 )
 
 type Group interface {
@@ -51,11 +52,11 @@ func (g *group) SetTransform(matrix geom.X4Matrix) {
 	g.t = matrix
 }
 
-func (g *group) GetMaterial() Material {
+func (g *group) GetMaterial() materials.Material {
 	panic("implement me")
 }
 
-func (g *group) SetMaterial(material Material) {
+func (g *group) SetMaterial(material materials.Material) {
 	panic("implement me")
 }
 

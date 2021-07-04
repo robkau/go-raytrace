@@ -4,26 +4,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go-raytrace/lib/colors"
 	"go-raytrace/lib/geom"
+	"go-raytrace/lib/materials"
 	"go-raytrace/lib/patterns"
 	"math"
 	"testing"
 )
 
-func Test_DefaultMaterial(t *testing.T) {
-	m := NewMaterial()
-
-	assert.Equal(t, colors.White(), m.Color)
-	assert.Equal(t, 0.1, m.Ambient)
-	assert.Equal(t, 0.9, m.Diffuse)
-	assert.Equal(t, 0.9, m.Specular)
-	assert.Equal(t, 200.0, m.Shininess)
-	assert.Equal(t, 0.0, m.Reflective)
-	assert.Equal(t, 0.0, m.Transparency)
-	assert.Equal(t, 1.0, m.RefractiveIndex)
-}
-
 func Test_Light_Eye_Inline(t *testing.T) {
-	m := NewMaterial()
+	m := materials.NewMaterial()
 	pos := geom.NewPoint(0, 0, 0)
 	eyev := geom.NewVector(0, 0, -1)
 	nv := geom.NewVector(0, 0, -1)
@@ -35,7 +23,7 @@ func Test_Light_Eye_Inline(t *testing.T) {
 }
 
 func Test_Light_Eye_Offset45(t *testing.T) {
-	m := NewMaterial()
+	m := materials.NewMaterial()
 	pos := geom.NewPoint(0, 0, 0)
 	eyev := geom.NewVector(0, math.Sqrt2/2, -math.Sqrt2/2)
 	nv := geom.NewVector(0, 0, -1)
@@ -47,7 +35,7 @@ func Test_Light_Eye_Offset45(t *testing.T) {
 }
 
 func Test_Light_Offset45_Eye(t *testing.T) {
-	m := NewMaterial()
+	m := materials.NewMaterial()
 	pos := geom.NewPoint(0, 0, 0)
 	eyev := geom.NewVector(0, 0, -1)
 	nv := geom.NewVector(0, 0, -1)
@@ -59,7 +47,7 @@ func Test_Light_Offset45_Eye(t *testing.T) {
 }
 
 func Test_Light_Eye_Reflected(t *testing.T) {
-	m := NewMaterial()
+	m := materials.NewMaterial()
 	pos := geom.NewPoint(0, 0, 0)
 	eyev := geom.NewVector(0, -math.Sqrt2/2, -math.Sqrt2/2)
 	nv := geom.NewVector(0, 0, -1)
@@ -71,7 +59,7 @@ func Test_Light_Eye_Reflected(t *testing.T) {
 }
 
 func Test_Eye_LightBehindSurface(t *testing.T) {
-	m := NewMaterial()
+	m := materials.NewMaterial()
 	pos := geom.NewPoint(0, 0, 0)
 	eyev := geom.NewVector(0, 0, -1)
 	nv := geom.NewVector(0, 0, -1)
@@ -83,7 +71,7 @@ func Test_Eye_LightBehindSurface(t *testing.T) {
 }
 
 func Test_Eye_SurfaceDhaded(t *testing.T) {
-	m := NewMaterial()
+	m := materials.NewMaterial()
 	pos := geom.NewPoint(0, 0, 0)
 	eyev := geom.NewVector(0, 0, -1)
 	normalv := geom.NewVector(0, 0, -1)
@@ -107,7 +95,7 @@ func Test_HitShouldOffsetPoint(t *testing.T) {
 }
 
 func Test_Lighting_WithPattern(t *testing.T) {
-	m := NewMaterial()
+	m := materials.NewMaterial()
 	sp := patterns.NewStripePattern(patterns.NewSolidColorPattern(colors.White()), patterns.NewSolidColorPattern(colors.Black()))
 	m.Pattern = sp
 	m.Ambient = 1

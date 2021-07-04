@@ -3,6 +3,7 @@ package shapes
 import (
 	"github.com/google/uuid"
 	"go-raytrace/lib/geom"
+	"go-raytrace/lib/materials"
 )
 
 type Shape interface {
@@ -13,8 +14,8 @@ type Shape interface {
 	NormalToWorld(normal geom.Tuple) geom.Tuple
 	GetTransform() geom.X4Matrix
 	SetTransform(matrix geom.X4Matrix)
-	GetMaterial() Material
-	SetMaterial(Material)
+	GetMaterial() materials.Material
+	SetMaterial(materials.Material)
 	Id() string
 	GetShadowless() bool
 	SetShadowless(s bool)
@@ -27,7 +28,7 @@ type Shape interface {
 type baseShape struct {
 	parent     Group
 	t          geom.X4Matrix
-	M          Material
+	M          materials.Material
 	id         string
 	shadowless bool
 	unshaded   bool
@@ -36,7 +37,7 @@ type baseShape struct {
 func newBaseShape() baseShape {
 	return baseShape{
 		t:  geom.NewIdentityMatrixX4(),
-		M:  NewMaterial(),
+		M:  materials.NewMaterial(),
 		id: newId(),
 	}
 }
@@ -49,11 +50,11 @@ func (b *baseShape) SetTransform(matrix geom.X4Matrix) {
 	b.t = matrix
 }
 
-func (b *baseShape) GetMaterial() Material {
+func (b *baseShape) GetMaterial() materials.Material {
 	return b.M
 }
 
-func (b *baseShape) SetMaterial(material Material) {
+func (b *baseShape) SetMaterial(material materials.Material) {
 	b.M = material
 }
 

@@ -4,6 +4,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go-raytrace/lib/geom"
+	"go-raytrace/lib/materials"
 	"math"
 	"testing"
 )
@@ -21,7 +22,7 @@ func Test_SetTransform(t *testing.T) {
 
 func Test_GetDefaultMaterial(t *testing.T) {
 	s := newTestShape()
-	require.Equal(t, NewMaterial(), s.GetMaterial())
+	require.Equal(t, materials.NewMaterial(), s.GetMaterial())
 }
 
 func Test_SetMaterial(t *testing.T) {
@@ -78,7 +79,7 @@ func Test_NormalTransformedShape(t *testing.T) {
 type testShape struct {
 	parent     Group
 	t          geom.X4Matrix
-	m          Material
+	m          materials.Material
 	savedRay   geom.Ray
 	shadowless bool
 	unshaded   bool
@@ -87,7 +88,7 @@ type testShape struct {
 func newTestShape() *testShape {
 	return &testShape{
 		t: geom.NewIdentityMatrixX4(),
-		m: NewMaterial(),
+		m: materials.NewMaterial(),
 	}
 }
 
@@ -129,11 +130,11 @@ func (t *testShape) SetTransform(m geom.X4Matrix) {
 	t.t = m
 }
 
-func (t *testShape) GetMaterial() Material {
+func (t *testShape) GetMaterial() materials.Material {
 	return t.m
 }
 
-func (t *testShape) SetMaterial(m Material) {
+func (t *testShape) SetMaterial(m materials.Material) {
 	t.m = m
 }
 

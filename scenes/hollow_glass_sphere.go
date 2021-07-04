@@ -3,6 +3,7 @@ package scenes
 import (
 	"go-raytrace/lib/colors"
 	"go-raytrace/lib/geom"
+	"go-raytrace/lib/materials"
 	"go-raytrace/lib/patterns"
 	"go-raytrace/lib/shapes"
 	"go-raytrace/lib/view"
@@ -21,10 +22,10 @@ func NewHollowGlassSphereScene(width int) (view.World, view.Camera) {
 	wall.SetTransform(geom.Translate(0, 0, 10).MulX4Matrix(geom.RotateX(1.5708)))
 
 	ball := shapes.NewSphere()
-	ball.SetMaterial(shapes.NewGlassMaterial())
+	ball.SetMaterial(materials.NewGlassMaterial())
 
 	hollowCenter := shapes.NewSphere()
-	hollowCenter.SetMaterial(shapes.NewGlassMaterial())
+	hollowCenter.SetMaterial(materials.NewGlassMaterial())
 	hollowCenter.SetTransform(geom.Scale(0.5, 0.5, 0.5))
 	m = hollowCenter.GetMaterial()
 	m.Color = colors.NewColor(1, 1, 1)

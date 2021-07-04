@@ -3,6 +3,7 @@ package shapes
 import (
 	"github.com/stretchr/testify/assert"
 	"go-raytrace/lib/geom"
+	"go-raytrace/lib/materials"
 	"math"
 	"testing"
 )
@@ -15,12 +16,12 @@ func Test_NewSphere_DefaultTransform(t *testing.T) {
 func Test_NewSphere_HasDefaultMaterial(t *testing.T) {
 	s := NewSphere()
 
-	assert.Equal(t, NewMaterial(), s.M)
+	assert.Equal(t, materials.NewMaterial(), s.M)
 }
 
 func Test_NewGlassSphere(t *testing.T) {
 	s := NewSphere()
-	s.SetMaterial(NewGlassMaterial())
+	s.SetMaterial(materials.NewGlassMaterial())
 	m := s.GetMaterial()
 
 	assert.Equal(t, geom.NewIdentityMatrixX4(), s.GetTransform())
@@ -38,7 +39,7 @@ func Test_Sphere_SetTransform(t *testing.T) {
 
 func Test_Sphere_SetMaterial(t *testing.T) {
 	s := NewSphere()
-	m := NewMaterial()
+	m := materials.NewMaterial()
 	m.Ambient = 1.0
 
 	s.M = m

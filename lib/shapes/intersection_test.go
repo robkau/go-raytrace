@@ -4,6 +4,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go-raytrace/lib/geom"
+	"go-raytrace/lib/materials"
 	"math"
 	"testing"
 )
@@ -131,7 +132,7 @@ func Test_Compute_Inside(t *testing.T) {
 func Test_Compute_UnderPoint(t *testing.T) {
 	r := geom.RayWith(geom.NewPoint(0, 0, -5), geom.NewVector(0, 0, 1))
 	s := NewSphere()
-	s.SetMaterial(NewGlassMaterial())
+	s.SetMaterial(materials.NewGlassMaterial())
 	s.SetTransform(geom.Translate(0, 0, 1))
 
 	i := NewIntersection(5, s)
@@ -155,21 +156,21 @@ func Test_Compute_ReflectionVector(t *testing.T) {
 
 func Test_Compute_RefractionScene(t *testing.T) {
 	sA := NewSphere()
-	sA.SetMaterial(NewGlassMaterial())
+	sA.SetMaterial(materials.NewGlassMaterial())
 	sA.SetTransform(geom.Scale(2, 2, 2))
 	m := sA.GetMaterial()
 	m.RefractiveIndex = 1.5
 	sA.SetMaterial(m)
 
 	sB := NewSphere()
-	sB.SetMaterial(NewGlassMaterial())
+	sB.SetMaterial(materials.NewGlassMaterial())
 	sB.SetTransform(geom.Translate(0, 0, -0.25))
 	m = sB.GetMaterial()
 	m.RefractiveIndex = 2
 	sB.SetMaterial(m)
 
 	sC := NewSphere()
-	sC.SetMaterial(NewGlassMaterial())
+	sC.SetMaterial(materials.NewGlassMaterial())
 	sC.SetTransform(geom.Translate(0, 0, 0.25))
 	m = sC.GetMaterial()
 	m.RefractiveIndex = 2.5
@@ -207,7 +208,7 @@ func Test_Compute_RefractionScene(t *testing.T) {
 
 func Test_Schlick_TotalInternalReflection(t *testing.T) {
 	s := NewSphere()
-	s.SetMaterial(NewGlassMaterial())
+	s.SetMaterial(materials.NewGlassMaterial())
 	r := geom.RayWith(geom.NewPoint(0, 0, math.Sqrt(2)/2), geom.NewVector(0, 1, 0))
 	xs := NewIntersections(
 		NewIntersection(-math.Sqrt(2)/2, s),
@@ -222,7 +223,7 @@ func Test_Schlick_TotalInternalReflection(t *testing.T) {
 
 func Test_Schlick_PerpendicularAngle(t *testing.T) {
 	s := NewSphere()
-	s.SetMaterial(NewGlassMaterial())
+	s.SetMaterial(materials.NewGlassMaterial())
 	r := geom.RayWith(geom.NewPoint(0, 0, 0), geom.NewVector(0, 1, 0))
 	xs := NewIntersections(
 		NewIntersection(-1, s),
@@ -237,7 +238,7 @@ func Test_Schlick_PerpendicularAngle(t *testing.T) {
 
 func Test_Schlick_N2Larger(t *testing.T) {
 	s := NewSphere()
-	s.SetMaterial(NewGlassMaterial())
+	s.SetMaterial(materials.NewGlassMaterial())
 	r := geom.RayWith(geom.NewPoint(0, 0.99, -2), geom.NewVector(0, 0, 1))
 	xs := NewIntersections(
 		NewIntersection(1.8589, s),

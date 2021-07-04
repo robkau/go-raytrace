@@ -3,6 +3,7 @@ package scenes
 import (
 	"go-raytrace/lib/colors"
 	"go-raytrace/lib/geom"
+	"go-raytrace/lib/materials"
 	"go-raytrace/lib/patterns"
 	"go-raytrace/lib/shapes"
 	"go-raytrace/lib/view"
@@ -19,7 +20,7 @@ func NewCappedCylinderScene(width int) (view.World, view.Camera) {
 
 	// glass sphere partially enveloping cylinder
 	gs := shapes.NewSphere()
-	gs.SetMaterial(shapes.NewGlassMaterial())
+	gs.SetMaterial(materials.NewGlassMaterial())
 	gs.SetTransform(geom.Translate(0, 7, 0).MulX4Matrix(geom.Scale(2.6, 2.6, 2.6)))
 
 	// with a conical hat on top

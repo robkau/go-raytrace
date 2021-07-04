@@ -1,4 +1,4 @@
-package shapes
+package materials
 
 import (
 	"go-raytrace/lib/colors"
