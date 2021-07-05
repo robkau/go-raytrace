@@ -22,10 +22,10 @@ func NewBlendPattern(a, b Pattern, i float64) *BlendPattern {
 }
 
 func (p *BlendPattern) ColorAt(t geom.Tuple) colors.Color {
-	added := p.a.ColorAtShape(p.t, t).Add(p.b.ColorAtShape(p.t, t))
+	added := p.a.ColorAtShape(p.worldPointToObjectPoint, t).Add(p.b.ColorAtShape(p.worldPointToObjectPoint, t))
 	return added.MulBy(p.intensity)
 }
 
-func (p *BlendPattern) ColorAtShape(st geom.X4Matrix, t geom.Tuple) colors.Color {
-	return ColorAtShape(p, st, t)
+func (p *BlendPattern) ColorAtShape(wtof WorldToObjectF, t geom.Tuple) colors.Color {
+	return ColorAtShape(p, wtof, t)
 }

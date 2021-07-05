@@ -23,7 +23,7 @@ func NewPointLight(p geom.Tuple, i colors.Color) PointLight {
 func Lighting(m materials.Material, s Shape, l PointLight, p geom.Tuple, eyev geom.Tuple, nv geom.Tuple, shaded bool) colors.Color {
 	var materialColor colors.Color
 	if m.Pattern != nil {
-		materialColor = m.Pattern.ColorAtShape(s.GetTransform(), p)
+		materialColor = m.Pattern.ColorAtShape(s.WorldToObject, p)
 	} else {
 		materialColor = m.Color
 	}

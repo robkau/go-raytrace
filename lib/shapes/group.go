@@ -41,7 +41,7 @@ func (g *group) LocalIntersect(r geom.Ray) Intersections {
 }
 
 func (g *group) NormalAt(tuple geom.Tuple) geom.Tuple {
-	panic("implement me")
+	panic("calling me on a group is a logic error")
 }
 
 func (g *group) GetTransform() geom.X4Matrix {
@@ -53,11 +53,11 @@ func (g *group) SetTransform(matrix geom.X4Matrix) {
 }
 
 func (g *group) GetMaterial() materials.Material {
-	panic("implement me")
+	panic("calling me on a group is a logic error")
 }
 
 func (g *group) SetMaterial(material materials.Material) {
-	panic("implement me")
+	panic("calling me on a group is a logic error")
 }
 
 func (g *group) WorldToObject(p geom.Tuple) geom.Tuple {
@@ -79,23 +79,23 @@ func (g *group) NormalToWorld(normal geom.Tuple) geom.Tuple {
 }
 
 func (g *group) Id() string {
-	panic("implement me")
+	panic("calling me on a group is a logic error")
 }
 
 func (g *group) GetShadowless() bool {
-	panic("implement me")
+	panic("calling me on a group is a logic error")
 }
 
 func (g *group) SetShadowless(s bool) {
-	panic("implement me")
+	panic("calling me on a group is a logic error")
 }
 
 func (g *group) GetShaded() bool {
-	panic("implement me")
+	panic("calling me on a group is a logic error")
 }
 
 func (g *group) SetShaded(s bool) {
-	panic("implement me")
+	panic("calling me on a group is a logic error")
 }
 
 func (g *group) GetParent() Group {

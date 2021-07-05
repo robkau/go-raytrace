@@ -21,3 +21,7 @@ func (b *basePattern) SetTransform(t geom.X4Matrix) {
 func (b *basePattern) GetTransform() geom.X4Matrix {
 	return b.t
 }
+
+func (b *basePattern) worldPointToObjectPoint(wp geom.Tuple) geom.Tuple {
+	return geom.TransformPoint(b.t, wp)
+}

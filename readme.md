@@ -8,6 +8,15 @@ This repository is me implementing a ray tracer in Go by following "The Ray Trac
 ---
 
 ## Examples
+
+*Chapter 14: Groups*
+
+![Chapter 14 example](renders/group_transforms.png?raw=true "chapter 14 example")
+
+*Chapter 13: Cylinders and cones*
+
+![Chapter 13 example](renders/cone_and_cylinder.png?raw=true "chapter 13 example")
+
 *Chapter 11: Spheres and mirror*
 
 ![Chapter 11 example](renders/spheres_mirror.png?raw=true "chapter 11 example")

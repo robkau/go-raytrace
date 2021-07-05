@@ -12,11 +12,11 @@ import (
 )
 
 const (
-	width = 667
+	width = 1111
 )
 
 func main() {
-	w, c := scenes.NewCappedCylinderScene(width)
+	w, c := scenes.NewGroupTransformsScene(width)
 
 	g := &Game{
 		c:      c,

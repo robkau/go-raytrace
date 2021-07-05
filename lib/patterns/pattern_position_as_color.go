@@ -23,6 +23,6 @@ func (p *PositionAsColorPattern) ColorAt(t geom.Tuple) colors.Color {
 	)
 }
 
-func (p *PositionAsColorPattern) ColorAtShape(st geom.X4Matrix, t geom.Tuple) colors.Color {
-	return ColorAtShape(p, st, t)
+func (p *PositionAsColorPattern) ColorAtShape(wtof WorldToObjectF, t geom.Tuple) colors.Color {
+	return ColorAtShape(p, wtof, t)
 }

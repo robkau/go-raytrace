@@ -24,9 +24,9 @@ func (p *SprayPaintPattern) ColorAt(t geom.Tuple) colors.Color {
 	t.X += rand.Float64() * p.w
 	t.Y += rand.Float64() * p.w
 	t.Z += rand.Float64() * p.w
-	return p.p.ColorAtShape(p.t, t)
+	return p.p.ColorAtShape(p.worldPointToObjectPoint, t)
 }
 
-func (p *SprayPaintPattern) ColorAtShape(st geom.X4Matrix, t geom.Tuple) colors.Color {
-	return ColorAtShape(p, st, t)
+func (p *SprayPaintPattern) ColorAtShape(wtof WorldToObjectF, t geom.Tuple) colors.Color {
+	return ColorAtShape(p, wtof, t)
 }

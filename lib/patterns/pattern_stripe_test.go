@@ -54,19 +54,19 @@ func Test_StripeChangesX(t *testing.T) {
 func Test_Stripe_WithObjectTransformation(t *testing.T) {
 	pattern := NewStripePattern(NewSolidColorPattern(colors.White()), NewSolidColorPattern(colors.Black()))
 
-	assert.Equal(t, colors.White(), pattern.ColorAtShape(geom.Scale(2, 2, 2), geom.NewPoint(1.5, 0, 0)))
+	assert.Equal(t, colors.White(), pattern.ColorAtShape(geom.DoubleScale, geom.NewPoint(1.5, 0, 0)))
 }
 
 func Test_Stripe_WithPatternTransformation(t *testing.T) {
 	pattern := NewStripePattern(NewSolidColorPattern(colors.White()), NewSolidColorPattern(colors.Black()))
 	pattern.SetTransform(geom.Scale(2, 2, 2))
 
-	assert.Equal(t, colors.White(), pattern.ColorAtShape(geom.NewIdentityMatrixX4(), geom.NewPoint(1.5, 0, 0)))
+	assert.Equal(t, colors.White(), pattern.ColorAtShape(geom.IdentityTransform, geom.NewPoint(1.5, 0, 0)))
 }
 
 func Test_Stripe_WithObjectAndPatternTransformation(t *testing.T) {
 	pattern := NewStripePattern(NewSolidColorPattern(colors.White()), NewSolidColorPattern(colors.Black()))
 	pattern.SetTransform(geom.Translate(0.5, 0, 0))
 
-	assert.Equal(t, colors.White(), pattern.ColorAtShape(geom.Scale(2, 2, 2), geom.NewPoint(2.5, 0, 0)))
+	assert.Equal(t, colors.White(), pattern.ColorAtShape(geom.DoubleScale, geom.NewPoint(2.5, 0, 0)))
 }

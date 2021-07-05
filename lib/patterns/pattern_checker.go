@@ -22,11 +22,11 @@ func NewCheckerPattern(a, b Pattern) *CheckerPattern {
 
 func (p *CheckerPattern) ColorAt(t geom.Tuple) colors.Color {
 	if int(math.Floor(t.X)+math.Floor(t.Y)+math.Floor(t.Z))%2 == 0 {
-		return p.a.ColorAtShape(p.t, t)
+		return p.a.ColorAtShape(p.worldPointToObjectPoint, t)
 	}
-	return p.b.ColorAtShape(p.t, t)
+	return p.b.ColorAtShape(p.worldPointToObjectPoint, t)
 }
 
-func (p *CheckerPattern) ColorAtShape(st geom.X4Matrix, t geom.Tuple) colors.Color {
-	return ColorAtShape(p, st, t)
+func (p *CheckerPattern) ColorAtShape(wtof WorldToObjectF, t geom.Tuple) colors.Color {
+	return ColorAtShape(p, wtof, t)
 }

@@ -28,11 +28,11 @@ func (p *PerlinPattern) ColorAt(t geom.Tuple) colors.Color {
 	t.X += perlinOctave(t.X, t.Y, t.Z, p.persistence, p.octaves) * p.scale
 	t.Y += perlinOctave(t.X, t.Y, t.Z+1, p.persistence, p.octaves) * p.scale
 	t.Z += perlinOctave(t.X, t.Y, t.Z+2, p.persistence, p.octaves) * p.scale
-	return p.p.ColorAtShape(p.t, t)
+	return p.p.ColorAtShape(p.worldPointToObjectPoint, t)
 }
 
-func (p *PerlinPattern) ColorAtShape(st geom.X4Matrix, t geom.Tuple) colors.Color {
-	return ColorAtShape(p, st, t)
+func (p *PerlinPattern) ColorAtShape(wtof WorldToObjectF, t geom.Tuple) colors.Color {
+	return ColorAtShape(p, wtof, t)
 }
 
 func perlinOctave(x, y, z, persistence float64, octaves int) float64 {

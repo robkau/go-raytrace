@@ -21,6 +21,6 @@ func (p *SolidColorPattern) ColorAt(t geom.Tuple) colors.Color {
 	return p.c
 }
 
-func (p *SolidColorPattern) ColorAtShape(st geom.X4Matrix, t geom.Tuple) colors.Color {
-	return ColorAtShape(p, st, t)
+func (p *SolidColorPattern) ColorAtShape(wtof WorldToObjectF, t geom.Tuple) colors.Color {
+	return ColorAtShape(p, wtof, t)
 }

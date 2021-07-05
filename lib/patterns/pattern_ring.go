@@ -22,11 +22,11 @@ func NewRingPattern(a, b Pattern) *RingPattern {
 
 func (p *RingPattern) ColorAt(t geom.Tuple) colors.Color {
 	if int(math.Floor(math.Sqrt(t.X*t.X+t.Z*t.Z)))%2 == 0 {
-		return p.a.ColorAtShape(p.t, t)
+		return p.a.ColorAtShape(p.worldPointToObjectPoint, t)
 	}
-	return p.b.ColorAtShape(p.t, t)
+	return p.b.ColorAtShape(p.worldPointToObjectPoint, t)
 }
 
-func (p *RingPattern) ColorAtShape(st geom.X4Matrix, t geom.Tuple) colors.Color {
-	return ColorAtShape(p, st, t)
+func (p *RingPattern) ColorAtShape(wtof WorldToObjectF, t geom.Tuple) colors.Color {
+	return ColorAtShape(p, wtof, t)
 }

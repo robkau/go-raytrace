@@ -21,11 +21,11 @@ func NewGradientPattern(a, b Pattern) *GradientPattern {
 }
 
 func (p *GradientPattern) ColorAt(t geom.Tuple) colors.Color {
-	distance := p.b.ColorAt(t).Sub(p.a.ColorAtShape(p.t, t))
+	distance := p.b.ColorAt(t).Sub(p.a.ColorAtShape(p.worldPointToObjectPoint, t))
 	fraction := t.X - math.Floor(t.X)
-	return p.a.ColorAtShape(p.t, t).Add(distance.MulBy(fraction))
+	return p.a.ColorAtShape(p.worldPointToObjectPoint, t).Add(distance.MulBy(fraction))
 }
 
-func (p *GradientPattern) ColorAtShape(st geom.X4Matrix, t geom.Tuple) colors.Color {
-	return ColorAtShape(p, st, t)
+func (p *GradientPattern) ColorAtShape(wtof WorldToObjectF, t geom.Tuple) colors.Color {
+	return ColorAtShape(p, wtof, t)
 }
