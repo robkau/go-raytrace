@@ -1,4 +1,4 @@
-module go-raytrace
+module github.com/robkau/go-raytrace
 
 go 1.14
 
