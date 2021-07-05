@@ -1,8 +1,8 @@
 package view
 
 import (
+	"github.com/robkau/go-raytrace/lib/colors"
 	"github.com/stretchr/testify/assert"
-	"go-raytrace/lib/colors"
 	"strings"
 	"testing"
 )

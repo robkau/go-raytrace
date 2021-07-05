@@ -1,7 +1,7 @@
 package patterns
 
 import (
-	"go-raytrace/lib/geom"
+	"github.com/robkau/go-raytrace/lib/geom"
 )
 
 type basePattern struct {

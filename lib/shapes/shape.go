@@ -2,8 +2,8 @@ package shapes
 
 import (
 	"github.com/google/uuid"
-	"go-raytrace/lib/geom"
-	"go-raytrace/lib/materials"
+	"github.com/robkau/go-raytrace/lib/geom"
+	"github.com/robkau/go-raytrace/lib/materials"
 )
 
 type Shape interface {

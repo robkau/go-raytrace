@@ -1,8 +1,8 @@
 package materials
 
 import (
+	"github.com/robkau/go-raytrace/lib/colors"
 	"github.com/stretchr/testify/assert"
-	"go-raytrace/lib/colors"
 	"testing"
 )
 

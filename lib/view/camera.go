@@ -1,8 +1,8 @@
 package view
 
 import (
-	"go-raytrace/lib/colors"
-	"go-raytrace/lib/geom"
+	"github.com/robkau/go-raytrace/lib/colors"
+	"github.com/robkau/go-raytrace/lib/geom"
 	"math"
 	"sync"
 )

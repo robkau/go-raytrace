@@ -1,8 +1,8 @@
 package shapes
 
 import (
+	"github.com/robkau/go-raytrace/lib/geom"
 	"github.com/stretchr/testify/require"
-	"go-raytrace/lib/geom"
 	"math"
 	"testing"
 )

@@ -1,8 +1,8 @@
 package shapes
 
 import (
-	"go-raytrace/lib/geom"
-	"go-raytrace/lib/materials"
+	"github.com/robkau/go-raytrace/lib/geom"
+	"github.com/robkau/go-raytrace/lib/materials"
 )
 
 type Group interface {

@@ -1,8 +1,8 @@
 package materials
 
 import (
-	"go-raytrace/lib/colors"
-	"go-raytrace/lib/patterns"
+	"github.com/robkau/go-raytrace/lib/colors"
+	"github.com/robkau/go-raytrace/lib/patterns"
 )
 
 type Material struct {

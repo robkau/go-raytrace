@@ -2,7 +2,7 @@ package view
 
 import (
 	"fmt"
-	"go-raytrace/lib/colors"
+	"github.com/robkau/go-raytrace/lib/colors"
 	"image"
 	gocolor "image/color"
 	"strings"

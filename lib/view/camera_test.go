@@ -1,9 +1,9 @@
 package view
 
 import (
+	"github.com/robkau/go-raytrace/lib/colors"
+	"github.com/robkau/go-raytrace/lib/geom"
 	"github.com/stretchr/testify/assert"
-	"go-raytrace/lib/colors"
-	"go-raytrace/lib/geom"
 	"math"
 	"testing"
 )

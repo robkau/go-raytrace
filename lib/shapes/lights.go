@@ -1,9 +1,9 @@
 package shapes
 
 import (
-	"go-raytrace/lib/colors"
-	"go-raytrace/lib/geom"
-	"go-raytrace/lib/materials"
+	"github.com/robkau/go-raytrace/lib/colors"
+	"github.com/robkau/go-raytrace/lib/geom"
+	"github.com/robkau/go-raytrace/lib/materials"
 	"math"
 )
 

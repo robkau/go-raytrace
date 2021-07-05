@@ -1,7 +1,7 @@
 package colors
 
 import (
-	"go-raytrace/lib/geom"
+	"github.com/robkau/go-raytrace/lib/geom"
 	"math"
 	"math/rand"
 )

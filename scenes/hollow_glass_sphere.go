@@ -1,12 +1,12 @@
 package scenes
 
 import (
-	"go-raytrace/lib/colors"
-	"go-raytrace/lib/geom"
-	"go-raytrace/lib/materials"
-	"go-raytrace/lib/patterns"
-	"go-raytrace/lib/shapes"
-	"go-raytrace/lib/view"
+	"github.com/robkau/go-raytrace/lib/colors"
+	"github.com/robkau/go-raytrace/lib/geom"
+	"github.com/robkau/go-raytrace/lib/materials"
+	"github.com/robkau/go-raytrace/lib/patterns"
+	"github.com/robkau/go-raytrace/lib/shapes"
+	"github.com/robkau/go-raytrace/lib/view"
 )
 
 func NewHollowGlassSphereScene(width int) (view.World, view.Camera) {

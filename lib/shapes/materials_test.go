@@ -1,11 +1,11 @@
 package shapes
 
 import (
+	"github.com/robkau/go-raytrace/lib/colors"
+	"github.com/robkau/go-raytrace/lib/geom"
+	"github.com/robkau/go-raytrace/lib/materials"
+	"github.com/robkau/go-raytrace/lib/patterns"
 	"github.com/stretchr/testify/assert"
-	"go-raytrace/lib/colors"
-	"go-raytrace/lib/geom"
-	"go-raytrace/lib/materials"
-	"go-raytrace/lib/patterns"
 	"math"
 	"testing"
 )
