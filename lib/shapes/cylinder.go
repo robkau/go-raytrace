@@ -26,6 +26,10 @@ func NewInfiniteCylinder() *Cylinder {
 	return NewCylinder(math.Inf(-1), math.Inf(1), false)
 }
 
+func (c *Cylinder) Bounds() Bounds {
+	return newBounds(geom.NewPoint(-1, c.minimum, -1), geom.NewPoint(1, c.maximum, 1)).TransformTo(c.t)
+}
+
 func (c *Cylinder) NormalAt(p geom.Tuple) geom.Tuple {
 	return NormalAt(c, p, c.LocalNormalAt)
 }

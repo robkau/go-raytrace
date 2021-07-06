@@ -15,6 +15,10 @@ func NewCube() *Cube {
 	}
 }
 
+func (c *Cube) Bounds() Bounds {
+	return newBounds(geom.NewPoint(-1, -1, -1), geom.NewPoint(1, 1, 1)).TransformTo(c.t)
+}
+
 func (c *Cube) NormalAt(p geom.Tuple) geom.Tuple {
 	return NormalAt(c, p, c.LocalNormalAt)
 }

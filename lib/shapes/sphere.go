@@ -15,6 +15,10 @@ func NewSphere() *Sphere {
 	}
 }
 
+func (s *Sphere) Bounds() Bounds {
+	return newBounds(geom.NewPoint(-1, -1, -1), geom.NewPoint(1, 1, 1)).TransformTo(s.t)
+}
+
 func (s *Sphere) NormalAt(p geom.Tuple) geom.Tuple {
 	return NormalAt(s, p, s.LocalNormalAt)
 }

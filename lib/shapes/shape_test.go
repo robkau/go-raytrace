@@ -92,6 +92,10 @@ func newTestShape() *testShape {
 	}
 }
 
+func (t *testShape) Bounds() Bounds {
+	return newBounds(geom.NewPoint(-1, -1, -1), geom.NewPoint(1, 1, 1)).TransformTo(t.t)
+}
+
 func (t *testShape) Intersect(r geom.Ray) Intersections {
 	lr := r.Transform(t.t.Invert())
 	t.savedRay = lr

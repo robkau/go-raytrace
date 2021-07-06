@@ -6,6 +6,8 @@ import (
 	"math"
 )
 
+// todo look at switching to https://forum.raytracerchallenge.com/thread/98/gradient-pattern-function-incorrectly-calculated
+
 type GradientPattern struct {
 	basePattern
 	a Pattern

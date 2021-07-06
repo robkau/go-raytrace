@@ -3,6 +3,7 @@ package shapes
 import (
 	"github.com/robkau/go-raytrace/lib/geom"
 	"github.com/robkau/go-raytrace/lib/materials"
+	"golang.org/x/sync/singleflight"
 )
 
 type Group interface {
@@ -12,9 +13,11 @@ type Group interface {
 }
 
 type group struct {
-	t        geom.X4Matrix
-	parent   Group
-	children []Shape
+	t         geom.X4Matrix
+	parent    Group
+	children  []Shape
+	init      singleflight.Group
+	boundsSet bool
 }
 
 func NewGroup() Group {
@@ -40,8 +43,23 @@ func (g *group) LocalIntersect(r geom.Ray) Intersections {
 	return xs
 }
 
-func (g *group) NormalAt(tuple geom.Tuple) geom.Tuple {
-	panic("calling me on a group is a logic error")
+func (g *group) Bounds() Bounds {
+	v, err, _ := g.init.Do("init", func() (interface{}, error) {
+		g.boundsSet = true
+		groupBounds := newBounds()
+
+		for _, c := range g.children {
+			childBounds := c.Bounds()
+			childBoundsTransformed := childBounds.TransformTo(g.t)
+			groupBounds = groupBounds.Add(childBoundsTransformed.Min, childBoundsTransformed.Max)
+		}
+		return groupBounds, nil
+	})
+	if err != nil {
+		panic("calculate bounds")
+	}
+
+	return v.(Bounds)
 }
 
 func (g *group) GetTransform() geom.X4Matrix {
@@ -50,14 +68,6 @@ func (g *group) GetTransform() geom.X4Matrix {
 
 func (g *group) SetTransform(matrix geom.X4Matrix) {
 	g.t = matrix
-}
-
-func (g *group) GetMaterial() materials.Material {
-	panic("calling me on a group is a logic error")
-}
-
-func (g *group) SetMaterial(material materials.Material) {
-	panic("calling me on a group is a logic error")
 }
 
 func (g *group) WorldToObject(p geom.Tuple) geom.Tuple {
@@ -78,6 +88,38 @@ func (g *group) NormalToWorld(normal geom.Tuple) geom.Tuple {
 	return normal
 }
 
+func (g *group) GetParent() Group {
+	return g.parent
+}
+
+func (g *group) SetParent(gr Group) {
+	g.parent = gr
+}
+
+func (g *group) GetChildren() []Shape {
+	return g.children
+}
+
+func (g *group) AddChild(s Shape) {
+	if g.boundsSet {
+		panic("cannot add children after calculating bounds")
+	}
+	s.SetParent(g)
+	g.children = append(g.children, s)
+}
+
+func (g *group) NormalAt(tuple geom.Tuple) geom.Tuple {
+	panic("calling me on a group is a logic error")
+}
+
+func (g *group) GetMaterial() materials.Material {
+	panic("calling me on a group is a logic error")
+}
+
+func (g *group) SetMaterial(material materials.Material) {
+	panic("calling me on a group is a logic error")
+}
+
 func (g *group) Id() string {
 	panic("calling me on a group is a logic error")
 }
@@ -96,21 +138,4 @@ func (g *group) GetShaded() bool {
 
 func (g *group) SetShaded(s bool) {
 	panic("calling me on a group is a logic error")
-}
-
-func (g *group) GetParent() Group {
-	return g.parent
-}
-
-func (g *group) SetParent(gr Group) {
-	g.parent = gr
-}
-
-func (g *group) GetChildren() []Shape {
-	return g.children
-}
-
-func (g *group) AddChild(s Shape) {
-	s.SetParent(g)
-	g.children = append(g.children, s)
 }

@@ -30,6 +30,11 @@ func NewInfiniteCone() *Cone {
 	return NewCone(math.Inf(-1), math.Inf(1), false)
 }
 
+func (c *Cone) Bounds() Bounds {
+	lg := math.Max(math.Abs(c.minimum), math.Abs(c.maximum))
+	return newBounds(geom.NewPoint(-lg, c.minimum, -lg), geom.NewPoint(lg, c.maximum, lg)).TransformTo(c.t)
+}
+
 func (c *Cone) NormalAt(p geom.Tuple) geom.Tuple {
 	return NormalAt(c, p, c.LocalNormalAt)
 }

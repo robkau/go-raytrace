@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	width = 1111
+	width = 667
 )
 
 func main() {
@@ -40,9 +40,12 @@ func main() {
 			ap, err := audio.NewPlayer(ac, d)
 			if err == nil {
 				ap.Play()
+				defer ap.Close()
 			}
+
 		}
 	}
+	defer f.Close()
 
 	ebiten.SetWindowSize(width, width)
 	ebiten.SetWindowTitle("go-raytrace")
@@ -74,3 +77,5 @@ func (g *Game) Draw(screen *ebiten.Image) {
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return outsideWidth, outsideHeight
 }
+
+// todo https://forum.raytracerchallenge.com/thread/22/performance-improvements - intersections pool, cache inverse transformations, cache group bounds

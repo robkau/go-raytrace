@@ -16,6 +16,7 @@ type Shape interface {
 	SetTransform(matrix geom.X4Matrix)
 	GetMaterial() materials.Material
 	SetMaterial(materials.Material)
+	Bounds() Bounds
 	Id() string
 	GetShadowless() bool
 	SetShadowless(s bool)

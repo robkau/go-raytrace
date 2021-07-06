@@ -9,7 +9,7 @@ import (
 	"math"
 )
 
-func makeObjectGroup() shapes.Shape {
+func makeObjectGroup() shapes.Group {
 	g := shapes.NewGroup()
 
 	// table made of cubes
@@ -30,7 +30,7 @@ func makeObjectGroup() shapes.Shape {
 	tt := sizedCubeAt(0, 4.1, 0, 3.19, 0.15, 3.19)
 	ttm := tlul.GetMaterial()
 	ttm.Pattern = patterns.NewStripePattern(patterns.NewSolidColorPattern(colors.Black()), patterns.NewSolidColorPattern(colors.NewColor(0.2237, 0.328, 0.44235)))
-	ttm.Pattern.SetTransform(geom.Scale(0.02, 0.02, 0.02))
+	ttm.Pattern.SetTransform(geom.Scale(0.06, 0.06, 0.06))
 	ttm.Reflective = 0.2
 	ttm.Shininess = 0.4
 	ttm.Specular = 0.1
@@ -50,6 +50,37 @@ func makeObjectGroup() shapes.Shape {
 	return g
 }
 
+func makeGroupOfGroups() shapes.Shape {
+	g1 := makeObjectGroup()
+
+	g2 := makeObjectGroup()
+	g2.SetTransform(stackTable(geom.NewIdentityMatrixX4()))
+
+	g3 := makeObjectGroup()
+	g3.SetTransform(stackTable(geom.NewIdentityMatrixX4()))
+
+	g4 := makeObjectGroup()
+	g4.SetTransform(stackTable(geom.NewIdentityMatrixX4()))
+
+	g5 := makeObjectGroup()
+	g5.SetTransform(stackTable(geom.NewIdentityMatrixX4()))
+
+	g6 := makeObjectGroup()
+	g6.SetTransform(stackTable(geom.NewIdentityMatrixX4()))
+
+	g7 := makeObjectGroup()
+	g7.SetTransform(stackTable(geom.NewIdentityMatrixX4()))
+
+	g1.AddChild(g2)
+	g2.AddChild(g3)
+	g3.AddChild(g4)
+	g4.AddChild(g5)
+	g5.AddChild(g6)
+	g6.AddChild(g7)
+
+	return g1
+}
+
 func stackTable(t geom.X4Matrix) geom.X4Matrix {
 	return t.MulX4Matrix(geom.Translate(-1, 4, 1)).MulX4Matrix(geom.RotateY(math.Pi / 9).MulX4Matrix(geom.Scale(0.5, 0.5, 0.5)))
 }
@@ -59,25 +90,11 @@ func NewGroupTransformsScene(width int) (view.World, view.Camera) {
 	cameraPos := geom.NewPoint(15, 15, 15)
 	cameraLookingAt := geom.NewPoint(0, 5, 0)
 
-	g1 := makeObjectGroup()
+	g1 := makeGroupOfGroups()
+	g1.SetTransform(geom.Translate(-7, 0, -3))
 
-	g2 := makeObjectGroup()
-	g2.SetTransform(stackTable(geom.NewIdentityMatrixX4()))
-
-	g3 := makeObjectGroup()
-	g3.SetTransform(stackTable(g2.GetTransform()))
-
-	g4 := makeObjectGroup()
-	g4.SetTransform(stackTable(g3.GetTransform()))
-
-	g5 := makeObjectGroup()
-	g5.SetTransform(stackTable(g4.GetTransform()))
-
-	g6 := makeObjectGroup()
-	g6.SetTransform(stackTable(g5.GetTransform()))
-
-	g7 := makeObjectGroup()
-	g7.SetTransform(stackTable(g6.GetTransform()))
+	g2 := makeGroupOfGroups()
+	g2.SetTransform(geom.Translate(0.5, 0, -3).MulX4Matrix(geom.RotateY(math.Pi)))
 
 	// floor and ceiling as one cube
 	var floorAndCeiling = sizedCubeAt(0, 10, 0, 100, 10, 100)
@@ -99,11 +116,6 @@ func NewGroupTransformsScene(width int) (view.World, view.Camera) {
 	w.AddLight(shapes.NewPointLight(geom.NewPoint(5, 10, -3), colors.NewColor(1.9, 1.4, 1.4)))
 	w.AddObject(g1)
 	w.AddObject(g2)
-	w.AddObject(g3)
-	w.AddObject(g4)
-	w.AddObject(g5)
-	w.AddObject(g6)
-	w.AddObject(g7)
 	w.AddObject(floorAndCeiling)
 	w.AddObject(walls)
 
