@@ -31,6 +31,9 @@ func TestCube_RayIntersects(t *testing.T) {
 		{"neg y", args{geom.NewPoint(0.5, -5, 0), geom.NewVector(0, 1, 0)}, want{4, 6}},
 		{"pos z", args{geom.NewPoint(0.5, 0, 5), geom.NewVector(0, 0, -1)}, want{4, 6}},
 		{"neg z", args{geom.NewPoint(0.5, 0, -5), geom.NewVector(0, 0, 1)}, want{4, 6}},
+		{"inside +x", args{geom.NewPoint(0.5, 0, -0.3), geom.NewVector(1, 0, 0)}, want{-1.5, 0.5}},
+		{"inside -y", args{geom.NewPoint(0.5, 0, -0.3), geom.NewVector(0, -1, 0)}, want{-1, 1}},
+		{"inside +z", args{geom.NewPoint(0.5, 0, -0.3), geom.NewVector(0, 0, 1)}, want{-0.7, 1.3}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

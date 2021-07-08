@@ -67,3 +67,11 @@ func (b Bounds) TransformTo(t geom.X4Matrix) Bounds {
 		bXYZT,
 	)
 }
+
+func (b Bounds) Intersects(r geom.Ray) bool {
+	tMin, tMax := intersectsCube(r, b)
+	if tMin > tMax {
+		return false
+	}
+	return true
+}

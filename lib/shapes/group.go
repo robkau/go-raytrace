@@ -34,6 +34,12 @@ func (g *group) Intersect(ray geom.Ray) Intersections {
 func (g *group) LocalIntersect(r geom.Ray) Intersections {
 	xs := NewIntersections()
 
+	// if ray does not intersect groups bounding box - skip
+	// the bounds are global but the ray is currently local - need to transform first
+	if !g.Bounds().Intersects(r.Transform(g.t)) {
+		return xs
+	}
+
 	// add the intersection for each child in the group
 	// should return sorted by t
 	for _, s := range g.children {
@@ -45,6 +51,7 @@ func (g *group) LocalIntersect(r geom.Ray) Intersections {
 
 func (g *group) Bounds() Bounds {
 	v, err, _ := g.init.Do("init", func() (interface{}, error) {
+		// todo race
 		g.boundsSet = true
 		groupBounds := newBounds()
 
@@ -101,6 +108,7 @@ func (g *group) GetChildren() []Shape {
 }
 
 func (g *group) AddChild(s Shape) {
+	// todo race
 	if g.boundsSet {
 		panic("cannot add children after calculating bounds")
 	}

@@ -40,18 +40,11 @@ func (c *Cube) Intersect(r geom.Ray) Intersections {
 }
 
 func (c *Cube) LocalIntersect(r geom.Ray) Intersections {
-	// todo optimization possible
-	xtMin, xtMax := checkAxis(r.Origin.X, r.Direction.X)
-	ytMin, ytMax := checkAxis(r.Origin.Y, r.Direction.Y)
-	ztMin, ztMax := checkAxis(r.Origin.Z, r.Direction.Z)
-
-	tMin := math.Max(math.Max(xtMin, ytMin), ztMin)
-	tMax := math.Min(math.Min(xtMax, ytMax), ztMax)
-
+	// bounds for a unit cube because we are in local space
+	tMin, tMax := intersectsCube(r, newBounds(geom.NewPoint(-1, -1, -1), geom.NewPoint(1, 1, 1)))
 	if tMin > tMax {
 		return NewIntersections()
 	}
-
 	return NewIntersections(
 		Intersection{
 			T: tMin,
@@ -64,9 +57,20 @@ func (c *Cube) LocalIntersect(r geom.Ray) Intersections {
 	)
 }
 
-func checkAxis(origin float64, direction float64) (tMin float64, tMax float64) {
-	tMinNumerator := -1 - origin
-	tMaxNumerator := 1 - origin
+func intersectsCube(r geom.Ray, b Bounds) (tMin float64, tMax float64) {
+	xtMin, xtMax := checkAxis(r.Origin.X, r.Direction.X, b.Min.X, b.Max.X)
+	ytMin, ytMax := checkAxis(r.Origin.Y, r.Direction.Y, b.Min.Y, b.Max.Y)
+	ztMin, ztMax := checkAxis(r.Origin.Z, r.Direction.Z, b.Min.Z, b.Max.Z)
+
+	tMin = math.Max(math.Max(xtMin, ytMin), ztMin)
+	tMax = math.Min(math.Min(xtMax, ytMax), ztMax)
+
+	return tMin, tMax
+}
+
+func checkAxis(origin, direction, axisMin, axisMax float64) (tMin float64, tMax float64) {
+	tMinNumerator := axisMin - origin
+	tMaxNumerator := axisMax - origin
 
 	if math.Abs(direction) >= geom.FloatComparisonEpsilon {
 		tMin = tMinNumerator / direction
@@ -82,5 +86,4 @@ func checkAxis(origin float64, direction float64) (tMin float64, tMax float64) {
 	}
 	// no swap
 	return
-
 }

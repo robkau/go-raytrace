@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/wav"
@@ -9,10 +10,11 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"time"
 )
 
 const (
-	width = 667
+	width = 444
 )
 
 func main() {
@@ -26,10 +28,13 @@ func main() {
 
 	go func() {
 		// start rendering in background. draw one frame to canvas
+		start := time.Now()
 		pc := g.c.PixelChan(g.w, 5, runtime.NumCPU()/2)
 		for p := range pc {
 			g.canvas.SetPixel(p.X, p.Y, p.C)
 		}
+		elapsed := time.Now().Sub(start)
+		fmt.Printf("Took %d to render\n", elapsed)
 	}()
 
 	f, err := os.Open("intro.wav")

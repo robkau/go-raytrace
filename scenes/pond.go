@@ -13,7 +13,6 @@ func NewPondScene(width int) (view.World, view.Camera) {
 	w := view.NewWorld()
 
 	// transparent plane
-	// todo NewWater(xyzwh)
 	waterSurface := shapes.NewPlane()
 	m := waterSurface.GetMaterial()
 	m.Color = colors.NewColor(0, 0.5, 1)

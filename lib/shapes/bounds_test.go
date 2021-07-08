@@ -89,7 +89,7 @@ func Test_ShapeHasBounds(t *testing.T) {
 	require.True(t, sb.Min.Z < sb.Max.Z)
 }
 
-func Test_TransformedShapeBounds_Scale(t *testing.T) {
+func Test_TransformedShapeBounds_Scale_Sphere(t *testing.T) {
 	s := NewSphere()
 	s.SetTransform(geom.Scale(2, 2, 2))
 
@@ -102,6 +102,16 @@ func Test_TransformedShapeBounds_Scale(t *testing.T) {
 	require.Equal(t, float64(2), sb.Max.X)
 	require.Equal(t, float64(2), sb.Max.Y)
 	require.Equal(t, float64(2), sb.Max.Z)
+}
+
+func Test_TransformedShapeBounds_Scale_Cube(t *testing.T) {
+	c := NewCube()
+	c.SetTransform(geom.Scale(0.5, 4, 2))
+
+	cb := c.Bounds()
+
+	require.Equal(t, geom.NewPoint(-0.5, -4, -2), cb.Min)
+	require.Equal(t, geom.NewPoint(0.5, 4, 2), cb.Max)
 }
 
 func Test_TransformedShapeBounds_Translate(t *testing.T) {

@@ -65,12 +65,17 @@ func NewWavyCarpetSpheres(width int) (view.World, view.Camera) {
 	m.Transparency = 0
 	glass.SetMaterial(m)
 
+	g := shapes.NewGroup()
+	g.AddChild(floor)
+	g.AddChild(middle)
+	g.AddChild(right)
+	g.AddChild(left)
+	g.AddChild(glass)
+
+	g.SetTransform(geom.RotateY(math.Pi / 15))
+
 	w := view.NewWorld()
-	w.AddObject(floor)
-	w.AddObject(middle)
-	w.AddObject(right)
-	w.AddObject(left)
-	w.AddObject(glass)
+	w.AddObject(g)
 
 	w.AddLight(shapes.NewPointLight(geom.NewPoint(-10, 10, -10), colors.White()))
 
