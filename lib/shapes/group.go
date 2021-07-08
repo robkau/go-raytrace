@@ -28,17 +28,15 @@ func NewGroup() Group {
 }
 
 func (g *group) Intersect(ray geom.Ray) Intersections {
+	// if ray does not intersect groups bounding box - skip
+	if !g.Bounds().Intersects(ray) {
+		return NewIntersections()
+	}
 	return Intersect(ray, g.t, g.LocalIntersect)
 }
 
 func (g *group) LocalIntersect(r geom.Ray) Intersections {
 	xs := NewIntersections()
-
-	// if ray does not intersect groups bounding box - skip
-	// the bounds are global but the ray is currently local - need to transform first
-	if !g.Bounds().Intersects(r.Transform(g.t)) {
-		return xs
-	}
 
 	// add the intersection for each child in the group
 	// should return sorted by t
@@ -125,6 +123,7 @@ func (g *group) GetMaterial() materials.Material {
 }
 
 func (g *group) SetMaterial(material materials.Material) {
+	// todo: support inheriting parents material
 	panic("calling me on a group is a logic error")
 }
 
