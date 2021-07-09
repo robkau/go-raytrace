@@ -3,6 +3,7 @@ package scenes
 import (
 	"github.com/robkau/go-raytrace/lib/colors"
 	"github.com/robkau/go-raytrace/lib/geom"
+	"github.com/robkau/go-raytrace/lib/materials"
 	"github.com/robkau/go-raytrace/lib/patterns"
 	"github.com/robkau/go-raytrace/lib/shapes"
 	"github.com/robkau/go-raytrace/lib/view"
@@ -46,6 +47,20 @@ func makeObjectGroup() shapes.Group {
 	m.Color = colors.Red()
 	cr.SetMaterial(m)
 	g.AddChild(cr)
+
+	// hexagon floating above table
+	h := shapes.NewHexagon()
+	h.SetShadowless(true)
+	h.SetTransform(geom.Translate(5, 8.6, 1.5).MulX4Matrix(geom.Scale(1.1, 0.8, 1.1)).MulX4Matrix(geom.RotateX(math.Pi / 5)).MulX4Matrix(geom.RotateZ(math.Pi / 7)))
+	m = materials.NewMaterial()
+	m.Pattern = patterns.NewSolidColorPattern(colors.NewColor(0.7, 0.7, 0))
+	m.Specular = 0.05
+	m.Ambient = 0.05
+	m.Diffuse = 0.05
+	m.Transparency = 0.97
+	m.Shininess = 0
+	h.SetMaterial(m)
+	g.AddChild(h)
 
 	return g
 }

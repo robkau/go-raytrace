@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	width = 444
+	width = 333
 )
 
 func main() {

@@ -13,11 +13,13 @@ type Group interface {
 }
 
 type group struct {
-	t         geom.X4Matrix
-	parent    Group
-	children  []Shape
-	init      singleflight.Group
-	boundsSet bool
+	t          geom.X4Matrix
+	parent     Group
+	children   []Shape
+	init       singleflight.Group
+	boundsSet  bool
+	m          materials.Material
+	shadowless bool
 }
 
 func NewGroup() Group {
@@ -48,7 +50,7 @@ func (g *group) LocalIntersect(r geom.Ray) Intersections {
 }
 
 func (g *group) Bounds() Bounds {
-	v, err, _ := g.init.Do("init", func() (interface{}, error) {
+	v, err, _ := g.init.Do("bounds", func() (interface{}, error) {
 		// todo race
 		g.boundsSet = true
 		groupBounds := newBounds()
@@ -119,12 +121,17 @@ func (g *group) NormalAt(tuple geom.Tuple) geom.Tuple {
 }
 
 func (g *group) GetMaterial() materials.Material {
-	panic("calling me on a group is a logic error")
+	if g.m != (materials.Material{}) {
+		return g.m
+	}
+	if g.parent != nil {
+		return g.parent.GetMaterial()
+	}
+	return materials.Material{}
 }
 
 func (g *group) SetMaterial(material materials.Material) {
-	// todo: support inheriting parents material
-	panic("calling me on a group is a logic error")
+	g.m = material
 }
 
 func (g *group) Id() string {
@@ -132,11 +139,17 @@ func (g *group) Id() string {
 }
 
 func (g *group) GetShadowless() bool {
-	panic("calling me on a group is a logic error")
+	if g.shadowless {
+		return true
+	}
+	if g.parent != nil {
+		return g.parent.GetShadowless()
+	}
+	return false
 }
 
 func (g *group) SetShadowless(s bool) {
-	panic("calling me on a group is a logic error")
+	g.shadowless = s
 }
 
 func (g *group) GetShaded() bool {

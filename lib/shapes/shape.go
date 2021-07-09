@@ -52,6 +52,12 @@ func (b *baseShape) SetTransform(matrix geom.X4Matrix) {
 }
 
 func (b *baseShape) GetMaterial() materials.Material {
+	if b.parent != nil {
+		m := b.parent.GetMaterial()
+		if m != (materials.Material{}) {
+			return m
+		}
+	}
 	return b.M
 }
 
@@ -82,6 +88,9 @@ func (b *baseShape) Id() string {
 }
 
 func (b *baseShape) GetShadowless() bool {
+	if b.parent != nil {
+		return b.parent.GetShadowless()
+	}
 	return b.shadowless
 }
 
