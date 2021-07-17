@@ -16,7 +16,9 @@ func NewCappedCylinderScene(width int) (view.World, view.Camera) {
 
 	// cylinder
 	cyl := shapes.NewCylinder(0, 5.9, true)
-	cyl.M.Color = colors.Red()
+	m := cyl.GetMaterial()
+	m.Color = colors.Red()
+	cyl.SetMaterial(m)
 
 	// glass sphere partially enveloping cylinder
 	gs := shapes.NewSphere()
@@ -26,7 +28,7 @@ func NewCappedCylinderScene(width int) (view.World, view.Camera) {
 	// with a conical hat on top
 	cone := shapes.NewUnitCone(true)
 	cone.SetTransform(geom.Scale(1.3, 1, 1.3).MulX4Matrix(geom.Translate(0, 10.4, 0)))
-	m := cone.GetMaterial()
+	m = cone.GetMaterial()
 	m.Pattern = patterns.NewRingPattern(patterns.NewSolidColorPattern(colors.RandomAnyColor()), patterns.NewSolidColorPattern(colors.RandomAnyColor()))
 	m.Pattern.SetTransform(geom.Scale(0.2, 0.2, 0.2))
 	cone.SetMaterial(m)

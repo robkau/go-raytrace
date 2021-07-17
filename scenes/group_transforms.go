@@ -51,7 +51,7 @@ func makeObjectGroup() shapes.Group {
 	// hexagon floating above table
 	h := shapes.NewHexagon()
 	h.SetShadowless(true)
-	h.SetTransform(geom.Translate(5, 8.6, 1.5).MulX4Matrix(geom.Scale(1.1, 0.8, 1.1)).MulX4Matrix(geom.RotateX(math.Pi / 5)).MulX4Matrix(geom.RotateZ(math.Pi / 7)))
+	h.SetTransform(geom.Translate(5, 8.6, 1.5).MulX4Matrix(geom.Scale(1.1, 0.8, 1.1)).MulX4Matrix(geom.RotateX(-math.Pi / 3)).MulX4Matrix(geom.RotateZ(math.Pi / 6)).MulX4Matrix(geom.RotateY(-math.Pi / 6)))
 	m = materials.NewMaterial()
 	m.Pattern = patterns.NewSolidColorPattern(colors.NewColor(0.7, 0.7, 0))
 	m.Specular = 0.05

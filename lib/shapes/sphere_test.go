@@ -16,7 +16,7 @@ func Test_NewSphere_DefaultTransform(t *testing.T) {
 func Test_NewSphere_HasDefaultMaterial(t *testing.T) {
 	s := NewSphere()
 
-	assert.Equal(t, materials.NewMaterial(), s.M)
+	assert.Equal(t, materials.NewMaterial(), s.m)
 }
 
 func Test_NewGlassSphere(t *testing.T) {
@@ -42,9 +42,9 @@ func Test_Sphere_SetMaterial(t *testing.T) {
 	m := materials.NewMaterial()
 	m.Ambient = 1.0
 
-	s.M = m
+	s.m = m
 
-	assert.Equal(t, m, s.M)
+	assert.Equal(t, m, s.m)
 }
 
 func Test_RayIntersectSphere(t *testing.T) {

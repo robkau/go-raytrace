@@ -21,9 +21,11 @@ func Test_DefaultWorld(t *testing.T) {
 	w := defaultWorld()
 	l := shapes.NewPointLight(geom.NewPoint(-10, 10, -10), colors.White())
 	sA := shapes.NewSphere()
-	sA.M.Color = colors.NewColor(0.8, 1.0, 0.6)
-	sA.M.Diffuse = 0.7
-	sA.M.Specular = 0.2
+	m := sA.GetMaterial()
+	m.Color = colors.NewColor(0.8, 1.0, 0.6)
+	m.Diffuse = 0.7
+	m.Specular = 0.2
+	sA.SetMaterial(m)
 	sB := shapes.NewSphere()
 	sB.SetTransform(geom.Scale(0.5, 0.5, 0.5))
 

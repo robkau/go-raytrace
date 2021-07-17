@@ -29,7 +29,7 @@ type Shape interface {
 type baseShape struct {
 	parent     Group
 	t          geom.X4Matrix
-	M          materials.Material
+	m          materials.Material
 	id         string
 	shadowless bool
 	unshaded   bool
@@ -38,7 +38,7 @@ type baseShape struct {
 func newBaseShape() baseShape {
 	return baseShape{
 		t:  geom.NewIdentityMatrixX4(),
-		M:  materials.NewMaterial(),
+		m:  materials.NewMaterial(),
 		id: newId(),
 	}
 }
@@ -58,11 +58,11 @@ func (b *baseShape) GetMaterial() materials.Material {
 			return m
 		}
 	}
-	return b.M
+	return b.m
 }
 
 func (b *baseShape) SetMaterial(material materials.Material) {
-	b.M = material
+	b.m = material
 }
 
 func (b *baseShape) WorldToObject(p geom.Tuple) geom.Tuple {
