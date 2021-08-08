@@ -19,11 +19,11 @@ func (s *Sphere) Bounds() Bounds {
 	return newBounds(geom.NewPoint(-1, -1, -1), geom.NewPoint(1, 1, 1)).TransformTo(s.t)
 }
 
-func (s *Sphere) NormalAt(p geom.Tuple) geom.Tuple {
-	return NormalAt(s, p, s.LocalNormalAt)
+func (s *Sphere) NormalAt(p geom.Tuple, _ Intersection) geom.Tuple {
+	return NormalAt(s, p, s.LocalNormalAt, Intersection{})
 }
 
-func (s *Sphere) LocalNormalAt(p geom.Tuple) geom.Tuple {
+func (s *Sphere) LocalNormalAt(p geom.Tuple, _ Intersection) geom.Tuple {
 	return p.Sub(geom.NewPoint(0, 0, 0))
 }
 

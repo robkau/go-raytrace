@@ -80,7 +80,7 @@ func Test_CylinderNormalVector(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewInfiniteCylinder()
-			n := c.LocalNormalAt(tt.args.point)
+			n := c.LocalNormalAt(tt.args.point, Intersection{})
 			require.Equal(t, tt.args.normal, n)
 		})
 	}
@@ -174,7 +174,7 @@ func Test_ConstrainedCappedCylinderNormalAt(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewCylinder(1, 2, true)
 
-			n := c.NormalAt(tt.args.point)
+			n := c.NormalAt(tt.args.point, Intersection{})
 
 			require.Equal(t, tt.args.normal, n)
 		})

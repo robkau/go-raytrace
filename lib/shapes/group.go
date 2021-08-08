@@ -3,7 +3,7 @@ package shapes
 import (
 	"github.com/robkau/go-raytrace/lib/geom"
 	"github.com/robkau/go-raytrace/lib/materials"
-	"golang.org/x/sync/singleflight"
+	"sync"
 )
 
 type Group interface {
@@ -13,13 +13,15 @@ type Group interface {
 }
 
 type group struct {
-	t          geom.X4Matrix
+	t          *geom.X4Matrix
 	parent     Group
 	children   []Shape
-	init       singleflight.Group
-	boundsSet  bool
 	m          materials.Material
 	shadowless bool
+
+	rw        sync.RWMutex
+	bounds    Bounds
+	boundsSet bool
 }
 
 func NewGroup() Group {
@@ -50,31 +52,40 @@ func (g *group) LocalIntersect(r geom.Ray) Intersections {
 }
 
 func (g *group) Bounds() Bounds {
-	v, err, _ := g.init.Do("bounds", func() (interface{}, error) {
-		// todo race
-		g.boundsSet = true
-		groupBounds := newBounds()
+	g.rw.Lock()
+	defer g.rw.Unlock()
 
+	if !g.boundsSet {
+		g.bounds = newBounds()
 		for _, c := range g.children {
 			childBounds := c.Bounds()
 			childBoundsTransformed := childBounds.TransformTo(g.t)
-			groupBounds = groupBounds.Add(childBoundsTransformed.Min, childBoundsTransformed.Max)
+			g.bounds = g.bounds.Add(childBoundsTransformed.Min, childBoundsTransformed.Max)
 		}
-		return groupBounds, nil
-	})
-	if err != nil {
-		panic("calculate bounds")
+		g.boundsSet = true
 	}
 
-	return v.(Bounds)
+	return g.bounds
 }
 
-func (g *group) GetTransform() geom.X4Matrix {
+func (g *group) Invalidate() {
+	// g should already be locked
+	g.bounds = Bounds{}
+	g.boundsSet = false
+	if g.parent != nil {
+		g.parent.Invalidate()
+	}
+}
+
+func (g *group) GetTransform() *geom.X4Matrix {
 	return g.t
 }
 
-func (g *group) SetTransform(matrix geom.X4Matrix) {
+func (g *group) SetTransform(matrix *geom.X4Matrix) {
+	g.rw.Lock()
+	defer g.rw.Unlock()
 	g.t = matrix
+	g.Invalidate()
 }
 
 func (g *group) WorldToObject(p geom.Tuple) geom.Tuple {
@@ -100,7 +111,10 @@ func (g *group) GetParent() Group {
 }
 
 func (g *group) SetParent(gr Group) {
+	g.rw.Lock()
+	defer g.rw.Unlock()
 	g.parent = gr
+	g.Invalidate()
 }
 
 func (g *group) GetChildren() []Shape {
@@ -108,15 +122,14 @@ func (g *group) GetChildren() []Shape {
 }
 
 func (g *group) AddChild(s Shape) {
-	// todo race
-	if g.boundsSet {
-		panic("cannot add children after calculating bounds")
-	}
+	g.rw.Lock()
+	defer g.rw.Unlock()
 	s.SetParent(g)
 	g.children = append(g.children, s)
+	g.Invalidate()
 }
 
-func (g *group) NormalAt(tuple geom.Tuple) geom.Tuple {
+func (g *group) NormalAt(tuple geom.Tuple, _ Intersection) geom.Tuple {
 	panic("calling me on a group is a logic error")
 }
 
@@ -131,6 +144,8 @@ func (g *group) GetMaterial() materials.Material {
 }
 
 func (g *group) SetMaterial(material materials.Material) {
+	g.rw.Lock()
+	defer g.rw.Unlock()
 	g.m = material
 }
 
@@ -149,6 +164,8 @@ func (g *group) GetShadowless() bool {
 }
 
 func (g *group) SetShadowless(s bool) {
+	g.rw.Lock()
+	defer g.rw.Unlock()
 	g.shadowless = s
 }
 

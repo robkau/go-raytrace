@@ -4,6 +4,7 @@ import (
 	"github.com/robkau/go-raytrace/lib/colors"
 	"github.com/robkau/go-raytrace/lib/geom"
 	"math"
+	"math/rand"
 	"sync"
 )
 
@@ -14,7 +15,7 @@ type Camera struct {
 	halfWidth  float64
 	halfHeight float64
 	pixelSize  float64
-	Transform  geom.X4Matrix
+	Transform  *geom.X4Matrix
 }
 
 func NewCamera(hs int, vs int, fov float64) Camera {
@@ -83,14 +84,10 @@ type PixelInfo struct {
 	LastInFrame bool
 }
 
-func (c Camera) PixelChan(w World, rayBounces int, numGoRoutines int) <-chan PixelInfo {
+func (c Camera) PixelChan(w World, rayBounces int, numGoRoutines int, renderMode NextMode) <-chan PixelInfo {
 	pi := make(chan PixelInfo, numGoRoutines*8)
 
-	cs := &coordinateSupplier{
-		width:  c.HSize,
-		height: c.VSize,
-		rw:     sync.RWMutex{},
-	}
+	cs := newCoordinateSupplier(c.HSize, c.VSize, renderMode, false)
 
 	go func() {
 		wg := sync.WaitGroup{}
@@ -118,37 +115,92 @@ func (c Camera) PixelChan(w World, rayBounces int, numGoRoutines int) <-chan Pix
 }
 
 type coordinateSupplier struct {
-	// todo option for order (asc, desc, random)
 	// todo option for downscaling (hand out 2x2 squares with 1 random selected inside)
-	x      int
-	y      int
-	width  int
-	height int
-	done   bool
-	// todo replace with atomic mod
+	coordinates []coordinate
+	at          int
+	repeat      bool
+	mode        NextMode
+
+	// todo replace with atomic mod?
 	rw sync.RWMutex
 }
 
 const nextDone = -1
 
+type coordinate struct {
+	x int
+	y int
+}
+
+func newCoordinateSupplier(width, height int, mode NextMode, repeat bool) *coordinateSupplier {
+	cs := &coordinateSupplier{
+		repeat: repeat,
+		rw:     sync.RWMutex{},
+	}
+
+	switch mode {
+	case Asc:
+		cs.coordinates = makeAscCoordinates(width, height)
+	case Random:
+		cs.coordinates = makeAscCoordinates(width, height)
+		rand.Shuffle(len(cs.coordinates), func(i, j int) { cs.coordinates[i], cs.coordinates[j] = cs.coordinates[j], cs.coordinates[i] })
+	case Desc:
+		cs.coordinates = makeAscCoordinates(width, height)
+		i := 0
+		j := len(cs.coordinates) - 1
+		for i < j {
+			cs.coordinates[i], cs.coordinates[j] = cs.coordinates[j], cs.coordinates[i]
+			i++
+			j--
+		}
+	default:
+		panic("unknown mode")
+	}
+
+	return cs
+}
+
+func makeAscCoordinates(width, height int) []coordinate {
+	coordinates := make([]coordinate, 0, width*height)
+	var atX, atY int
+	for {
+		coordinates = append(coordinates, coordinate{
+			x: atX,
+			y: atY,
+		})
+
+		atX++
+		if atX >= width {
+			atX = 0
+			atY++
+		}
+		if atY >= height {
+			break
+		}
+	}
+	return coordinates
+}
+
 func (c *coordinateSupplier) next() (x, y int) {
 	c.rw.Lock()
 	defer c.rw.Unlock()
 
-	if c.done {
-		return nextDone, nextDone
+	if c.at >= len(c.coordinates) {
+		if c.repeat {
+			c.at = 0
+		} else {
+			return nextDone, nextDone
+		}
 	}
 
-	x = c.x
-	y = c.y
-
-	c.x++
-	if c.x >= c.width {
-		c.x = 0
-		c.y++
-	}
-	if c.y >= c.height {
-		c.done = true
-	}
-	return
+	defer func() { c.at++ }()
+	return c.coordinates[c.at].x, c.coordinates[c.at].y
 }
+
+type NextMode uint
+
+const (
+	Asc NextMode = iota
+	Desc
+	Random
+)

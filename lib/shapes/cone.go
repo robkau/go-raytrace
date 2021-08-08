@@ -35,11 +35,11 @@ func (c *Cone) Bounds() Bounds {
 	return newBounds(geom.NewPoint(-lg, c.minimum, -lg), geom.NewPoint(lg, c.maximum, lg)).TransformTo(c.t)
 }
 
-func (c *Cone) NormalAt(p geom.Tuple) geom.Tuple {
-	return NormalAt(c, p, c.LocalNormalAt)
+func (c *Cone) NormalAt(p geom.Tuple, _ Intersection) geom.Tuple {
+	return NormalAt(c, p, c.LocalNormalAt, Intersection{})
 }
 
-func (c *Cone) LocalNormalAt(p geom.Tuple) geom.Tuple {
+func (c *Cone) LocalNormalAt(p geom.Tuple, _ Intersection) geom.Tuple {
 	d := p.X*p.X + p.Z*p.Z
 
 	if d < 1 && p.Y >= c.maximum-geom.FloatComparisonEpsilon {

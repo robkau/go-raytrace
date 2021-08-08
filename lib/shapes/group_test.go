@@ -130,7 +130,7 @@ func Test_NormalOnChildObject(t *testing.T) {
 	s.SetTransform(geom.Translate(5, 0, 0))
 	g2.AddChild(s)
 
-	n := s.NormalAt(geom.NewPoint(1.7321, 1.1547, -5.5774))
+	n := s.NormalAt(geom.NewPoint(1.7321, 1.1547, -5.5774), Intersection{})
 
 	require.Equal(t, geom.NewVector(0.286, 0.429, -0.857), n.RoundTo(3))
 }

@@ -19,11 +19,11 @@ func (c *Cube) Bounds() Bounds {
 	return newBounds(geom.NewPoint(-1, -1, -1), geom.NewPoint(1, 1, 1)).TransformTo(c.t)
 }
 
-func (c *Cube) NormalAt(p geom.Tuple) geom.Tuple {
-	return NormalAt(c, p, c.LocalNormalAt)
+func (c *Cube) NormalAt(p geom.Tuple, _ Intersection) geom.Tuple {
+	return NormalAt(c, p, c.LocalNormalAt, Intersection{})
 }
 
-func (c *Cube) LocalNormalAt(p geom.Tuple) geom.Tuple {
+func (c *Cube) LocalNormalAt(p geom.Tuple, _ Intersection) geom.Tuple {
 	maxC := math.Max(math.Max(math.Abs(p.X), math.Abs(p.Y)), math.Abs(p.Z))
 
 	if maxC == math.Abs(p.X) {

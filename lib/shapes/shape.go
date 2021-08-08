@@ -1,7 +1,6 @@
 package shapes
 
 import (
-	"github.com/google/uuid"
 	"github.com/robkau/go-raytrace/lib/geom"
 	"github.com/robkau/go-raytrace/lib/materials"
 )
@@ -9,15 +8,15 @@ import (
 type Shape interface {
 	Intersect(geom.Ray) Intersections
 	LocalIntersect(r geom.Ray) Intersections
-	NormalAt(geom.Tuple) geom.Tuple
+	NormalAt(at geom.Tuple, i Intersection) geom.Tuple
 	WorldToObject(p geom.Tuple) geom.Tuple
 	NormalToWorld(normal geom.Tuple) geom.Tuple
-	GetTransform() geom.X4Matrix
-	SetTransform(matrix geom.X4Matrix)
+	GetTransform() *geom.X4Matrix
+	SetTransform(matrix *geom.X4Matrix)
 	GetMaterial() materials.Material
 	SetMaterial(materials.Material)
 	Bounds() Bounds
-	Id() string
+	Invalidate()
 	GetShadowless() bool
 	SetShadowless(s bool)
 	GetShaded() bool
@@ -28,27 +27,29 @@ type Shape interface {
 
 type baseShape struct {
 	parent     Group
-	t          geom.X4Matrix
+	t          *geom.X4Matrix
 	m          materials.Material
 	id         string
 	shadowless bool
 	unshaded   bool
 }
 
+// todo https://forum.raytracerchallenge.com/thread/144/marching-cubes-isosurfaces
+
 func newBaseShape() baseShape {
 	return baseShape{
-		t:  geom.NewIdentityMatrixX4(),
-		m:  materials.NewMaterial(),
-		id: newId(),
+		t: geom.NewIdentityMatrixX4(),
+		m: materials.NewMaterial(),
 	}
 }
 
-func (b *baseShape) GetTransform() geom.X4Matrix {
+func (b *baseShape) GetTransform() *geom.X4Matrix {
 	return b.t
 }
 
-func (b *baseShape) SetTransform(matrix geom.X4Matrix) {
+func (b *baseShape) SetTransform(matrix *geom.X4Matrix) {
 	b.t = matrix
+	b.Invalidate()
 }
 
 func (b *baseShape) GetMaterial() materials.Material {
@@ -83,10 +84,6 @@ func (b *baseShape) NormalToWorld(normal geom.Tuple) geom.Tuple {
 	return normal
 }
 
-func (b *baseShape) Id() string {
-	return b.id
-}
-
 func (b *baseShape) GetShadowless() bool {
 	if b.parent != nil {
 		return b.parent.GetShadowless()
@@ -112,25 +109,24 @@ func (b *baseShape) GetParent() Group {
 
 func (b *baseShape) SetParent(g Group) {
 	b.parent = g
+	b.Invalidate()
+}
+
+func (b *baseShape) Invalidate() {
+	if b.parent != nil {
+		b.parent.Invalidate()
+	}
 }
 
 // invert ray from object's transformation matrix then call shape-specific normal logic
-func NormalAt(s Shape, p geom.Tuple, lnaf func(p geom.Tuple) geom.Tuple) geom.Tuple {
+func NormalAt(s Shape, p geom.Tuple, lnaf func(p geom.Tuple, in Intersection) geom.Tuple, i Intersection) geom.Tuple {
 	lp := s.WorldToObject(p)
-	ln := lnaf(lp)
+	ln := lnaf(lp, i)
 	return s.NormalToWorld(ln)
 }
 
 // invert ray from object's transformation matrix then call shape-specific intersection logic
-func Intersect(r geom.Ray, t geom.X4Matrix, lif func(geom.Ray) Intersections) Intersections {
+func Intersect(r geom.Ray, t *geom.X4Matrix, lif func(geom.Ray) Intersections) Intersections {
 	lr := r.Transform(t.Invert())
 	return lif(lr)
-}
-
-func newId() string {
-	u, err := uuid.NewRandom()
-	if err != nil {
-		panic("fail create uuid for shape")
-	}
-	return u.String()
 }

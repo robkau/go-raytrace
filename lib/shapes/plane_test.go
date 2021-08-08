@@ -8,9 +8,9 @@ import (
 
 func Test_PlaneNormal_Constant(t *testing.T) {
 	p := NewPlane()
-	n1 := p.LocalNormalAt(geom.NewPoint(0, 0, 0))
-	n2 := p.LocalNormalAt(geom.NewPoint(10, 0, -10))
-	n3 := p.LocalNormalAt(geom.NewPoint(-5, 10, 150))
+	n1 := p.LocalNormalAt(geom.NewPoint(0, 0, 0), Intersection{})
+	n2 := p.LocalNormalAt(geom.NewPoint(10, 0, -10), Intersection{})
+	n3 := p.LocalNormalAt(geom.NewPoint(-5, 10, 150), Intersection{})
 
 	assert.Equal(t, geom.NewVector(0, 1, 0), n1)
 	assert.Equal(t, geom.NewVector(0, 1, 0), n2)

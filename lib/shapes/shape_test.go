@@ -61,7 +61,7 @@ func Test_NormalTranslatedShape(t *testing.T) {
 	var s Shape = ts
 	ts.SetTransform(geom.Translate(0, 1, 0))
 
-	n := s.NormalAt(geom.NewPoint(0, 1.70711, -0.70711)).RoundTo(5)
+	n := s.NormalAt(geom.NewPoint(0, 1.70711, -0.70711), Intersection{}).RoundTo(5)
 
 	assert.Equal(t, geom.NewVector(0, 0.70711, -0.70711), n)
 }
@@ -71,14 +71,14 @@ func Test_NormalTransformedShape(t *testing.T) {
 	var s Shape = ts
 	ts.SetTransform(geom.Scale(1, 0.5, 1).MulX4Matrix(geom.RotateZ(math.Pi / 5)))
 
-	n := s.NormalAt(geom.NewPoint(0, math.Sqrt2/2, -math.Sqrt2/2)).RoundTo(5)
+	n := s.NormalAt(geom.NewPoint(0, math.Sqrt2/2, -math.Sqrt2/2), Intersection{}).RoundTo(5)
 
 	assert.Equal(t, geom.NewVector(0, 0.97014, -0.24254), n)
 }
 
 type testShape struct {
 	parent     Group
-	t          geom.X4Matrix
+	t          *geom.X4Matrix
 	m          materials.Material
 	savedRay   geom.Ray
 	shadowless bool
@@ -94,6 +94,10 @@ func newTestShape() *testShape {
 
 func (t *testShape) Bounds() Bounds {
 	return newBounds(geom.NewPoint(-1, -1, -1), geom.NewPoint(1, 1, 1)).TransformTo(t.t)
+}
+
+func (t *testShape) Invalidate() {
+
 }
 
 func (t *testShape) Intersect(r geom.Ray) Intersections {
@@ -118,7 +122,7 @@ func (t *testShape) Id() string {
 	return ""
 }
 
-func (t *testShape) NormalAt(p geom.Tuple) geom.Tuple {
+func (t *testShape) NormalAt(p geom.Tuple, _ Intersection) geom.Tuple {
 	localPoint := t.t.Invert().MulTuple(p)
 	localNormal := geom.NewVector(localPoint.X, localPoint.Y, localPoint.Z)
 	worldNormal := t.t.Invert().Transpose().MulTuple(localNormal)
@@ -126,11 +130,11 @@ func (t *testShape) NormalAt(p geom.Tuple) geom.Tuple {
 	return worldNormal.Normalize()
 }
 
-func (t *testShape) GetTransform() geom.X4Matrix {
+func (t *testShape) GetTransform() *geom.X4Matrix {
 	return t.t
 }
 
-func (t *testShape) SetTransform(m geom.X4Matrix) {
+func (t *testShape) SetTransform(m *geom.X4Matrix) {
 	t.t = m
 }
 

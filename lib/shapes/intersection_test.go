@@ -178,12 +178,12 @@ func Test_Compute_RefractionScene(t *testing.T) {
 
 	r := geom.RayWith(geom.NewPoint(0, 0, -4), geom.NewVector(0, 0, 1))
 	xs := Intersections{I: []Intersection{
-		{2, sA},
-		{2.75, sB},
-		{3.25, sC},
-		{4.75, sB},
-		{5.25, sC},
-		{6, sA},
+		{T: 2, O: sA},
+		{T: 2.75, O: sB},
+		{T: 3.25, O: sC},
+		{T: 4.75, O: sB},
+		{T: 5.25, O: sC},
+		{T: 6, O: sA},
 	}}
 
 	type expected struct {
@@ -248,4 +248,15 @@ func Test_Schlick_N2Larger(t *testing.T) {
 	reflectance := c.Schlick()
 
 	require.Less(t, math.Abs(0.48873-reflectance), 0.000001)
+}
+
+func Test_IntersectionWithUV(t *testing.T) {
+	tr := NewTriangle(geom.NewPoint(0, 1, 0), geom.NewPoint(-1, 0, 0), geom.NewPoint(1, 0, 0))
+
+	i := NewIntersectionWithUV(3.5, tr, 0.2, 0.4)
+
+	require.True(t, i.UvSet)
+	require.Equal(t, 0.2, i.U)
+	require.Equal(t, 0.4, i.V)
+
 }

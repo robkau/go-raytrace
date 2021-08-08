@@ -30,11 +30,11 @@ func (c *Cylinder) Bounds() Bounds {
 	return newBounds(geom.NewPoint(-1, c.minimum, -1), geom.NewPoint(1, c.maximum, 1)).TransformTo(c.t)
 }
 
-func (c *Cylinder) NormalAt(p geom.Tuple) geom.Tuple {
-	return NormalAt(c, p, c.LocalNormalAt)
+func (c *Cylinder) NormalAt(p geom.Tuple, _ Intersection) geom.Tuple {
+	return NormalAt(c, p, c.LocalNormalAt, Intersection{})
 }
 
-func (c *Cylinder) LocalNormalAt(p geom.Tuple) geom.Tuple {
+func (c *Cylinder) LocalNormalAt(p geom.Tuple, _ Intersection) geom.Tuple {
 	d := p.X*p.X + p.Z*p.Z
 
 	if d < 1 && p.Y >= c.maximum-geom.FloatComparisonEpsilon {

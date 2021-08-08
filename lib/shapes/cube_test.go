@@ -99,7 +99,7 @@ func TestCube_NormalAt(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewCube()
 			p := tt.args.point
-			normal := c.LocalNormalAt(p)
+			normal := c.LocalNormalAt(p, Intersection{})
 
 			require.Equal(t, tt.args.normal, normal)
 		})

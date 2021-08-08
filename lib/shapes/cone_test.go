@@ -94,7 +94,7 @@ func Test_ConeNormal_EndCaps(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewInfiniteCone()
-			n := c.LocalNormalAt(tt.args.point)
+			n := c.LocalNormalAt(tt.args.point, Intersection{})
 
 			require.Equal(t, tt.args.normal, n)
 		})

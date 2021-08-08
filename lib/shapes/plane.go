@@ -19,11 +19,11 @@ func (p *Plane) Bounds() Bounds {
 	return newBounds(geom.NewPoint(math.Inf(-1), 0, math.Inf(-1)), geom.NewPoint(math.Inf(1), 0, math.Inf(1))).TransformTo(p.t)
 }
 
-func (p *Plane) NormalAt(pt geom.Tuple) geom.Tuple {
-	return NormalAt(p, pt, p.LocalNormalAt)
+func (p *Plane) NormalAt(pt geom.Tuple, _ Intersection) geom.Tuple {
+	return NormalAt(p, pt, p.LocalNormalAt, Intersection{})
 }
 
-func (p *Plane) LocalNormalAt(pt geom.Tuple) geom.Tuple {
+func (p *Plane) LocalNormalAt(pt geom.Tuple, _ Intersection) geom.Tuple {
 	return geom.NewVector(0, 1, 0)
 }
 

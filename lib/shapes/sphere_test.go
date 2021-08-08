@@ -136,7 +136,7 @@ func Test_TranslatedSphere_Intersect_Ray(t *testing.T) {
 func Test_NormalX(t *testing.T) {
 	s := NewSphere()
 
-	n := s.NormalAt(geom.NewPoint(1, 0, 0))
+	n := s.NormalAt(geom.NewPoint(1, 0, 0), Intersection{})
 
 	assert.Equal(t, geom.NewVector(1, 0, 0), n)
 }
@@ -144,7 +144,7 @@ func Test_NormalX(t *testing.T) {
 func Test_NormalY(t *testing.T) {
 	s := NewSphere()
 
-	n := s.NormalAt(geom.NewPoint(0, 1, 0))
+	n := s.NormalAt(geom.NewPoint(0, 1, 0), Intersection{})
 
 	assert.Equal(t, geom.NewVector(0, 1, 0), n)
 }
@@ -152,7 +152,7 @@ func Test_NormalY(t *testing.T) {
 func Test_NormalZ(t *testing.T) {
 	s := NewSphere()
 
-	n := s.NormalAt(geom.NewPoint(0, 0, 1))
+	n := s.NormalAt(geom.NewPoint(0, 0, 1), Intersection{})
 
 	assert.Equal(t, geom.NewVector(0, 0, 1), n)
 }
@@ -160,7 +160,7 @@ func Test_NormalZ(t *testing.T) {
 func Test_NormalXYZ(t *testing.T) {
 	s := NewSphere()
 
-	n := s.NormalAt(geom.NewPoint(math.Sqrt(3)/3, math.Sqrt(3)/3, math.Sqrt(3)/3))
+	n := s.NormalAt(geom.NewPoint(math.Sqrt(3)/3, math.Sqrt(3)/3, math.Sqrt(3)/3), Intersection{})
 
 	assert.Equal(t, geom.NewVector(math.Sqrt(3)/3, math.Sqrt(3)/3, math.Sqrt(3)/3), n)
 }
@@ -169,7 +169,7 @@ func Test_Normal_Translated(t *testing.T) {
 	s := NewSphere()
 	s.SetTransform(geom.Translate(0, 1, 0))
 
-	n := s.NormalAt(geom.NewPoint(0, 1.70711, -0.70711)).RoundTo(5)
+	n := s.NormalAt(geom.NewPoint(0, 1.70711, -0.70711), Intersection{}).RoundTo(5)
 
 	assert.Equal(t, geom.NewVector(0, 0.70711, -0.70711), n)
 }
@@ -178,7 +178,7 @@ func Test_Normal_ScaledAndRotated(t *testing.T) {
 	s := NewSphere()
 	s.SetTransform(geom.Scale(1, 0.5, 1).MulX4Matrix(geom.RotateZ(math.Pi / 5)))
 
-	n := s.NormalAt(geom.NewPoint(0, math.Sqrt2/2, -math.Sqrt2/2)).RoundTo(5)
+	n := s.NormalAt(geom.NewPoint(0, math.Sqrt2/2, -math.Sqrt2/2), Intersection{}).RoundTo(5)
 
 	assert.Equal(t, geom.NewVector(0, 0.97014, -0.24254), n)
 }
