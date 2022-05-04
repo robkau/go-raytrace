@@ -214,8 +214,10 @@ func Test_FacesWithNormals(t *testing.T) {
 
 	g := p.defaultGroup
 	// parser should create smooth triangles when face normals are present
-	t1 := g.GetChildren()[0].(*shapes.SmoothTriangle)
-	t2 := g.GetChildren()[1].(*shapes.SmoothTriangle)
+	t1, ok := g.GetChildren()[0].(*shapes.SmoothTriangle)
+	require.True(t, ok)
+	t2, ok := g.GetChildren()[1].(*shapes.SmoothTriangle)
+	require.True(t, ok)
 
 	v, err := p.getVertex(1)
 	require.NoError(t, err)
@@ -242,5 +244,6 @@ func Test_FacesWithNormals(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, n, ns[2])
 
-	require.Equal(t, t2, t1)
+	require.Equal(t, t2.Bounds(), t1.Bounds())
+	require.Equal(t, t2.Normals(), t1.Normals())
 }

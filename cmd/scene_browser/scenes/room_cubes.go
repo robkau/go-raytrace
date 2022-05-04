@@ -20,7 +20,7 @@ func sizedCubeAt(x, y, z, w, h, d float64) shapes.Shape {
 	return c
 }
 
-func NewRoomScene(width int) (view.World, view.Camera) {
+func NewRoomScene() *Scene {
 	w := view.NewWorld()
 	cameraPos := geom.NewPoint(15, 15, 15)
 	cameraLookingAt := geom.NewPoint(0, 5, 0)
@@ -75,10 +75,5 @@ func NewRoomScene(width int) (view.World, view.Camera) {
 	w.AddObject(floorAndCeiling)
 	w.AddObject(walls)
 
-	c := view.NewCamera(width, width, 0.45)
-	c.Transform = geom.ViewTransform(cameraPos,
-		cameraLookingAt,
-		geom.UpVector())
-
-	return w, c
+	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
 }

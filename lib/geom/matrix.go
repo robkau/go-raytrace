@@ -2,7 +2,6 @@ package geom
 
 import (
 	"math"
-	"sync"
 )
 
 // This file provides structs to represent 2x2, 3x3, and 4x4 matrices, and their associated operations.
@@ -121,13 +120,9 @@ func (m X3Matrix) Determinant() float64 {
 
 type X4Matrix struct {
 	b []float64
-
-	invert *X4Matrix
-	rw     sync.RWMutex
 }
 
 func NewX4Matrix() *X4Matrix {
-	// todo sync.pool for these slices
 	return &X4Matrix{
 		b: make([]float64, 4*4),
 	}
@@ -185,10 +180,7 @@ func (m *X4Matrix) Get(r, c int) float64 {
 }
 
 func (m *X4Matrix) Set(r int, c int, v float64) {
-	m.rw.Lock()
-	defer m.rw.Unlock()
 	m.b[r*4+c] = v
-	m.invert = nil
 }
 
 func (m *X4Matrix) Equals(o *X4Matrix) bool {
@@ -305,26 +297,22 @@ func (m *X4Matrix) Invertable() bool {
 }
 
 func (m *X4Matrix) Invert() *X4Matrix {
-	m.rw.Lock()
-	defer m.rw.Unlock()
+	return m.invert()
+}
 
-	if m.invert == nil {
-		if !m.Invertable() {
-			panic("matrix not invertable")
-		}
-
-		m.invert = NewX4Matrix()
-		d := m.Determinant()
-
-		for r := 0; r < 4; r++ {
-			for c := 0; c < 4; c++ {
-				co := m.Cofactor(r, c)
-				m.invert.Set(c, r, co/d)
-			}
+func (m *X4Matrix) invert() *X4Matrix {
+	if !m.Invertable() {
+		panic("not invertable")
+	}
+	invert := NewX4Matrix()
+	d := m.Determinant()
+	for r := 0; r < 4; r++ {
+		for c := 0; c < 4; c++ {
+			co := m.Cofactor(r, c)
+			invert.Set(c, r, co/d)
 		}
 	}
-
-	return m.invert.Copy()
+	return invert
 }
 
 func (m *X4Matrix) Copy() *X4Matrix {

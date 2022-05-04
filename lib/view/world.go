@@ -1,10 +1,13 @@
 package view
 
 import (
+	"fmt"
+	"github.com/robkau/coordinate_supplier"
 	"github.com/robkau/go-raytrace/lib/colors"
 	"github.com/robkau/go-raytrace/lib/geom"
 	"github.com/robkau/go-raytrace/lib/shapes"
 	"math"
+	"sync"
 )
 
 type World struct {
@@ -12,14 +15,14 @@ type World struct {
 	lightSources []shapes.PointLight
 }
 
-func NewWorld() World {
-	return World{
+func NewWorld() *World {
+	return &World{
 		objects:      []shapes.Shape{},
 		lightSources: []shapes.PointLight{},
 	}
 }
 
-func defaultWorld() World {
+func defaultWorld() *World {
 	w := NewWorld()
 
 	var s shapes.Shape = shapes.NewSphere()
@@ -69,6 +72,7 @@ func (w *World) ShadeHit(c shapes.IntersectionComputed, remaining int) colors.Co
 
 	m := c.Object.GetMaterial()
 	if m.Reflective > 0 && m.Transparency > 0 {
+		// todo scale by transparency?
 		reflectance := c.Schlick()
 		return col.Add(reflected.MulBy(reflectance)).Add(refracted.MulBy(1 - reflectance))
 	}
@@ -145,4 +149,45 @@ func (w *World) IsShadowed(p geom.Tuple) bool {
 		}
 	}
 	return false
+}
+
+// todo replace c.rencder?
+// or wrap this with an option to consume all and then return the image and delete c.render
+
+func Render(w *World, c Camera, rayBounces int, numGoRoutines int, renderMode coordinate_supplier.NextMode) (<-chan PixelInfo, error) {
+	pi := make(chan PixelInfo, numGoRoutines*2)
+
+	cs, err := coordinate_supplier.NewCoordinateSupplierAtomic(coordinate_supplier.CoordinateSupplierOptions{
+		Width:  c.HSize,
+		Height: c.VSize,
+		Mode:   renderMode,
+		Repeat: false,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed create coordinate supplier: %w", err)
+	}
+
+	go func() {
+		wg := sync.WaitGroup{}
+		for i := 0; i < numGoRoutines; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for x, y, done := cs.Next(); !done; x, y, done = cs.Next() {
+					r := c.rayForPixel(x, y)
+					c := w.ColorAt(r, rayBounces)
+
+					pi <- PixelInfo{
+						X: x,
+						Y: y,
+						C: c,
+					}
+				}
+			}()
+		}
+		wg.Wait()
+		close(pi)
+	}()
+
+	return pi, nil
 }

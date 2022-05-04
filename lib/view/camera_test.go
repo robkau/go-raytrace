@@ -13,7 +13,7 @@ func Test_NewCamera(t *testing.T) {
 
 	assert.Equal(t, 160, c.HSize)
 	assert.Equal(t, 120, c.VSize)
-	assert.Equal(t, math.Pi/2, c.fov)
+	assert.Equal(t, math.Pi/2, c.Fov)
 	assert.Equal(t, geom.NewIdentityMatrixX4(), c.Transform)
 }
 

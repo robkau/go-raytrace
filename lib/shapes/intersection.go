@@ -53,7 +53,7 @@ func (i Intersection) Compute(r geom.Ray, xs Intersections) IntersectionComputed
 		c.Normalv = c.Object.NormalAt(c.point, Intersection{})
 	} else {
 		for _, x := range xs.I {
-			if geom.AlmostEqual(i.T, x.T) && i.O == x.O {
+			if geom.AlmostEqual(i.T, x.T) && i.O.Id() == x.O.Id() {
 				c.Normalv = c.Object.NormalAt(c.point, x)
 			}
 		}
@@ -72,7 +72,7 @@ func (i Intersection) Compute(r geom.Ray, xs Intersections) IntersectionComputed
 	// refraction
 	containers := []Shape{}
 	for _, x := range xs.I {
-		if geom.AlmostEqual(i.T, x.T) && i.O == x.O {
+		if geom.AlmostEqual(i.T, x.T) && i.O.Id() == x.O.Id() {
 			if len(containers) == 0 {
 				c.N1 = 1
 			} else {
@@ -82,7 +82,7 @@ func (i Intersection) Compute(r geom.Ray, xs Intersections) IntersectionComputed
 
 		found := false
 		for j, s := range containers {
-			if x.O == s {
+			if x.O.Id() == s.Id() {
 				found = true
 				containers = removeIndex(containers, j)
 				break
@@ -92,7 +92,7 @@ func (i Intersection) Compute(r geom.Ray, xs Intersections) IntersectionComputed
 			containers = append(containers, x.O)
 		}
 
-		if geom.AlmostEqual(i.T, x.T) && i.O == x.O {
+		if geom.AlmostEqual(i.T, x.T) && i.O.Id() == x.O.Id() {
 			if len(containers) == 0 {
 				c.N2 = 1
 			} else {

@@ -9,7 +9,7 @@ import (
 	"math"
 )
 
-func NewPondScene(width int) (view.World, view.Camera) {
+func NewPondScene() *Scene {
 	w := view.NewWorld()
 
 	// transparent plane
@@ -65,10 +65,8 @@ func NewPondScene(width int) (view.World, view.Camera) {
 	w.AddObject(middle)
 	w.AddObject(floater)
 
-	c := view.NewCamera(width, width, 0.45)
-	c.Transform = geom.ViewTransform(geom.NewPoint(18, 5, -10),
-		geom.NewPoint(0, 0, 0),
-		geom.UpVector())
+	cameraPos := geom.NewPoint(18, 5, -10)
+	cameraLookingAt := geom.NewPoint(0, 0, 0)
 
-	return w, c
+	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
 }

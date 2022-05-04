@@ -1,13 +1,16 @@
 # go-raytrace 
 
-This repository is me implementing a ray tracer in Go by following "The Ray Tracer Challenge" book
-* The book is available here: https://pragprog.com/titles/jbtracer/the-ray-tracer-challenge/
+This repository implements a ray tracer in Go by following [The Ray Tracer Challenge](https://pragprog.com/titles/jbtracer/the-ray-tracer-challenge/) book
 * The book lays out a language-agnostic TDD plan for implementing a ray tracer from scratch
-* I added Go library ebiten to animate the raytracer output to a window
+* Window rendering and input handling provided by Go library [ebiten](https://github.com/hajimehoshi/ebiten)
+* I highly recommend the book. 5 stars!
 
 ---
 
 ## Examples
+
+*Chapter 15: Triangles & Meshes*
+
 
 *Chapter 14: Groups*
 

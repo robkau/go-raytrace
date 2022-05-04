@@ -1,6 +1,7 @@
 package shapes
 
 import (
+	"github.com/google/uuid"
 	"github.com/robkau/go-raytrace/lib/geom"
 	"github.com/robkau/go-raytrace/lib/materials"
 )
@@ -13,22 +14,22 @@ type Shape interface {
 	NormalToWorld(normal geom.Tuple) geom.Tuple
 	GetTransform() *geom.X4Matrix
 	SetTransform(matrix *geom.X4Matrix)
-	GetMaterial() materials.Material
-	SetMaterial(materials.Material)
+	GetMaterial() *materials.Material
+	SetMaterial(*materials.Material)
 	Bounds() Bounds
-	Invalidate()
 	GetShadowless() bool
 	SetShadowless(s bool)
 	GetShaded() bool
 	SetShaded(s bool)
 	GetParent() Group
 	SetParent(g Group)
+	Id() string
 }
 
 type baseShape struct {
 	parent     Group
 	t          *geom.X4Matrix
-	m          materials.Material
+	m          *materials.Material
 	id         string
 	shadowless bool
 	unshaded   bool
@@ -38,8 +39,9 @@ type baseShape struct {
 
 func newBaseShape() baseShape {
 	return baseShape{
-		t: geom.NewIdentityMatrixX4(),
-		m: materials.NewMaterial(),
+		t:  geom.NewIdentityMatrixX4(),
+		m:  materials.NewMaterial(),
+		id: uuid.NewString(),
 	}
 }
 
@@ -49,20 +51,22 @@ func (b *baseShape) GetTransform() *geom.X4Matrix {
 
 func (b *baseShape) SetTransform(matrix *geom.X4Matrix) {
 	b.t = matrix
-	b.Invalidate()
 }
 
-func (b *baseShape) GetMaterial() materials.Material {
+func (b *baseShape) GetMaterial() *materials.Material {
 	if b.parent != nil {
 		m := b.parent.GetMaterial()
-		if m != (materials.Material{}) {
+		if m != nil {
 			return m
 		}
+	}
+	if b.m == nil {
+		panic("getmaterial returned nil for shape")
 	}
 	return b.m
 }
 
-func (b *baseShape) SetMaterial(material materials.Material) {
+func (b *baseShape) SetMaterial(material *materials.Material) {
 	b.m = material
 }
 
@@ -109,13 +113,10 @@ func (b *baseShape) GetParent() Group {
 
 func (b *baseShape) SetParent(g Group) {
 	b.parent = g
-	b.Invalidate()
 }
 
-func (b *baseShape) Invalidate() {
-	if b.parent != nil {
-		b.parent.Invalidate()
-	}
+func (b *baseShape) Id() string {
+	return b.id
 }
 
 // invert ray from object's transformation matrix then call shape-specific normal logic

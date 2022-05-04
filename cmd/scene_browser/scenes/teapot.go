@@ -3,6 +3,7 @@ package scenes
 import (
 	"github.com/robkau/go-raytrace/lib/colors"
 	"github.com/robkau/go-raytrace/lib/geom"
+	"github.com/robkau/go-raytrace/lib/materials"
 	"github.com/robkau/go-raytrace/lib/obj_parse"
 	"github.com/robkau/go-raytrace/lib/patterns"
 	"github.com/robkau/go-raytrace/lib/shapes"
@@ -11,7 +12,7 @@ import (
 	"math"
 )
 
-func NewTeapotScene(width int) (view.World, view.Camera) {
+func NewTeapotScene() *Scene {
 	w := view.NewWorld()
 	cameraPos := geom.NewPoint(85, 10, -10)
 	cameraLookingAt := geom.NewPoint(0, 5, -10)
@@ -22,7 +23,7 @@ func NewTeapotScene(width int) (view.World, view.Camera) {
 	}
 	g.SetTransform(g.GetTransform().MulX4Matrix(geom.Translate(0, 0, -20)).MulX4Matrix(geom.RotateX(-math.Pi / 2)))
 	g = obj_parse.CollapseGroups(2, g)
-	m := g.GetMaterial()
+	m := materials.NewMaterial()
 	m.Pattern = patterns.NewSolidColorPattern(colors.Green())
 	m.Ambient = 0.3
 	m.Diffuse = 0.3
@@ -36,7 +37,7 @@ func NewTeapotScene(width int) (view.World, view.Camera) {
 	}
 	g2.SetTransform(g2.GetTransform().MulX4Matrix(geom.Translate(0, 0, 0)).MulX4Matrix(geom.RotateX(-math.Pi / 2)))
 	//g2 = obj_parse.CollapseGroups(5, g2)
-	m = g2.GetMaterial()
+	m = materials.NewMaterial()
 	m.Pattern = patterns.NewSolidColorPattern(colors.Green())
 	m.Ambient = 0.3
 	m.Diffuse = 0.3
@@ -68,10 +69,5 @@ func NewTeapotScene(width int) (view.World, view.Camera) {
 
 	w.AddLight(shapes.NewPointLight(cameraPos, colors.NewColor(1.9, 1.4, 1.4)))
 
-	c := view.NewCamera(width, width, 0.45)
-	c.Transform = geom.ViewTransform(cameraPos,
-		cameraLookingAt,
-		geom.UpVector())
-
-	return w, c
+	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
 }

@@ -79,10 +79,14 @@ func Test_NormalTransformedShape(t *testing.T) {
 type testShape struct {
 	parent     Group
 	t          *geom.X4Matrix
-	m          materials.Material
+	m          *materials.Material
 	savedRay   geom.Ray
 	shadowless bool
 	unshaded   bool
+}
+
+func (t *testShape) Equals(o Shape) bool {
+	panic("implement me")
 }
 
 func newTestShape() *testShape {
@@ -138,11 +142,11 @@ func (t *testShape) SetTransform(m *geom.X4Matrix) {
 	t.t = m
 }
 
-func (t *testShape) GetMaterial() materials.Material {
+func (t *testShape) GetMaterial() *materials.Material {
 	return t.m
 }
 
-func (t *testShape) SetMaterial(m materials.Material) {
+func (t *testShape) SetMaterial(m *materials.Material) {
 	t.m = m
 }
 
