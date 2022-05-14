@@ -2,6 +2,9 @@ package parse
 
 import (
 	"github.com/pkg/errors"
+	"github.com/robkau/go-raytrace/lib/colors"
+	"github.com/robkau/go-raytrace/lib/materials"
+	"github.com/robkau/go-raytrace/lib/patterns"
 	"github.com/robkau/go-raytrace/lib/shapes"
 	"io"
 	"os"
@@ -40,7 +43,25 @@ func ParseReader(content io.Reader, as SupportedFormat) (g shapes.Group, e error
 		}
 		return o.defaultGroup, nil
 	case Tori:
-		return parseReaderAsTori(content)
+		pr, err := parseReaderAsTori(content)
+
+		p0 := pr.p0AllPositions()
+		m := materials.NewMaterial()
+		m.Pattern = patterns.NewSolidColorPattern(colors.Blue())
+		for _, c := range p0.GetChildren() {
+			c.SetMaterial(m)
+		}
+
+		p1 := pr.p1AllPositions()
+		m = materials.NewMaterial()
+		m.Pattern = patterns.NewSolidColorPattern(colors.Red())
+		for _, c := range p1.GetChildren() {
+			c.SetMaterial(m)
+
+			p0.AddChild(c)
+		}
+
+		return p0, err
 	default:
 		panic("unknown format")
 	}
