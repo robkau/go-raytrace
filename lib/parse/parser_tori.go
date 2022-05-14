@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+const ToriSphereWidth = 0.14
+
 type parsedReplay struct {
 	p0Positions [][]geom.Tuple
 	p1Positions [][]geom.Tuple
@@ -28,7 +30,7 @@ func (pr *parsedReplay) p0AllPositions() shapes.Group {
 	for _, posSet := range pr.p0Positions {
 		for _, pos := range posSet {
 			sp := shapes.NewSphere()
-			sp.SetTransform(geom.RotateX(-math.Pi / 2).MulX4Matrix(geom.Translate(pos.X, pos.Y, pos.Z)).MulX4Matrix(geom.Scale(0.14, 0.14, 0.14)))
+			sp.SetTransform(geom.RotateX(-math.Pi / 2).MulX4Matrix(geom.Translate(pos.X, pos.Y, pos.Z)).MulX4Matrix(geom.Scale(ToriSphereWidth, ToriSphereWidth, ToriSphereWidth)))
 			g.AddChild(sp)
 		}
 	}
@@ -38,11 +40,13 @@ func (pr *parsedReplay) p0AllPositions() shapes.Group {
 func (pr *parsedReplay) p1AllPositions() shapes.Group {
 	g := shapes.NewGroup()
 	for _, posSet := range pr.p1Positions {
+		pg := shapes.NewGroup()
 		for _, pos := range posSet {
 			sp := shapes.NewSphere()
-			sp.SetTransform(geom.RotateX(-math.Pi / 2).MulX4Matrix(geom.Translate(pos.X, pos.Y, pos.Z)).MulX4Matrix(geom.Scale(0.14, 0.14, 0.14)))
-			g.AddChild(sp)
+			sp.SetTransform(geom.RotateX(-math.Pi / 2).MulX4Matrix(geom.Translate(pos.X, pos.Y, pos.Z)).MulX4Matrix(geom.Scale(ToriSphereWidth, ToriSphereWidth, ToriSphereWidth)))
+			pg.AddChild(sp)
 		}
+		g.AddChild(pg)
 	}
 	return g
 }
