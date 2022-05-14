@@ -4,7 +4,7 @@ import (
 	"github.com/robkau/go-raytrace/lib/colors"
 	"github.com/robkau/go-raytrace/lib/geom"
 	"github.com/robkau/go-raytrace/lib/materials"
-	"github.com/robkau/go-raytrace/lib/obj_parse"
+	"github.com/robkau/go-raytrace/lib/parse"
 	"github.com/robkau/go-raytrace/lib/patterns"
 	"github.com/robkau/go-raytrace/lib/shapes"
 	"github.com/robkau/go-raytrace/lib/view"
@@ -17,12 +17,12 @@ func NewTeapotScene() *Scene {
 	cameraPos := geom.NewPoint(85, 10, -10)
 	cameraLookingAt := geom.NewPoint(0, 5, -10)
 
-	g, err := obj_parse.ParseFile("data/obj/teapot_lowpoly_no_face_normals.obj")
+	g, err := parse.ParseFile("data/obj/teapot_lowpoly_no_face_normals.obj", parse.Obj)
 	if err != nil {
 		log.Fatalf("failed parsing obj file: %s", err.Error())
 	}
 	g.SetTransform(g.GetTransform().MulX4Matrix(geom.Translate(0, 0, -20)).MulX4Matrix(geom.RotateX(-math.Pi / 2)))
-	g = obj_parse.CollapseGroups(2, g)
+	g = parse.CollapseGroups(2, g)
 	m := materials.NewMaterial()
 	m.Pattern = patterns.NewSolidColorPattern(colors.Green())
 	m.Ambient = 0.3
@@ -31,7 +31,7 @@ func NewTeapotScene() *Scene {
 	m.Shininess = 0.2
 	g.SetMaterial(m)
 
-	g2, err := obj_parse.ParseFile("data/obj/teapot_lowpoly.obj")
+	g2, err := parse.ParseFile("data/obj/teapot_lowpoly.obj", parse.Obj)
 	if err != nil {
 		log.Fatalf("failed parsing obj file: %s", err.Error())
 	}

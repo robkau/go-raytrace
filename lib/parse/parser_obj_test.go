@@ -1,4 +1,4 @@
-package obj_parse
+package parse
 
 import (
 	"github.com/robkau/go-raytrace/lib/geom"
@@ -30,7 +30,7 @@ func Test_ParseIgnoresUnknownLines(t *testing.T) {
 	    in a re,,,,,
         the.....
 `
-	parsed, err := parseReader(strings.NewReader(lines))
+	parsed, err := parseReaderAsObj(strings.NewReader(lines))
 
 	require.NoError(t, err)
 	require.Equal(t, 5, parsed.linesIgnored)
@@ -43,7 +43,7 @@ func Test_ParseVertexLines(t *testing.T) {
          v 1 0 0
          v 1 1 0`
 
-	parsed, err := parseReader(strings.NewReader(lines))
+	parsed, err := parseReaderAsObj(strings.NewReader(lines))
 	require.NoError(t, err)
 
 	t1, err := parsed.getVertex(1)
@@ -72,7 +72,7 @@ func Test_ParseTriangleFaces(t *testing.T) {
          f 1 3 4
 		`
 
-	parsed, err := parseReader(strings.NewReader(lines))
+	parsed, err := parseReaderAsObj(strings.NewReader(lines))
 	require.NoError(t, err)
 
 	p1, err := parsed.getVertex(1)
@@ -105,7 +105,7 @@ func Test_ParsePolygon_Triangulated(t *testing.T) {
 		 f 1 2 3 4 5
 		`
 
-	parsed, err := parseReader(strings.NewReader(lines))
+	parsed, err := parseReaderAsObj(strings.NewReader(lines))
 	require.NoError(t, err)
 
 	c := parsed.defaultGroup.GetChildren()
@@ -138,7 +138,7 @@ func Test_ParsePolygon_Triangulated(t *testing.T) {
 }
 
 func Test_ParseTriangles_Grouped(t *testing.T) {
-	parsed, err := parseReader(strings.NewReader(testObjFileGroups))
+	parsed, err := parseReaderAsObj(strings.NewReader(testObjFileGroups))
 	require.NoError(t, err)
 
 	c := parsed.defaultGroup.GetChildren()
@@ -180,7 +180,7 @@ func Test_VertexNormals(t *testing.T) {
 		vn 0.707 0 -0.707
 		vn 1 2 3
 		`
-	p, err := parseReader(strings.NewReader(f))
+	p, err := parseReaderAsObj(strings.NewReader(f))
 	require.NoError(t, err)
 
 	n, err := p.getNormal(1)
@@ -209,7 +209,7 @@ func Test_FacesWithNormals(t *testing.T) {
 		f 1//3 2//1 3//2
 		f 1/0/3 2/102/1 3/14/2
 		`
-	p, err := parseReader(strings.NewReader(f))
+	p, err := parseReaderAsObj(strings.NewReader(f))
 	require.NoError(t, err)
 
 	g := p.defaultGroup

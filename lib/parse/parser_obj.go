@@ -1,4 +1,4 @@
-package obj_parse
+package parse
 
 import (
 	"bufio"
@@ -7,39 +7,11 @@ import (
 	"github.com/robkau/go-raytrace/lib/geom"
 	"github.com/robkau/go-raytrace/lib/shapes"
 	"io"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 )
 
-// Parse reads a .obj format file and returns the triangles
-
-func ParseFile(path string) (g shapes.Group, err error) {
-
-	path, err = filepath.Abs(path)
-	if err != nil {
-		return nil, errors.Wrap(err, "calculate abs path")
-	}
-
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, errors.Wrap(err, "open file")
-	}
-	defer f.Close()
-
-	return ParseReader(f)
-}
-
-func ParseReader(content io.Reader) (shapes.Group, error) {
-	o, err := parseReader(content)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed parsing")
-	}
-	return o.defaultGroup, nil
-}
-
-func parseReader(content io.Reader) (parsed *objParsed, err error) {
+func parseReaderAsObj(content io.Reader) (parsed *objParsed, err error) {
 	parsed = newObjParsed()
 	scanner := bufio.NewScanner(content)
 	for scanner.Scan() {

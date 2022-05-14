@@ -1,4 +1,4 @@
-package obj_parse
+package parse
 
 import (
 	"errors"

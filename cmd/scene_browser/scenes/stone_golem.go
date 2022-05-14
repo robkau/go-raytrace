@@ -4,7 +4,7 @@ import (
 	"github.com/robkau/go-raytrace/lib/colors"
 	"github.com/robkau/go-raytrace/lib/geom"
 	"github.com/robkau/go-raytrace/lib/materials"
-	"github.com/robkau/go-raytrace/lib/obj_parse"
+	"github.com/robkau/go-raytrace/lib/parse"
 	"github.com/robkau/go-raytrace/lib/patterns"
 	"github.com/robkau/go-raytrace/lib/shapes"
 	"github.com/robkau/go-raytrace/lib/view"
@@ -17,13 +17,13 @@ func NewStoneGolemScene() *Scene {
 	cameraPos := geom.NewPoint(4, 3, 7)
 	cameraLookingAt := geom.NewPoint(0, 1, 0)
 
-	g, err := obj_parse.ParseFile("data/obj/stone.obj")
+	g, err := parse.ParseFile("data/obj/stone.obj", parse.Obj)
 	if err != nil {
 		log.Fatalf("failed parsing obj file: %s", err.Error())
 	}
 	// todo do this inside parsing and scale for each dimension and scale by largest required
 	g.SetTransform(g.GetTransform().MulX4Matrix(geom.Scale(2/g.Bounds().Max.Y, 2/g.Bounds().Max.Y, 2/g.Bounds().Max.Y)).MulX4Matrix(geom.Translate(0, 4.7, 0)))
-	g = obj_parse.CollapseGroups(4, g)
+	g = parse.CollapseGroups(4, g)
 	m := &materials.Material{}
 	m.Pattern = patterns.NewSolidColorPattern(colors.White())
 	m.Ambient = 0.2
@@ -31,13 +31,13 @@ func NewStoneGolemScene() *Scene {
 	m.Specular = 0.1
 	g.SetMaterial(m)
 
-	lizard, err := obj_parse.ParseFile("data/obj/LizardFolkOBJ.obj")
+	lizard, err := parse.ParseFile("data/obj/LizardFolkOBJ.obj", parse.Obj)
 	if err != nil {
 		log.Fatalf("failed parsing obj file: %s", err.Error())
 	}
 	// todo do this inside parsing and scale for each dimension and scale by largest required
 	lizard.SetTransform(lizard.GetTransform().MulX4Matrix(geom.Scale(2/lizard.Bounds().Max.Y, 2/lizard.Bounds().Max.Y, 2/lizard.Bounds().Max.Y)).MulX4Matrix(geom.Translate(8, 4.7, 0)).MulX4Matrix(geom.RotateY(math.Pi)))
-	lizard = obj_parse.CollapseGroups(4, lizard)
+	lizard = parse.CollapseGroups(4, lizard)
 	m = &materials.Material{}
 	m.Pattern = patterns.NewSolidColorPattern(colors.Green())
 	m.Ambient = 0.2
@@ -49,11 +49,11 @@ func NewStoneGolemScene() *Scene {
 	sphere.SetMaterial(materials.NewGlassMaterial())
 	sphere.SetTransform(geom.Translate(0, 2, 2.5))
 
-	car, err := obj_parse.ParseFile("data/obj/uploads_files_3205191_supra.obj")
+	car, err := parse.ParseFile("data/obj/uploads_files_3205191_supra.obj", parse.Obj)
 	if err != nil {
 		log.Fatalf("failed parsing obj file: %s", err.Error())
 	}
-	car = obj_parse.CollapseGroups(4, car)
+	car = parse.CollapseGroups(4, car)
 	m = &materials.Material{}
 	m.Pattern = patterns.NewSolidColorPattern(colors.Red())
 	m.Ambient = 0.2
