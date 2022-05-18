@@ -2,6 +2,7 @@ package geom
 
 import (
 	"math"
+	"sync"
 )
 
 // This file provides structs to represent 2x2, 3x3, and 4x4 matrices, and their associated operations.
@@ -124,13 +125,11 @@ func (m X3Matrix) Determinant() float64 {
 
 type X4Matrix struct {
 	b [16]float64
-	// inverter sync.Once
 }
 
 func NewX4Matrix() X4Matrix {
 	return X4Matrix{
 		b: [16]float64{},
-		// sync once for invertable, sync once for invert.
 	}
 }
 
@@ -297,13 +296,32 @@ func (m X4Matrix) Determinant() float64 {
 	return d
 }
 
+var rwX4MatrixCache = sync.RWMutex{}
+var x4MatrixInvertCache = make(map[X4Matrix]X4Matrix)
+
+func cachedX4MatrixInverter(m X4Matrix) X4Matrix {
+	rwX4MatrixCache.RLock()
+	if ret, ok := x4MatrixInvertCache[m]; ok {
+		rwX4MatrixCache.RUnlock()
+		// was cached
+		return ret
+	}
+	rwX4MatrixCache.RUnlock()
+
+	// compute it
+	rwX4MatrixCache.Lock()
+	defer rwX4MatrixCache.Unlock()
+	cm := m.doInvert()
+	x4MatrixInvertCache[m] = cm
+	return cm
+}
+
 func (m X4Matrix) Invertable() bool {
 	return m.Determinant() != 0
 }
 
 func (m X4Matrix) Invert() X4Matrix {
-	// todo sync
-	return m.doInvert()
+	return cachedX4MatrixInverter(m)
 }
 
 func (m X4Matrix) doInvert() X4Matrix {

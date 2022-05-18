@@ -140,7 +140,8 @@ func (so SortableIntersections) Less(i, j int) bool {
 
 func NewIntersections(s ...Intersection) *Intersections {
 	i := &Intersections{
-		I: intersectionsPool.Get().(SortableIntersections),
+		//I: intersectionsPool.Get().(SortableIntersections), // todo i actually slow things down!
+		I: make(SortableIntersections, 0, len(s)),
 	}
 	i.Add(s...)
 	return i
@@ -170,8 +171,8 @@ func (is *Intersections) AddFrom(s *Intersections) {
 }
 
 func (is *Intersections) Release() {
-	is.I = is.I[:0]
-	intersectionsPool.Put(is.I)
+	//is.I = is.I[:0]
+	//intersectionsPool.Put(is.I)
 }
 
 func removeIndex(s []Shape, index int) []Shape {

@@ -48,8 +48,8 @@ func NewToriReplayScene() *Scene {
 		}
 		ball.SetMaterial(materials.NewGlassMaterial())
 		m := ball.GetMaterial()
-		m.Specular = 0.3
-		m.Transparency = 0.97
+		m.Specular = 0.2
+		m.Transparency = 0.9775
 		ball.SetTransform(geom.Translate(0, 2+float64(y)*sceneSpacing, float64(z)*sceneSpacing).MulX4Matrix(geom.Scale(outerShellRadius, outerShellRadius, outerShellRadius)))
 
 		hollowCenter := shapes.NewSphere()
@@ -59,9 +59,9 @@ func NewToriReplayScene() *Scene {
 		m.Color = colors.NewColor(1, 1, 1)
 		m.Diffuse = 0
 		m.Ambient = 0
-		m.Specular = 0.7
+		m.Specular = 0.4
 		m.Shininess = 300
-		m.Transparency = 0.97
+		m.Transparency = 0.9775
 		m.Reflective = 0.9
 		m.RefractiveIndex = 1.0000034
 		hollowCenter.SetMaterial(m)
@@ -80,16 +80,20 @@ func NewToriReplayScene() *Scene {
 	var floorAndCeiling = sizedCubeAt(0, 0, 0, wallDistance, wallDistance-1, wallDistance)
 	m := floorAndCeiling.GetMaterial()
 	m.Pattern = patterns.NewSolidColorPattern(colors.NewColorFromHex("af005f"))
-	m.Specular = 0.07
-	m.Reflective = 0.2
+	m.Ambient = 0.25
+	m.Diffuse = 0.35
+	m.Specular = 0.25
+	m.Reflective = 0.1
 	floorAndCeiling.SetMaterial(m)
 
 	// walls as another cube
 	var walls = sizedCubeAt(0, 0, 0, wallDistance-1, wallDistance, wallDistance-1)
 	m = walls.GetMaterial()
-	m.Pattern = patterns.NewSolidColorPattern(colors.NewColorFromHex("00afaf"))
-	m.Specular = 0.07
-	m.Reflective = 0.2
+	m.Pattern = patterns.NewSolidColorPattern(colors.NewColorFromHex("0087ff"))
+	m.Ambient = 0.17
+	m.Diffuse = 0.25
+	m.Specular = 0.12
+	m.Reflective = 0.07
 	walls.SetMaterial(m)
 
 	w.AddObject(floorAndCeiling)
@@ -103,11 +107,11 @@ func NewToriReplayScene() *Scene {
 	lizard.SetTransform(lizard.GetTransform().MulX4Matrix(geom.Scale(2/lizard.Bounds().Max.Y, 2/lizard.Bounds().Max.Y, 2/lizard.Bounds().Max.Y)).MulX4Matrix(geom.Translate(8, 4.7, 0)).MulX4Matrix(geom.RotateY(math.Pi / 1.25)))
 	m = materials.Material{}
 	m.Pattern = patterns.NewSolidColorPattern(colors.Green())
-	m.Ambient = 0.1
-	m.Diffuse = 0.5
-	m.Specular = 0.2
+	m.Ambient = 0.15
+	m.Diffuse = 0.15
+	m.Specular = 0.1
 	m.Shininess = 50
-	m.Reflective = 0.07
+	m.Reflective = 0.1
 	lizard.SetMaterial(m)
 	lizard.SetTransform(geom.Translate(0, 9.85, 6.45).MulX4Matrix(geom.Scale(2.4, 2.4, 2.4).MulX4Matrix(lizard.GetTransform())))
 	lizard = parse.CollapseGroups(1, lizard)
@@ -121,21 +125,34 @@ func NewToriReplayScene() *Scene {
 	newLizard.SetTransform(lizard.GetTransform().Copy().MulX4Matrix(newLizard.GetTransform()))
 	newLizard.SetTransform(geom.Translate(0, 0, sceneSpacing).MulX4Matrix(newLizard.GetTransform()))
 
-	m = materials.Material{}
-	m.Pattern = patterns.NewSolidColorPattern(colors.Green())
-	m.Ambient = 0.1
-	m.Diffuse = 0.5
-	m.Specular = 0.2
-	m.Shininess = 50
-	m.Reflective = 0.07
-	newLizard.SetMaterial(m)
+	newLizard.SetMaterial(lizard.GetMaterial())
 	w.AddObject(newLizard)
 	newLizard = parse.CollapseGroups(1, newLizard)
 
-	//w.AddLight(shapes.NewPointLight(geom.NewPoint(2, 18, -5), colors.NewColor(1.9, 1.4, 1.4)))
-	//w.AddLight(shapes.NewPointLight(geom.NewPoint(2, -18, -5), colors.NewColor(1.9, 1.4, 1.4)))
+	ic := shapes.NewInfiniteCylinder()
+	m = materials.NewMaterial()
+	m.Color = colors.NewColorFromHex("FC3339")
+	m.Ambient = 0.56
+	m.Specular = 0.76
+	m.Diffuse = 0.56
+	m.Reflective = 0.25
+	ic.SetMaterial(m)
+	ic.SetTransform(geom.Translate(cameraDistance/1.2, 9, -7).MulX4Matrix(geom.RotateX(math.Pi / 4)).MulX4Matrix(geom.Scale(1, 1, 4)))
+	w.AddObject(ic)
 
-	w.AddLight(shapes.NewPointLight(geom.NewPoint(sceneSpacing*4, sceneSpacing*5, -sceneSpacing*5), colors.NewColorFromHex("af005f").MulBy(3)))
+	ic = shapes.NewInfiniteCylinder()
+	m = materials.NewMaterial()
+	m.Color = colors.NewColorFromHex("028300")
+	m.Ambient = 0.56
+	m.Specular = 0.76
+	m.Diffuse = 0.76
+	m.Reflective = 0.25
+	ic.SetMaterial(m)
+	ic.SetTransform(geom.Translate(cameraDistance/1.2, 9, 19).MulX4Matrix(geom.RotateX(-math.Pi / 4)).MulX4Matrix(geom.Scale(1, 1, 4)))
+	w.AddObject(ic)
+
+	w.AddLight(shapes.NewPointLight(geom.NewPoint(sceneSpacing*4, wallDistance*0.8, -wallDistance/2), colors.NewColorFromHex("ffffd7").MulBy(2)))
+	w.AddLight(shapes.NewPointLight(geom.NewPoint(sceneSpacing*2, sceneSpacing*3, sceneSpacing*3), colors.NewColorFromHex("af005f").MulBy(3)))
 	w.AddLight(shapes.NewPointLight(geom.NewPoint(sceneSpacing*4, -sceneSpacing*5, -sceneSpacing*5), colors.NewColorFromHex("00afaf").MulBy(3)))
 
 	//w.AddLight(shapes.NewPointLight(geom.NewPoint(cameraDistance/2, sceneSpacing * 6, 0), colors.NewColorFromHex("af005f").MulBy(2)))

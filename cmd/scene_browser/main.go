@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	width = 222
+	width = 555
 	fov   = 0.45
 )
 
