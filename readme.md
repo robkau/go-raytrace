@@ -12,8 +12,9 @@ This repository implements a ray tracer in Go by following [The Ray Tracer Chall
 *Chapter 15: Triangles & Meshes & Parse .obj files. Bonus feature: parse .rpl Toribash replay files*  
 ![Chapter 15 example](renders/file_parsing.png?raw=true "chapter 15 example")
 
-Scene pictures one of my [Toribash fight](https://www.youtube.com/watch?v=zpGLPsczHGU&t=46s) replays immortalized into seven glass marbles. With T-posing mesh reptilians in a staring contest. 
-
+Scene pictures one of my [Toribash fight](https://www.youtube.com/watch?v=zpGLPsczHGU&t=46s) replays immortalized into seven glass marbles. With T-posing mesh reptilians in a staring contest.  
+Toribash replays only capture keyframes with the engine simulating the rest in between, some frames are lost in the render.  
+Send me a replay file if you want a scene of your own! 
 - Add .obj file parsing. Creates raytracing triangle natives from mesh description.
 - Add .rpl Toribash replay file parsing. Creates raytracing natives from replay keyframes.
 
