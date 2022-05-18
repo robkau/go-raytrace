@@ -4,6 +4,7 @@ import (
 	"github.com/robkau/go-raytrace/lib/geom"
 	"math"
 	"sort"
+	"sync"
 )
 
 type Intersection struct {
@@ -13,8 +14,6 @@ type Intersection struct {
 	V     float64
 	UvSet bool
 }
-
-var NoIntersections = Intersections{}
 
 func NewIntersection(t float64, o Shape) Intersection {
 	return Intersection{T: t, O: o}
@@ -42,7 +41,7 @@ type IntersectionComputed struct {
 	N2         float64
 }
 
-func (i Intersection) Compute(r geom.Ray, xs Intersections) IntersectionComputed {
+func (i Intersection) Compute(r geom.Ray, xs *Intersections) IntersectionComputed {
 	c := IntersectionComputed{}
 	c.t = i.T
 	c.Object = i.O
@@ -123,17 +122,31 @@ func (ic IntersectionComputed) Schlick() float64 {
 	return r0 + (1-r0)*math.Pow(1-cos, 5)
 }
 
+var intersectionsPool = sync.Pool{
+	New: func() interface{} { return SortableIntersections{} },
+}
+
 type Intersections struct {
-	I []Intersection
+	I SortableIntersections
 }
 
-func NewIntersections(s ...Intersection) Intersections {
-	is := Intersections{}
-	is.Add(s...)
-	return is
+type SortableIntersections []Intersection
+
+func (so SortableIntersections) Len() int      { return len(so) }
+func (so SortableIntersections) Swap(i, j int) { so[i], so[j] = so[j], so[i] }
+func (so SortableIntersections) Less(i, j int) bool {
+	return so[i].T < so[j].T
 }
 
-func (is Intersections) Hit() (Intersection, bool) {
+func NewIntersections(s ...Intersection) *Intersections {
+	i := &Intersections{
+		I: intersectionsPool.Get().(SortableIntersections),
+	}
+	i.Add(s...)
+	return i
+}
+
+func (is *Intersections) Hit() (Intersection, bool) {
 	for _, i := range is.I {
 		if i.Hit() {
 			return i, true
@@ -149,13 +162,16 @@ func (is *Intersections) Add(s ...Intersection) {
 	for _, i := range s {
 		is.I = append(is.I, i)
 	}
-	sort.Slice(is.I, func(i, j int) bool {
-		return is.I[i].T < is.I[j].T
-	})
+	sort.Sort(is.I)
 }
 
-func (is *Intersections) AddFrom(s Intersections) {
+func (is *Intersections) AddFrom(s *Intersections) {
 	is.Add(s.I...)
+}
+
+func (is *Intersections) Release() {
+	is.I = is.I[:0]
+	intersectionsPool.Put(is.I)
 }
 
 func removeIndex(s []Shape, index int) []Shape {

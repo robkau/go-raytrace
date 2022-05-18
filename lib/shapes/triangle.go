@@ -29,11 +29,11 @@ func NewTriangle(p1, p2, p3 geom.Tuple) *Triangle {
 	return t
 }
 
-func (t *Triangle) Intersect(ray geom.Ray) Intersections {
+func (t *Triangle) Intersect(ray geom.Ray) *Intersections {
 	return Intersect(ray, t.t, t.LocalIntersect)
 }
 
-func (t *Triangle) LocalIntersect(r geom.Ray) Intersections {
+func (t *Triangle) LocalIntersect(r geom.Ray) *Intersections {
 	tHit, _, _, ok := t.localIntersectHits(r)
 	if !ok {
 		return NewIntersections()

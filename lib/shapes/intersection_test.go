@@ -96,7 +96,7 @@ func Test_Compute(t *testing.T) {
 	s := NewSphere()
 
 	i := NewIntersection(4, s)
-	c := i.Compute(r, NoIntersections)
+	c := i.Compute(r, NewIntersections())
 
 	assert.Equal(t, i.T, c.t)
 	assert.Equal(t, i.O, c.Object)
@@ -111,7 +111,7 @@ func Test_Compute_Outside(t *testing.T) {
 	s := NewSphere()
 
 	i := NewIntersection(4, s)
-	c := i.Compute(r, NoIntersections)
+	c := i.Compute(r, NewIntersections())
 
 	assert.False(t, c.inside)
 }
@@ -121,7 +121,7 @@ func Test_Compute_Inside(t *testing.T) {
 	s := NewSphere()
 
 	i := NewIntersection(1, s)
-	c := i.Compute(r, NoIntersections)
+	c := i.Compute(r, NewIntersections())
 
 	assert.Equal(t, geom.NewPoint(0, 0, 1), c.point)
 	assert.Equal(t, geom.NewVector(0, 0, -1), c.Eyev)
@@ -147,7 +147,7 @@ func Test_Compute_ReflectionVector(t *testing.T) {
 	s := NewPlane()
 
 	i := NewIntersection(math.Sqrt(2), s)
-	c := i.Compute(r, NoIntersections)
+	c := i.Compute(r, NewIntersections())
 
 	assert.Equal(t, i.T, c.t)
 	assert.Equal(t, i.O, c.Object)
@@ -177,7 +177,7 @@ func Test_Compute_RefractionScene(t *testing.T) {
 	sC.SetMaterial(m)
 
 	r := geom.RayWith(geom.NewPoint(0, 0, -4), geom.NewVector(0, 0, 1))
-	xs := Intersections{I: []Intersection{
+	xs := &Intersections{I: []Intersection{
 		{T: 2, O: sA},
 		{T: 2.75, O: sB},
 		{T: 3.25, O: sC},

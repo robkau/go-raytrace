@@ -85,6 +85,7 @@ func CollapseGroups(width float64, group shapes.Group) shapes.Group {
 	}
 	combined := shapes.NewGroup()
 	combined.SetTransform(group.GetTransform())
+	combined.SetMaterial(group.GetMaterial())
 	cubedGroups := map[coordinate]shapes.Group{}
 
 	// break shapes down into groups of equally spaced cubes

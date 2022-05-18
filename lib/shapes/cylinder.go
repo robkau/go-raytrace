@@ -48,11 +48,11 @@ func (c *Cylinder) LocalNormalAt(p geom.Tuple, _ Intersection) geom.Tuple {
 	return geom.NewVector(p.X, 0, p.Z)
 }
 
-func (c *Cylinder) Intersect(r geom.Ray) Intersections {
+func (c *Cylinder) Intersect(r geom.Ray) *Intersections {
 	return Intersect(r, c.t, c.LocalIntersect)
 }
 
-func (c *Cylinder) LocalIntersect(r geom.Ray) Intersections {
+func (c *Cylinder) LocalIntersect(r geom.Ray) *Intersections {
 	xs := NewIntersections()
 
 	// check intersection with cylinder walls, if needed
@@ -92,7 +92,7 @@ func (c *Cylinder) LocalIntersect(r geom.Ray) Intersections {
 	return xs
 }
 
-func (c *Cylinder) intersectCaps(r geom.Ray, xs Intersections) Intersections {
+func (c *Cylinder) intersectCaps(r geom.Ray, xs *Intersections) *Intersections {
 	if !c.capped || geom.AlmostEqual(r.Direction.Y, 0) {
 		return xs
 	}

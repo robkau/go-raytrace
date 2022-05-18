@@ -58,11 +58,11 @@ func (c *Cone) LocalNormalAt(p geom.Tuple, _ Intersection) geom.Tuple {
 	return geom.NewVector(p.X, y, p.Z)
 }
 
-func (c *Cone) Intersect(r geom.Ray) Intersections {
+func (c *Cone) Intersect(r geom.Ray) *Intersections {
 	return Intersect(r, c.t, c.LocalIntersect)
 }
 
-func (c *Cone) LocalIntersect(r geom.Ray) Intersections {
+func (c *Cone) LocalIntersect(r geom.Ray) *Intersections {
 	xs := NewIntersections()
 
 	a := r.Direction.X*r.Direction.X - r.Direction.Y*r.Direction.Y + r.Direction.Z*r.Direction.Z
@@ -108,7 +108,7 @@ func (c *Cone) LocalIntersect(r geom.Ray) Intersections {
 	return xs
 }
 
-func (c *Cone) intersectCaps(r geom.Ray, xs Intersections) Intersections {
+func (c *Cone) intersectCaps(r geom.Ray, xs *Intersections) *Intersections {
 	if !c.capped || geom.AlmostEqual(r.Direction.Y, 0) {
 		return xs
 	}

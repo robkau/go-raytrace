@@ -8,15 +8,15 @@ import (
 )
 
 func Test_ParsePositionsFromReplay(t *testing.T) {
-	pr, err := parseReaderAsTori(strings.NewReader(ReplayFile))
+	pr, err := ParseReaderAsTori(strings.NewReader(ReplayFile))
 	require.NoError(t, err)
 
-	require.Len(t, pr.p0Positions, 7)
-	require.Len(t, pr.p0Positions[0], 21)
-	require.Equal(t, geom.NewPoint(1.00000000, 0.35000002, 2.59000014), pr.p0Positions[0][0])
-	require.Equal(t, geom.NewPoint(0.80249145, -0.79330789, 0.75910965), pr.p0Positions[6][0])
-	require.Equal(t, geom.NewPoint(1.00000000, -0.54999995, 2.59000014), pr.p1Positions[0][0])
-	require.Equal(t, geom.NewPoint(0.84716686, -3.50764995, 0.59010877), pr.p1Positions[7][0])
+	require.Len(t, pr.P0Positions, 7)
+	require.Len(t, pr.P0Positions[0].parts, 21)
+	require.Equal(t, geom.NewPoint(1.00000000, 0.35000002, 2.59000014), pr.P0Positions[0].parts[0])
+	require.Equal(t, geom.NewPoint(0.80249145, -0.79330789, 0.75910965), pr.P0Positions[6].parts[0])
+	require.Equal(t, geom.NewPoint(1.00000000, -0.54999995, 2.59000014), pr.P1Positions[0].parts[0])
+	require.Equal(t, geom.NewPoint(0.84716686, -3.50764995, 0.59010877), pr.P1Positions[7].parts[0])
 }
 
 func Test_ParsePositionLine(t *testing.T) {
@@ -25,5 +25,5 @@ func Test_ParsePositionLine(t *testing.T) {
 	player, positions := parsePositionLine(positionLine)
 
 	require.Equal(t, 0, player)
-	require.Len(t, positions, 21)
+	require.Len(t, positions.parts, 21)
 }

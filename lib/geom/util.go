@@ -1,6 +1,6 @@
 package geom
 
-func TransformPoint(t *X4Matrix, p Tuple) Tuple {
+func TransformPoint(t X4Matrix, p Tuple) Tuple {
 	return t.Invert().MulTuple(p)
 }
 

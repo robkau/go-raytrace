@@ -35,11 +35,11 @@ func (c *Cube) LocalNormalAt(p geom.Tuple, _ Intersection) geom.Tuple {
 	}
 }
 
-func (c *Cube) Intersect(r geom.Ray) Intersections {
+func (c *Cube) Intersect(r geom.Ray) *Intersections {
 	return Intersect(r, c.t, c.LocalIntersect)
 }
 
-func (c *Cube) LocalIntersect(r geom.Ray) Intersections {
+func (c *Cube) LocalIntersect(r geom.Ray) *Intersections {
 	// bounds for a unit cube because we are in local space
 	tMin, tMax := intersectsCube(r, newBounds(geom.NewPoint(-1, -1, -1), geom.NewPoint(1, 1, 1)))
 	if tMin > tMax {

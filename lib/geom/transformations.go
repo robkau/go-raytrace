@@ -1,6 +1,6 @@
 package geom
 
-func ViewTransform(from, to, up Tuple) *X4Matrix {
+func ViewTransform(from, to, up Tuple) X4Matrix {
 	forward := to.Sub(from).Normalize()
 	upNormal := up.Normalize()
 	left := Cross(forward, upNormal)

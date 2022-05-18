@@ -5,7 +5,7 @@ import (
 )
 
 type basePattern struct {
-	t *geom.X4Matrix
+	t geom.X4Matrix
 }
 
 func newBasePattern() basePattern {
@@ -14,11 +14,11 @@ func newBasePattern() basePattern {
 	}
 }
 
-func (b *basePattern) SetTransform(t *geom.X4Matrix) {
+func (b *basePattern) SetTransform(t geom.X4Matrix) {
 	b.t = t
 }
 
-func (b *basePattern) GetTransform() *geom.X4Matrix {
+func (b *basePattern) GetTransform() geom.X4Matrix {
 	return b.t
 }
 

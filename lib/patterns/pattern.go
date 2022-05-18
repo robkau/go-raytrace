@@ -8,8 +8,8 @@ import (
 type Pattern interface {
 	ColorAt(geom.Tuple) colors.Color
 	ColorAtShape(wtof WorldToObjectF, t geom.Tuple) colors.Color
-	SetTransform(t *geom.X4Matrix)
-	GetTransform() *geom.X4Matrix
+	SetTransform(t geom.X4Matrix)
+	GetTransform() geom.X4Matrix
 }
 
 type WorldToObjectF func(geom.Tuple) geom.Tuple

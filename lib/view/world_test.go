@@ -55,7 +55,7 @@ func Test_Shading_Intersection(t *testing.T) {
 	s := w.objects[0]
 
 	i := shapes.NewIntersection(4, s)
-	c := i.Compute(r, shapes.NoIntersections)
+	c := i.Compute(r, shapes.NewIntersections())
 	cs := w.ShadeHit(c, 0).RoundTo(5)
 
 	assert.Equal(t, colors.NewColor(0.38066, 0.47583, 0.2855), cs)
@@ -68,7 +68,7 @@ func Test_Shading_Intersection_Inside(t *testing.T) {
 	s := w.objects[1]
 
 	i := shapes.NewIntersection(0.5, s)
-	c := i.Compute(r, shapes.NoIntersections)
+	c := i.Compute(r, shapes.NewIntersections())
 	cs := w.ShadeHit(c, 0).RoundTo(5)
 
 	assert.Equal(t, colors.NewColor(0.90498, 0.90498, 0.90498), cs)
@@ -146,7 +146,7 @@ func Test_ShadeHit_HasShadow(t *testing.T) {
 	w.AddObject(s2)
 	r := geom.RayWith(geom.NewPoint(0, 0, 5), geom.NewVector(0, 0, 1))
 	i := shapes.NewIntersection(4, s2)
-	comps := i.Compute(r, shapes.NoIntersections)
+	comps := i.Compute(r, shapes.NewIntersections())
 	c := w.ShadeHit(comps, 0)
 
 	assert.Equal(t, colors.NewColor(0.1, 0.1, 0.1), c)
@@ -221,7 +221,7 @@ func Test_NonReflectiveMaterial_ReflectedColor(t *testing.T) {
 	m.Ambient = 1
 	s.SetMaterial(m)
 	i := shapes.NewIntersection(1, s)
-	comps := i.Compute(r, shapes.NoIntersections)
+	comps := i.Compute(r, shapes.NewIntersections())
 	c := w.ReflectedColor(comps, 4)
 
 	// no reflection
@@ -238,7 +238,7 @@ func Test_ReflectiveMaterial_ReflectedColor(t *testing.T) {
 	s.SetMaterial(m)
 	w.AddObject(s)
 	i := shapes.NewIntersection(math.Sqrt(2), s)
-	comps := i.Compute(r, shapes.NoIntersections)
+	comps := i.Compute(r, shapes.NewIntersections())
 	c := w.ReflectedColor(comps, 4)
 
 	// reflected
@@ -255,7 +255,7 @@ func Test_ReflectiveMaterial_ReflectedColor_ShadeHit(t *testing.T) {
 	s.SetMaterial(m)
 	w.AddObject(s)
 	i := shapes.NewIntersection(math.Sqrt(2), s)
-	comps := i.Compute(r, shapes.NoIntersections)
+	comps := i.Compute(r, shapes.NewIntersections())
 	c := w.ShadeHit(comps, 4)
 
 	// reflected
@@ -272,7 +272,7 @@ func Test_ReflectiveMaterial_ReflectedColor_ShadeHit_NoReflectionsRemaining(t *t
 	s.SetMaterial(m)
 	w.AddObject(s)
 	i := shapes.NewIntersection(math.Sqrt(2), s)
-	comps := i.Compute(r, shapes.NoIntersections)
+	comps := i.Compute(r, shapes.NewIntersections())
 	c := w.ReflectedColor(comps, 0)
 
 	// not reflected
@@ -404,7 +404,7 @@ func Test_Shadowless_NotShadeOthers(t *testing.T) {
 	w.AddObject(s2)
 	r := geom.RayWith(geom.NewPoint(0, 0, 5), geom.NewVector(0, 0, 1))
 	i := shapes.NewIntersection(4, s2)
-	comps := i.Compute(r, shapes.NoIntersections)
+	comps := i.Compute(r, shapes.NewIntersections())
 	c := w.ShadeHit(comps, 0)
 
 	assert.Equal(t, colors.NewColor(1.9, 1.9, 1.9), c)
@@ -421,7 +421,7 @@ func Test_UnShaded_NotShadedByOthers(t *testing.T) {
 	w.AddObject(s2)
 	r := geom.RayWith(geom.NewPoint(0, 0, 5), geom.NewVector(0, 0, 1))
 	i := shapes.NewIntersection(4, s2)
-	comps := i.Compute(r, shapes.NoIntersections)
+	comps := i.Compute(r, shapes.NewIntersections())
 	c := w.ShadeHit(comps, 0)
 
 	assert.Equal(t, colors.NewColor(1.9, 1.9, 1.9), c)

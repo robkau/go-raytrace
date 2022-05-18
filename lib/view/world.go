@@ -51,7 +51,7 @@ func (w *World) AddLight(l shapes.PointLight) {
 	w.lightSources = append(w.lightSources, l)
 }
 
-func (w *World) Intersect(r geom.Ray) shapes.Intersections {
+func (w *World) Intersect(r geom.Ray) *shapes.Intersections {
 	is := shapes.NewIntersections()
 	for _, s := range w.objects {
 		xs := s.Intersect(r)
@@ -123,6 +123,7 @@ func (w *World) RefractedColor(c shapes.IntersectionComputed, remaining int) col
 
 func (w *World) ColorAt(r geom.Ray, remaining int) colors.Color {
 	is := w.Intersect(r)
+	defer is.Release()
 	i, ok := is.Hit()
 	if !ok {
 		return colors.Black()

@@ -10,6 +10,8 @@ import (
 	"github.com/robkau/go-raytrace/lib/view"
 	"math"
 	"runtime"
+	"sync/atomic"
+	"time"
 )
 
 // state struct implements ebiten.Game interface
@@ -26,9 +28,9 @@ func start() *state {
 	s := &state{
 		scenes: scenes.LoadScenes(
 			scenes.NewToriReplayScene,
+			scenes.NewGroupTransformsScene,
 			scenes.NewStoneGolemScene,
 			scenes.NewWavyCarpetSpheres,
-			scenes.NewGroupTransformsScene,
 		),
 		canvas: view.NewCanvas(width, width),
 		loc: scenes.CameraLocation{
@@ -36,6 +38,9 @@ func start() *state {
 			LookingAt: geom.NewPoint(0, 0, 0),
 		},
 	}
+
+	var rendered uint32 = 0
+	var pixelsPerRenderStat uint32 = 100
 
 	// render middle
 	go func() {
@@ -45,14 +50,20 @@ func start() *state {
 
 			s.loc = s.scenes[s.currentScene].Cs[s.currentCamera]
 
-			pc, err := view.Render(s.scenes[s.currentScene].W, view.NewCameraAt(width, width, fov, s.loc.At, s.loc.LookingAt), 2, int(float64(runtime.NumCPU())), coordinate_supplier.Asc)
+			pc, err := view.Render(s.scenes[s.currentScene].W, view.NewCameraAt(width, width, fov, s.loc.At, s.loc.LookingAt), 3, int(float64(runtime.NumCPU())/2), coordinate_supplier.Random)
 			if err != nil {
 				fmt.Println("failed create render")
 				panic(err)
 			}
+			tLastRenderStat := time.Now()
 			for p := range pc {
+				if n := atomic.AddUint32(&rendered, 1); n%pixelsPerRenderStat == 0 {
+					fmt.Printf("Writing %f pixels/sec\n", float64(pixelsPerRenderStat)/time.Since(tLastRenderStat).Seconds())
+					tLastRenderStat = time.Now()
+				}
 				s.canvas.SetPixel(p.X, p.Y, p.C)
 			}
+			time.Sleep(24 * time.Hour)
 		}
 	}()
 

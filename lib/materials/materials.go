@@ -17,8 +17,8 @@ type Material struct {
 	RefractiveIndex float64
 }
 
-func NewMaterial() *Material {
-	return &Material{
+func NewMaterial() Material {
+	return Material{
 		Color:           colors.White(),
 		Ambient:         0.1,
 		Diffuse:         0.9,
@@ -30,7 +30,7 @@ func NewMaterial() *Material {
 	}
 }
 
-func NewGlassMaterial() *Material {
+func NewGlassMaterial() Material {
 	m := NewMaterial()
 	m.Diffuse = 0
 	m.Ambient = 0
@@ -40,4 +40,19 @@ func NewGlassMaterial() *Material {
 	m.Reflective = 0.9
 	m.RefractiveIndex = 1.5
 	return m
+}
+
+func IsZeroMaterial(m Material) bool {
+	return m.Color == colors.Color{} &&
+		m.Ambient == 0 &&
+		m.Diffuse == 0 &&
+		m.Specular == 0 &&
+		m.Shininess == 0 &&
+		m.Reflective == 0 &&
+		m.Transparency == 0 &&
+		m.RefractiveIndex == 0
+}
+
+func ZeroMaterial() Material {
+	return Material{}
 }

@@ -2,26 +2,25 @@ package geom
 
 import (
 	"math"
-	"sync"
 )
 
 // This file provides structs to represent 2x2, 3x3, and 4x4 matrices, and their associated operations.
 type X2Matrix struct {
-	b []float64
+	b [4]float64
 }
 
 func NewX2Matrix() X2Matrix {
 	return X2Matrix{
-		b: make([]float64, 2*2),
+		b: [4]float64{},
 	}
 }
 
 func NewX2MatrixWith(aa, ab, ba, bb float64) X2Matrix {
 	m := NewX2Matrix()
-	m.Set(0, 0, aa)
-	m.Set(0, 1, ab)
-	m.Set(1, 0, ba)
-	m.Set(1, 1, bb)
+	m.b[0] = aa
+	m.b[1] = ab
+	m.b[2] = ba
+	m.b[3] = bb
 	return m
 }
 
@@ -29,12 +28,14 @@ func (m X2Matrix) Get(r, c int) float64 {
 	return m.b[r*2+c]
 }
 
-func (m X2Matrix) Set(r int, c int, v float64) {
-	m.b[r*2+c] = v
+func (m X2Matrix) Set(r int, c int, v float64) X2Matrix {
+	ret := NewX2MatrixWith(m.b[0], m.b[1], m.b[2], m.b[3])
+	ret.b[r*2+c] = v
+	return ret
 }
 
 func (m X2Matrix) Equals(o X2Matrix) bool {
-	return compareFloatSlice(m.b, o.b)
+	return compareFloat4(m.b, o.b)
 }
 
 func (m X2Matrix) Determinant() float64 {
@@ -42,26 +43,26 @@ func (m X2Matrix) Determinant() float64 {
 }
 
 type X3Matrix struct {
-	b []float64
+	b [9]float64
 }
 
 func NewX3Matrix() X3Matrix {
 	return X3Matrix{
-		b: make([]float64, 3*3),
+		b: [9]float64{},
 	}
 }
 
 func NewX3MatrixWith(aa, ab, ac, ba, bb, bc, ca, cb, cc float64) X3Matrix {
 	m := NewX3Matrix()
-	m.Set(0, 0, aa)
-	m.Set(0, 1, ab)
-	m.Set(0, 2, ac)
-	m.Set(1, 0, ba)
-	m.Set(1, 1, bb)
-	m.Set(1, 2, bc)
-	m.Set(2, 0, ca)
-	m.Set(2, 1, cb)
-	m.Set(2, 2, cc)
+	m.b[0] = aa
+	m.b[1] = ab
+	m.b[2] = ac
+	m.b[3] = ba
+	m.b[4] = bb
+	m.b[5] = bc
+	m.b[6] = ca
+	m.b[7] = cb
+	m.b[8] = cc
 	return m
 }
 
@@ -69,12 +70,14 @@ func (m X3Matrix) Get(r, c int) float64 {
 	return m.b[r*3+c]
 }
 
-func (m X3Matrix) Set(r int, c int, v float64) {
-	m.b[r*3+c] = v
+func (m X3Matrix) Set(r int, c int, v float64) X3Matrix {
+	ret := NewX3MatrixWith(m.b[0], m.b[1], m.b[2], m.b[3], m.b[4], m.b[5], m.b[6], m.b[7], m.b[8])
+	ret.b[r*3+c] = v
+	return ret
 }
 
 func (m X3Matrix) Equals(o X3Matrix) bool {
-	return compareFloatSlice(m.b, o.b)
+	return compareFloat9(m.b, o.b)
 }
 
 func (m X3Matrix) Submatrix(rr, cr int) X2Matrix {
@@ -92,7 +95,7 @@ func (m X3Matrix) Submatrix(rr, cr int) X2Matrix {
 				cOffset++
 				continue
 			}
-			n.Set(r-rOffset, c-cOffset, m.Get(r, c))
+			n = n.Set(r-rOffset, c-cOffset, m.Get(r, c))
 		}
 	}
 	return n
@@ -120,23 +123,18 @@ func (m X3Matrix) Determinant() float64 {
 }
 
 type X4Matrix struct {
-	b []float64
-
-	invert *X4Matrix
-	rw     sync.RWMutex
+	b [16]float64
+	// inverter sync.Once
 }
 
-func NewX4Matrix() *X4Matrix {
-	return &X4Matrix{
-		b: make([]float64, 4*4),
+func NewX4Matrix() X4Matrix {
+	return X4Matrix{
+		b: [16]float64{},
+		// sync once for invertable, sync once for invert.
 	}
 }
 
-// Makes a new matrix by copying items from t - must not modify or reuse t
-func NewX4MatrixFrom(t []float64) *X4Matrix {
-	if len(t) != 16 {
-		panic("input must be length 16")
-	}
+func NewX4MatrixFrom(t [16]float64) X4Matrix {
 	m := NewX4Matrix()
 	m.b[0] = t[0]
 	m.b[1] = t[1]
@@ -158,7 +156,7 @@ func NewX4MatrixFrom(t []float64) *X4Matrix {
 	return m
 }
 
-func NewX4MatrixWith(aa, ab, ac, ad, ba, bb, bc, bd, ca, cb, cc, cd, da, db, dc, dd float64) *X4Matrix {
+func NewX4MatrixWith(aa, ab, ac, ad, ba, bb, bc, bd, ca, cb, cc, cd, da, db, dc, dd float64) X4Matrix {
 	m := NewX4Matrix()
 	m.b[0] = aa
 	m.b[1] = ab
@@ -179,36 +177,36 @@ func NewX4MatrixWith(aa, ab, ac, ad, ba, bb, bc, bd, ca, cb, cc, cd, da, db, dc,
 	return m
 }
 
-func (m *X4Matrix) Get(r, c int) float64 {
+func (m X4Matrix) Get(r, c int) float64 {
 	return m.b[r*4+c]
 }
 
-func (m *X4Matrix) Set(r int, c int, v float64) {
-	m.rw.Lock()
-	defer m.rw.Unlock()
-	m.b[r*4+c] = v
-	m.invert = nil
+func (m X4Matrix) Set(r int, c int, v float64) X4Matrix {
+	ret := NewX4Matrix()
+	ret.b = m.b
+	ret.b[r*4+c] = v
+	return ret
 }
 
-func (m *X4Matrix) Equals(o *X4Matrix) bool {
-	return compareFloatSlice(m.b, o.b)
+func (m X4Matrix) Equals(o X4Matrix) bool {
+	return compareFloat16(m.b, o.b)
 }
 
-func (m *X4Matrix) Transpose() *X4Matrix {
+func (m X4Matrix) Transpose() X4Matrix {
 	n := NewX4Matrix()
 	for r := 0; r < 4; r++ {
 		for c := 0; c < 4; c++ {
-			n.Set(c, r, m.Get(r, c))
+			n = n.Set(c, r, m.Get(r, c))
 		}
 	}
 	return n
 }
 
-func (m *X4Matrix) MulX4Matrix(o *X4Matrix) *X4Matrix {
+func (m X4Matrix) MulX4Matrix(o X4Matrix) X4Matrix {
 	n := NewX4Matrix()
 	for r := 0; r < 4; r++ {
 		for c := 0; c < 4; c++ {
-			n.Set(r, c,
+			n = n.Set(r, c,
 				m.Get(r, 0)*o.Get(0, c)+
 					m.Get(r, 1)*o.Get(1, c)+
 					m.Get(r, 2)*o.Get(2, c)+
@@ -218,7 +216,7 @@ func (m *X4Matrix) MulX4Matrix(o *X4Matrix) *X4Matrix {
 	return n
 }
 
-func (m *X4Matrix) MulTuple(t Tuple) Tuple {
+func (m X4Matrix) MulTuple(t Tuple) Tuple {
 	n := NewTuple(0, 0, 0, 0)
 
 	n.X = m.Get(0, 0)*t.X +
@@ -244,20 +242,20 @@ func (m *X4Matrix) MulTuple(t Tuple) Tuple {
 	return n
 }
 
-func (m *X4Matrix) RoundTo(places int) *X4Matrix {
+func (m X4Matrix) RoundTo(places int) X4Matrix {
 	n := NewX4Matrix()
 	scale := math.Pow10(places)
 
 	for r := 0; r < 4; r++ {
 		for c := 0; c < 4; c++ {
-			n.Set(r, c, math.Round(m.Get(r, c)*scale)/scale)
+			n = n.Set(r, c, math.Round(m.Get(r, c)*scale)/scale)
 		}
 	}
 
 	return n
 }
 
-func (m *X4Matrix) Submatrix(rr, cr int) X3Matrix {
+func (m X4Matrix) Submatrix(rr, cr int) X3Matrix {
 	n := NewX3Matrix()
 
 	rOffset := 0
@@ -272,18 +270,18 @@ func (m *X4Matrix) Submatrix(rr, cr int) X3Matrix {
 				cOffset++
 				continue
 			}
-			n.Set(r-rOffset, c-cOffset, m.Get(r, c))
+			n = n.Set(r-rOffset, c-cOffset, m.Get(r, c))
 		}
 	}
 	return n
 }
 
-func (m *X4Matrix) Minor(rr, cr int) float64 {
+func (m X4Matrix) Minor(rr, cr int) float64 {
 	n := m.Submatrix(rr, cr)
 	return n.Determinant()
 }
 
-func (m *X4Matrix) Cofactor(rr, cr int) float64 {
+func (m X4Matrix) Cofactor(rr, cr int) float64 {
 	n := m.Minor(rr, cr)
 	if (rr+cr)%2 != 0 {
 		n *= -1
@@ -291,7 +289,7 @@ func (m *X4Matrix) Cofactor(rr, cr int) float64 {
 	return n
 }
 
-func (m *X4Matrix) Determinant() float64 {
+func (m X4Matrix) Determinant() float64 {
 	d := 0.0
 	for c := 0; c < 4; c++ {
 		d += m.Get(0, c) * m.Cofactor(0, c)
@@ -299,22 +297,16 @@ func (m *X4Matrix) Determinant() float64 {
 	return d
 }
 
-func (m *X4Matrix) Invertable() bool {
+func (m X4Matrix) Invertable() bool {
 	return m.Determinant() != 0
 }
 
-func (m *X4Matrix) Invert() *X4Matrix {
-	m.rw.Lock()
-	defer m.rw.Unlock()
-
-	if m.invert == nil {
-		m.invert = m.doInvert()
-	}
-
-	return m.invert.Copy()
+func (m X4Matrix) Invert() X4Matrix {
+	// todo sync
+	return m.doInvert()
 }
 
-func (m *X4Matrix) doInvert() *X4Matrix {
+func (m X4Matrix) doInvert() X4Matrix {
 	if !m.Invertable() {
 		panic("not invertable")
 	}
@@ -323,27 +315,42 @@ func (m *X4Matrix) doInvert() *X4Matrix {
 	for r := 0; r < 4; r++ {
 		for c := 0; c < 4; c++ {
 			co := m.Cofactor(r, c)
-			invert.Set(c, r, co/d)
+			invert = invert.Set(c, r, co/d)
 		}
 	}
 	return invert
 }
 
-func (m *X4Matrix) Copy() *X4Matrix {
+func (m X4Matrix) Copy() X4Matrix {
 	return NewX4MatrixFrom(m.b)
 }
 
-func NewIdentityMatrixX4() *X4Matrix {
+func NewIdentityMatrixX4() X4Matrix {
 	return NewX4MatrixWith(1, 0, 0, 0,
 		0, 1, 0, 0,
 		0, 0, 1, 0,
 		0, 0, 0, 1)
 }
 
-func compareFloatSlice(m, o []float64) bool {
-	if len(m) != len(o) {
-		return false
+func compareFloat4(m, o [4]float64) bool {
+	for i := range m {
+		if !AlmostEqual(m[i], o[i]) {
+			return false
+		}
 	}
+	return true
+}
+
+func compareFloat9(m, o [9]float64) bool {
+	for i := range m {
+		if !AlmostEqual(m[i], o[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func compareFloat16(m, o [16]float64) bool {
 	for i := range m {
 		if !AlmostEqual(m[i], o[i]) {
 			return false

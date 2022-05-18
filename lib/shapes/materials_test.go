@@ -88,7 +88,7 @@ func Test_HitShouldOffsetPoint(t *testing.T) {
 	shape := NewSphere()
 	shape.SetTransform(geom.Translate(0, 0, 1))
 	i := NewIntersection(5, shape)
-	comps := i.Compute(r, NoIntersections)
+	comps := i.Compute(r, NewIntersections())
 
 	assert.True(t, comps.OverPoint.Z < -geom.FloatComparisonEpsilon/2)
 	assert.True(t, comps.point.Z > comps.OverPoint.Z)

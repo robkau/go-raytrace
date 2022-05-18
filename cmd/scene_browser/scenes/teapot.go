@@ -17,7 +17,7 @@ func NewTeapotScene() *Scene {
 	cameraPos := geom.NewPoint(85, 10, -10)
 	cameraLookingAt := geom.NewPoint(0, 5, -10)
 
-	g, err := parse.ParseFile("data/obj/teapot_lowpoly_no_face_normals.obj", parse.Obj)
+	g, err := parse.ParseObjFile("data/obj/teapot_lowpoly_no_face_normals.obj")
 	if err != nil {
 		log.Fatalf("failed parsing obj file: %s", err.Error())
 	}
@@ -31,7 +31,7 @@ func NewTeapotScene() *Scene {
 	m.Shininess = 0.2
 	g.SetMaterial(m)
 
-	g2, err := parse.ParseFile("data/obj/teapot_lowpoly.obj", parse.Obj)
+	g2, err := parse.ParseObjFile("data/obj/teapot_lowpoly.obj")
 	if err != nil {
 		log.Fatalf("failed parsing obj file: %s", err.Error())
 	}

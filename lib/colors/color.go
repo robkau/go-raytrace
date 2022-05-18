@@ -2,8 +2,10 @@ package colors
 
 import (
 	"github.com/robkau/go-raytrace/lib/geom"
+	"image/color"
 	"math"
 	"math/rand"
+	"strings"
 )
 
 type Color struct {
@@ -18,6 +20,58 @@ var (
 
 func NewColor(r, g, b float64) Color {
 	return Color{R: r, G: g, B: b}
+}
+
+func NewColorFromRGBA(r, g, b, a uint8) Color {
+	return NewColor(
+		(float64(a)/255*float64(r))/255,
+		float64(a)/255*float64(g)/255,
+		float64(a)/255*float64(b)/255,
+	)
+}
+
+func NewColorFromHex(hex string) Color {
+	// adapted from https://stackoverflow.com/a/54200713/1723695
+
+	c := color.RGBA{}
+	c.A = 0xff
+
+	hex = strings.ToLower(hex)
+
+	hexToByte := func(b byte) byte {
+		switch {
+		case b >= '0' && b <= '9':
+			return b - '0'
+		case b >= 'a' && b <= 'f':
+			return 10 + b - 'a'
+		case b >= 'A' && b <= 'F':
+			return 10 + b - 'A'
+		}
+		return 0
+	}
+
+	switch len(hex) {
+	case 8:
+		c.R = (hexToByte(hex[0]) << 4) + hexToByte(hex[1])
+		c.G = (hexToByte(hex[2]) << 4) + hexToByte(hex[3])
+		c.B = (hexToByte(hex[4]) << 4) + hexToByte(hex[5])
+		c.A = (hexToByte(hex[6]) << 4) + hexToByte(hex[7])
+	case 6:
+		c.R = (hexToByte(hex[0]) << 4) + hexToByte(hex[1])
+		c.G = (hexToByte(hex[2]) << 4) + hexToByte(hex[3])
+		c.B = (hexToByte(hex[4]) << 4) + hexToByte(hex[5])
+	case 4:
+		c.R = hexToByte(hex[0]) * 17
+		c.G = hexToByte(hex[1]) * 17
+		c.B = hexToByte(hex[2]) * 17
+		c.A = hexToByte(hex[3]) * 17
+	case 3:
+		c.R = hexToByte(hex[0]) * 17
+		c.G = hexToByte(hex[1]) * 17
+		c.B = hexToByte(hex[2]) * 17
+	}
+
+	return NewColorFromRGBA(c.R, c.G, c.B, c.A)
 }
 
 func Black() Color {

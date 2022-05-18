@@ -7,15 +7,15 @@ import (
 )
 
 type Shape interface {
-	Intersect(geom.Ray) Intersections
-	LocalIntersect(r geom.Ray) Intersections
+	Intersect(geom.Ray) *Intersections
+	LocalIntersect(r geom.Ray) *Intersections
 	NormalAt(at geom.Tuple, i Intersection) geom.Tuple
 	WorldToObject(p geom.Tuple) geom.Tuple
 	NormalToWorld(normal geom.Tuple) geom.Tuple
-	GetTransform() *geom.X4Matrix
-	SetTransform(matrix *geom.X4Matrix)
-	GetMaterial() *materials.Material
-	SetMaterial(*materials.Material)
+	GetTransform() geom.X4Matrix
+	SetTransform(matrix geom.X4Matrix)
+	GetMaterial() materials.Material
+	SetMaterial(materials.Material)
 	Bounds() Bounds
 	GetShadowless() bool
 	SetShadowless(s bool)
@@ -23,13 +23,14 @@ type Shape interface {
 	SetShaded(s bool)
 	GetParent() Group
 	SetParent(g Group)
+	Invalidate()
 	Id() string
 }
 
 type baseShape struct {
 	parent     Group
-	t          *geom.X4Matrix
-	m          *materials.Material
+	t          geom.X4Matrix
+	m          materials.Material
 	id         string
 	shadowless bool
 	unshaded   bool
@@ -45,28 +46,29 @@ func newBaseShape() baseShape {
 	}
 }
 
-func (b *baseShape) GetTransform() *geom.X4Matrix {
+func (b *baseShape) GetTransform() geom.X4Matrix {
 	return b.t
 }
 
-func (b *baseShape) SetTransform(matrix *geom.X4Matrix) {
+func (b *baseShape) SetTransform(matrix geom.X4Matrix) {
 	b.t = matrix
+	b.Invalidate()
 }
 
-func (b *baseShape) GetMaterial() *materials.Material {
+func (b *baseShape) GetMaterial() materials.Material {
 	if b.parent != nil {
 		m := b.parent.GetMaterial()
-		if m != nil {
+		if !materials.IsZeroMaterial(m) {
 			return m
 		}
 	}
-	if b.m == nil {
+	if materials.IsZeroMaterial(b.m) {
 		panic("getmaterial returned nil for shape")
 	}
 	return b.m
 }
 
-func (b *baseShape) SetMaterial(material *materials.Material) {
+func (b *baseShape) SetMaterial(material materials.Material) {
 	b.m = material
 }
 
@@ -113,6 +115,13 @@ func (b *baseShape) GetParent() Group {
 
 func (b *baseShape) SetParent(g Group) {
 	b.parent = g
+	b.Invalidate()
+}
+
+func (b *baseShape) Invalidate() {
+	if b.parent != nil {
+		b.parent.Invalidate()
+	}
 }
 
 func (b *baseShape) Id() string {
@@ -127,7 +136,7 @@ func NormalAt(s Shape, p geom.Tuple, lnaf func(p geom.Tuple, in Intersection) ge
 }
 
 // invert ray from object's transformation matrix then call shape-specific intersection logic
-func Intersect(r geom.Ray, t *geom.X4Matrix, lif func(geom.Ray) Intersections) Intersections {
+func Intersect(r geom.Ray, t geom.X4Matrix, lif func(geom.Ray) *Intersections) *Intersections {
 	lr := r.Transform(t.Invert())
 	return lif(lr)
 }

@@ -1,13 +1,18 @@
 package scenes
 
 import (
+	"fmt"
 	"github.com/robkau/go-raytrace/lib/colors"
 	"github.com/robkau/go-raytrace/lib/geom"
 	"github.com/robkau/go-raytrace/lib/materials"
+	"github.com/robkau/go-raytrace/lib/parse"
 	"github.com/robkau/go-raytrace/lib/patterns"
 	"github.com/robkau/go-raytrace/lib/shapes"
 	"github.com/robkau/go-raytrace/lib/view"
 	"math"
+	"math/rand"
+	"strings"
+	"time"
 )
 
 func makeObjectGroup() shapes.Group {
@@ -62,6 +67,29 @@ func makeObjectGroup() shapes.Group {
 	h.SetMaterial(m)
 	g.AddChild(h)
 
+	// a random frame from toribash replay on each table
+	pr, err := parse.ParseReaderAsTori(strings.NewReader(parse.ReplayFile))
+	if err != nil {
+		panic("err parse")
+	}
+	n := rand.Intn(int(math.Min(float64(len(pr.P0Positions)), float64(len(pr.P1Positions)))))
+	pg0 := pr.P0Positions[n].AsGroup()
+	pg0.SetTransform(geom.Translate(0, 4.1+parse.ToriSphereWidth, 0).MulX4Matrix(geom.Scale(1.2, 1.2, 1.2)))
+	m = materials.NewMaterial()
+	m.Pattern = patterns.NewSolidColorPattern(colors.Green())
+	for _, c := range pg0.GetChildren() {
+		c.SetMaterial(m)
+	}
+	g.AddChild(pg0)
+
+	pg1 := pr.P1Positions[n].AsGroup()
+	pg1.SetTransform(geom.Translate(0, 4.1+parse.ToriSphereWidth, 0).MulX4Matrix(geom.Scale(1.2, 1.2, 1.2)))
+	m = materials.NewMaterial()
+	m.Pattern = patterns.NewSolidColorPattern(colors.Red())
+	for _, c := range pg1.GetChildren() {
+		c.SetMaterial(m)
+	}
+	g.AddChild(pg1)
 	return g
 }
 
@@ -96,11 +124,15 @@ func makeGroupOfGroups() shapes.Group {
 	return g1
 }
 
-func stackTable(t *geom.X4Matrix) *geom.X4Matrix {
+func stackTable(t geom.X4Matrix) geom.X4Matrix {
 	return t.MulX4Matrix(geom.Translate(-1, 4, 1)).MulX4Matrix(geom.RotateY(math.Pi / 9).MulX4Matrix(geom.Scale(0.5, 0.5, 0.5)))
 }
 
 func NewGroupTransformsScene() *Scene {
+	seed := time.Now().UnixNano()
+	fmt.Println("rand seed", seed)
+	rand.Seed(seed)
+
 	w := view.NewWorld()
 	cameraPos := geom.NewPoint(15, 15, 15)
 	cameraLookingAt := geom.NewPoint(0, 5, 0)

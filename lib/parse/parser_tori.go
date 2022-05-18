@@ -3,56 +3,154 @@ package parse
 import (
 	"bufio"
 	"fmt"
+	"github.com/robkau/coordinate_supplier"
+	"github.com/robkau/go-raytrace/lib/colors"
 	"github.com/robkau/go-raytrace/lib/geom"
+	"github.com/robkau/go-raytrace/lib/materials"
+	"github.com/robkau/go-raytrace/lib/patterns"
 	"github.com/robkau/go-raytrace/lib/shapes"
 	"io"
 	"math"
+	"math/rand"
 	"strconv"
 	"strings"
 )
 
-const ToriSphereWidth = 0.14
+const ToriSphereWidth = 0.18
 
-type parsedReplay struct {
-	p0Positions [][]geom.Tuple
-	p1Positions [][]geom.Tuple
+type ParsedReplay struct {
+	P0Positions []ToriPosition
+	P1Positions []ToriPosition
 }
 
-func newParsedReplay() *parsedReplay {
-	return &parsedReplay{
-		p0Positions: make([][]geom.Tuple, 0),
-		p1Positions: make([][]geom.Tuple, 0),
+type ToriPosition struct {
+	parts []geom.Tuple
+}
+
+func (t *ToriPosition) AsGroup() shapes.Group {
+	pg := shapes.NewGroup()
+	for _, pos := range t.parts {
+		sp := shapes.NewSphere()
+		sp.SetTransform(geom.RotateX(-math.Pi / 2).MulX4Matrix(geom.Translate(pos.X, pos.Y, pos.Z)).MulX4Matrix(geom.Scale(ToriSphereWidth, ToriSphereWidth, ToriSphereWidth)))
+		pg.AddChild(sp)
+	}
+	return pg
+}
+
+func NewParsedReplay() *ParsedReplay {
+	return &ParsedReplay{
+		P0Positions: make([]ToriPosition, 0),
+		P1Positions: make([]ToriPosition, 0),
 	}
 }
 
-func (pr *parsedReplay) p0AllPositions() shapes.Group {
+func (pr *ParsedReplay) P0AllPositions() shapes.Group {
 	g := shapes.NewGroup()
-	for _, posSet := range pr.p0Positions {
-		for _, pos := range posSet {
-			sp := shapes.NewSphere()
-			sp.SetTransform(geom.RotateX(-math.Pi / 2).MulX4Matrix(geom.Translate(pos.X, pos.Y, pos.Z)).MulX4Matrix(geom.Scale(ToriSphereWidth, ToriSphereWidth, ToriSphereWidth)))
-			g.AddChild(sp)
-		}
+	for _, posSet := range pr.P0Positions {
+		g.AddChild(posSet.AsGroup())
 	}
 	return g
 }
 
-func (pr *parsedReplay) p1AllPositions() shapes.Group {
+func (pr *ParsedReplay) P1AllPositions() shapes.Group {
 	g := shapes.NewGroup()
-	for _, posSet := range pr.p1Positions {
-		pg := shapes.NewGroup()
-		for _, pos := range posSet {
-			sp := shapes.NewSphere()
-			sp.SetTransform(geom.RotateX(-math.Pi / 2).MulX4Matrix(geom.Translate(pos.X, pos.Y, pos.Z)).MulX4Matrix(geom.Scale(ToriSphereWidth, ToriSphereWidth, ToriSphereWidth)))
-			pg.AddChild(sp)
-		}
-		g.AddChild(pg)
+	for _, posSet := range pr.P1Positions {
+		g.AddChild(posSet.AsGroup())
 	}
 	return g
 }
 
-func parseReaderAsTori(content io.Reader) (*parsedReplay, error) {
-	pr := newParsedReplay()
+func (pr *ParsedReplay) RandomFrameBothPlayers() shapes.Group {
+	g := shapes.NewGroup()
+
+	n := rand.Intn(int(math.Min(float64(len(pr.P0Positions)), float64(len(pr.P1Positions)))))
+	pg0 := pr.P0Positions[n].AsGroup()
+	pg0.SetTransform(geom.Translate(0, ToriSphereWidth, 0).MulX4Matrix(geom.Scale(1.2, 1.2, 1.2)))
+	m := materials.NewMaterial()
+	m.Pattern = patterns.NewSolidColorPattern(colors.Green())
+	for _, c := range pg0.GetChildren() {
+		c.SetMaterial(m)
+	}
+	g.AddChild(pg0)
+
+	pg1 := pr.P1Positions[n].AsGroup()
+	pg1.SetTransform(geom.Translate(0, ToriSphereWidth, 0).MulX4Matrix(geom.Scale(1.2, 1.2, 1.2)))
+	m = materials.NewMaterial()
+	m.Pattern = patterns.NewSolidColorPattern(colors.Red())
+	for _, c := range pg1.GetChildren() {
+		c.SetMaterial(m)
+	}
+	g.AddChild(pg1)
+
+	return g
+}
+
+// TODO n x m SPACING PARAMS!
+func (pr *ParsedReplay) AllScenes(stepsPerLine int, stepWidth float64) shapes.Group {
+	cs, err := coordinate_supplier.NewCoordinateSupplierAtomic(coordinate_supplier.CoordinateSupplierOptions{
+		Width:  stepsPerLine,
+		Height: 10000,
+		Mode:   coordinate_supplier.Asc,
+		Repeat: false,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	g := shapes.NewGroup()
+
+	sceneCount := int(math.Min(float64(len(pr.P0Positions)), float64(len(pr.P1Positions))))
+
+	for i := 0; i < sceneCount; i++ {
+		z, y, done := cs.Next()
+		if done {
+			panic("out of coordinates")
+		}
+		// translate this frame so player midpoint is centered
+		pg0 := pr.P0Positions[i].AsGroup()
+		pg1 := pr.P1Positions[i].AsGroup()
+		b0 := pg0.Bounds()
+		b1 := pg1.Bounds()
+		bCombined := b0.Add(b1.Min, b1.Max)
+		bc := bCombined.Center()
+
+		// center x-z for this replay frame (from players moving around during tori match)
+		pg0.SetTransform(geom.Translate(-bc.X, 0, -bc.Z).MulX4Matrix(pg0.GetTransform()))
+		// translated position according to replay frame index
+		pg0.SetTransform(geom.Translate(0, ToriSphereWidth+stepWidth*float64(y), 0+stepWidth*float64(z)).MulX4Matrix(geom.Scale(1.2, 1.2, 1.2)).MulX4Matrix(pg0.GetTransform()))
+		m := materials.NewMaterial()
+		m.Specular = 1
+		m.Reflective = 0.14
+		m.Pattern = patterns.NewSolidColorPattern(colors.Green())
+		for _, c := range pg0.GetChildren() {
+			c.SetMaterial(m)
+		}
+		g.AddChild(pg0)
+
+		// center x-z for this replay frame (from players moving around during tori match)
+		pg1.SetTransform(geom.Translate(-bc.X, 0, -bc.Z).MulX4Matrix(pg1.GetTransform()))
+		// translated position according to replay frame index
+		pg1.SetTransform(geom.Translate(0, ToriSphereWidth+stepWidth*float64(y), 0+stepWidth*float64(z)).MulX4Matrix(geom.Scale(1.2, 1.2, 1.2)).MulX4Matrix(pg1.GetTransform()))
+		m = materials.NewMaterial()
+		m.Specular = 1
+		m.Reflective = 0.14
+		m.Pattern = patterns.NewSolidColorPattern(colors.Red())
+		for _, c := range pg1.GetChildren() {
+			c.SetMaterial(m)
+		}
+		g.AddChild(pg1)
+
+	}
+
+	for i := 0; i < sceneCount; i++ {
+
+	}
+
+	return g
+}
+
+func ParseReaderAsTori(content io.Reader) (*ParsedReplay, error) {
+	pr := NewParsedReplay()
 
 	scanner := bufio.NewScanner(content)
 	for scanner.Scan() {
@@ -62,7 +160,7 @@ func parseReaderAsTori(content io.Reader) (*parsedReplay, error) {
 	return pr, nil
 }
 
-func handleReplayLine(line string, pr *parsedReplay) {
+func handleReplayLine(line string, pr *ParsedReplay) {
 	line = strings.TrimSpace(line)
 
 	if strings.HasPrefix(line, "POS ") {
@@ -71,17 +169,17 @@ func handleReplayLine(line string, pr *parsedReplay) {
 	}
 }
 
-func handlePositionLine(line string, pr *parsedReplay) {
+func handlePositionLine(line string, pr *ParsedReplay) {
 	player, ts := parsePositionLine(line)
 
 	if player == 0 {
-		pr.p0Positions = append(pr.p0Positions, ts)
+		pr.P0Positions = append(pr.P0Positions, ts)
 	} else {
-		pr.p1Positions = append(pr.p1Positions, ts)
+		pr.P1Positions = append(pr.P1Positions, ts)
 	}
 }
 
-func parsePositionLine(line string) (player int, positions []geom.Tuple) {
+func parsePositionLine(line string) (player int, position ToriPosition) {
 	// get positions
 	s := strings.Split(line, "; ")
 
@@ -96,7 +194,7 @@ func parsePositionLine(line string) (player int, positions []geom.Tuple) {
 
 	// position strings to float
 	// iterate in chunks of 3 (XYZ)
-	ts := make([]geom.Tuple, 0)
+	tp := ToriPosition{}
 	for i := 0; i < len(ss)-2; i += 3 {
 		x, err := strconv.ParseFloat(ss[i], 64)
 		if err != nil {
@@ -110,10 +208,10 @@ func parsePositionLine(line string) (player int, positions []geom.Tuple) {
 		if err != nil {
 			panic(fmt.Sprintf("invalid pos float: %s", err.Error()))
 		}
-		ts = append(ts, geom.NewPoint(x, y, z))
+		tp.parts = append(tp.parts, geom.NewPoint(x, y, z))
 	}
 
-	return player, ts
+	return player, tp
 }
 
 const ReplayFile = `#!/usr/bin/toribash

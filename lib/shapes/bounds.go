@@ -40,7 +40,7 @@ func (b Bounds) Center() geom.Tuple {
 	return geom.NewPoint(centerX, centerY, centerZ)
 }
 
-func (b Bounds) TransformTo(t *geom.X4Matrix) Bounds {
+func (b Bounds) TransformTo(t geom.X4Matrix) Bounds {
 	// get corners of the bounding cube
 	// lowercase negative direction, uppercase positive direction
 	bxyz := geom.NewPoint(b.Min.X, b.Min.Y, b.Min.Z)
