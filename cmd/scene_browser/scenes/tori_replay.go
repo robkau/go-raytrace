@@ -34,7 +34,7 @@ func NewToriReplayScene() *Scene {
 	cs, err := coordinate_supplier.NewCoordinateSupplierAtomic(coordinate_supplier.CoordinateSupplierOptions{
 		Width:  shellsPerLine,
 		Height: 10000,
-		Mode:   coordinate_supplier.Asc,
+		Order:  coordinate_supplier.Asc,
 		Repeat: false,
 	})
 	if err != nil {

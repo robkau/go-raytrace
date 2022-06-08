@@ -58,12 +58,9 @@ github.com/hajimehoshi/oto/internal/mux
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
-# github.com/pkg/profile v1.6.0
-## explicit
-github.com/pkg/profile
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
-# github.com/robkau/coordinate_supplier v0.0.0-20211003221208-453faf8c67c9
+# github.com/robkau/coordinate_supplier v0.0.0-20211011014542-83e9f658385e
 ## explicit
 github.com/robkau/coordinate_supplier
 # github.com/stretchr/testify v1.7.0

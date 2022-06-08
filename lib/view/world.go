@@ -155,13 +155,13 @@ func (w *World) IsShadowed(p geom.Tuple) bool {
 // todo replace c.rencder?
 // or wrap this with an option to consume all and then return the image and delete c.render
 
-func Render(w *World, c Camera, rayBounces int, numGoRoutines int, renderMode coordinate_supplier.NextMode) (<-chan PixelInfo, error) {
+func Render(w *World, c Camera, rayBounces int, numGoRoutines int, renderMode coordinate_supplier.Order) (<-chan PixelInfo, error) {
 	pi := make(chan PixelInfo, numGoRoutines*2)
 
 	cs, err := coordinate_supplier.NewCoordinateSupplierAtomic(coordinate_supplier.CoordinateSupplierOptions{
 		Width:  c.HSize,
 		Height: c.VSize,
-		Mode:   renderMode,
+		Order:  renderMode,
 		Repeat: false,
 	})
 	if err != nil {

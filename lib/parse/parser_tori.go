@@ -31,6 +31,9 @@ func (t *ToriPosition) AsGroup() shapes.Group {
 	pg := shapes.NewGroup()
 	for _, pos := range t.parts {
 		sp := shapes.NewSphere()
+		m := sp.GetMaterial()
+		m.Ambient = 0.3
+		sp.SetMaterial(m)
 		sp.SetTransform(geom.RotateX(-math.Pi / 2).MulX4Matrix(geom.Translate(pos.X, pos.Y, pos.Z)).MulX4Matrix(geom.Scale(ToriSphereWidth, ToriSphereWidth, ToriSphereWidth)))
 		pg.AddChild(sp)
 	}
@@ -85,12 +88,11 @@ func (pr *ParsedReplay) RandomFrameBothPlayers() shapes.Group {
 	return g
 }
 
-// TODO n x m SPACING PARAMS!
 func (pr *ParsedReplay) AllScenes(stepsPerLine int, stepWidth float64) shapes.Group {
 	cs, err := coordinate_supplier.NewCoordinateSupplierAtomic(coordinate_supplier.CoordinateSupplierOptions{
 		Width:  stepsPerLine,
 		Height: 10000,
-		Mode:   coordinate_supplier.Asc,
+		Order:  coordinate_supplier.Asc,
 		Repeat: false,
 	})
 	if err != nil {

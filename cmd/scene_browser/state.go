@@ -40,7 +40,7 @@ func start() *state {
 	}
 
 	var rendered uint32 = 0
-	var pixelsPerRenderStat uint32 = 1000
+	var pixelsPerRenderStat uint32 = 3000
 
 	// render middle
 	go func() {
@@ -50,7 +50,7 @@ func start() *state {
 
 			s.loc = s.scenes[s.currentScene].Cs[s.currentCamera]
 
-			pc, err := view.Render(s.scenes[s.currentScene].W, view.NewCameraAt(width, width, fov, s.loc.At, s.loc.LookingAt), 4, int(float64(runtime.NumCPU())/4), coordinate_supplier.Random)
+			pc, err := view.Render(s.scenes[s.currentScene].W, view.NewCameraAt(width, width, fov, s.loc.At, s.loc.LookingAt), 3, int(float64(runtime.NumCPU())/4), coordinate_supplier.Random)
 			if err != nil {
 				fmt.Println("failed create render")
 				panic(err)
