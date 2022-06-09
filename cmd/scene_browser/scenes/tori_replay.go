@@ -34,6 +34,7 @@ func NewToriReplayScene() *Scene {
 	cs, err := coordinate_supplier.NewCoordinateSupplierAtomic(coordinate_supplier.CoordinateSupplierOptions{
 		Width:  shellsPerLine,
 		Height: 10000,
+		Depth:  1,
 		Order:  coordinate_supplier.Asc,
 		Repeat: false,
 	})
@@ -42,7 +43,7 @@ func NewToriReplayScene() *Scene {
 	}
 	for range pr.P0Positions {
 		ball := shapes.NewSphere()
-		z, y, done := cs.Next()
+		z, y, _, done := cs.Next()
 		if done {
 			panic("out of coordinates")
 		}

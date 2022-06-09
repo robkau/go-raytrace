@@ -92,6 +92,7 @@ func (pr *ParsedReplay) AllScenes(stepsPerLine int, stepWidth float64) shapes.Gr
 	cs, err := coordinate_supplier.NewCoordinateSupplierAtomic(coordinate_supplier.CoordinateSupplierOptions{
 		Width:  stepsPerLine,
 		Height: 10000,
+		Depth:  1,
 		Order:  coordinate_supplier.Asc,
 		Repeat: false,
 	})
@@ -104,7 +105,7 @@ func (pr *ParsedReplay) AllScenes(stepsPerLine int, stepWidth float64) shapes.Gr
 	sceneCount := int(math.Min(float64(len(pr.P0Positions)), float64(len(pr.P1Positions))))
 
 	for i := 0; i < sceneCount; i++ {
-		z, y, done := cs.Next()
+		z, y, _, done := cs.Next()
 		if done {
 			panic("out of coordinates")
 		}

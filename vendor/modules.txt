@@ -60,7 +60,7 @@ github.com/hajimehoshi/oto/internal/mux
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
-# github.com/robkau/coordinate_supplier v0.0.0-20211011014542-83e9f658385e
+# github.com/robkau/coordinate_supplier v0.0.0-20220609040109-7740f0529185
 ## explicit
 github.com/robkau/coordinate_supplier
 # github.com/stretchr/testify v1.7.0

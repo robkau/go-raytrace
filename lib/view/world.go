@@ -161,6 +161,7 @@ func Render(w *World, c Camera, rayBounces int, numGoRoutines int, renderMode co
 	cs, err := coordinate_supplier.NewCoordinateSupplierAtomic(coordinate_supplier.CoordinateSupplierOptions{
 		Width:  c.HSize,
 		Height: c.VSize,
+		Depth:  1,
 		Order:  renderMode,
 		Repeat: false,
 	})
@@ -174,7 +175,7 @@ func Render(w *World, c Camera, rayBounces int, numGoRoutines int, renderMode co
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				for x, y, done := cs.Next(); !done; x, y, done = cs.Next() {
+				for x, y, _, done := cs.Next(); !done; x, y, _, done = cs.Next() {
 					r := c.rayForPixel(x, y)
 					c := w.ColorAt(r, rayBounces)
 

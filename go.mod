@@ -6,7 +6,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/hajimehoshi/ebiten/v2 v2.1.7
 	github.com/pkg/errors v0.9.1
-	github.com/robkau/coordinate_supplier v0.0.0-20211011014542-83e9f658385e
+	github.com/robkau/coordinate_supplier v0.0.0-20220609040109-7740f0529185
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/exp v0.0.0-20210916165020-5cb4fee858ee // indirect
 	golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d // indirect
