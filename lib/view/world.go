@@ -1,6 +1,7 @@
 package view
 
 import (
+	"context"
 	"fmt"
 	"github.com/robkau/coordinate_supplier"
 	"github.com/robkau/go-raytrace/lib/colors"
@@ -155,7 +156,7 @@ func (w *World) IsShadowed(p geom.Tuple) bool {
 // todo replace c.rencder?
 // or wrap this with an option to consume all and then return the image and delete c.render
 
-func Render(w *World, c Camera, rayBounces int, numGoRoutines int, renderMode coordinate_supplier.Order) (<-chan PixelInfo, error) {
+func Render(ctx context.Context, w *World, c Camera, rayBounces int, numGoRoutines int, renderMode coordinate_supplier.Order) (<-chan PixelInfo, error) {
 	pi := make(chan PixelInfo, numGoRoutines*2)
 
 	cs, err := coordinate_supplier.NewCoordinateSupplierAtomic(coordinate_supplier.CoordinateSupplierOptions{
@@ -176,6 +177,14 @@ func Render(w *World, c Camera, rayBounces int, numGoRoutines int, renderMode co
 			go func() {
 				defer wg.Done()
 				for x, y, _, done := cs.Next(); !done; x, y, _, done = cs.Next() {
+					select {
+					case <-ctx.Done():
+						// cancel render goroutine
+						return
+					default:
+						// noop
+					}
+
 					r := c.rayForPixel(x, y)
 					c := w.ColorAt(r, rayBounces)
 
