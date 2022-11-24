@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build ebitenwebgl1
+//go:build ebitenginewebgl1 || ebitenwebgl1
+// +build ebitenginewebgl1 ebitenwebgl1
 
 package opengl
 

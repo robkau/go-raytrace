@@ -25,9 +25,12 @@ type Shader struct {
 	shader *restorable.Shader
 }
 
-func NewShader(program *shaderir.Program) *Shader {
+func NewShader(ir *shaderir.Program) *Shader {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
 	s := &Shader{
-		shader: restorable.NewShader(program),
+		shader: restorable.NewShader(ir),
 	}
 	runtime.SetFinalizer(s, (*Shader).MarkDisposed)
 	return s
@@ -39,6 +42,7 @@ func NewShader(program *shaderir.Program) *Shader {
 // A function from finalizer must not be blocked, but disposing operation can be blocked.
 // Defer this operation until it becomes safe. (#913)
 func (s *Shader) MarkDisposed() {
+	// As MarkDisposed can be invoked from finalizers, backendsM should not be used.
 	deferredM.Lock()
 	deferred = append(deferred, func() {
 		s.dispose()

@@ -17,20 +17,24 @@ package graphicscommand
 var theThread Thread
 
 type Thread interface {
-	Call(f func() error) error
+	Call(f func())
 }
 
-// SetMainThread must be called from the main thread (i.e, the goroutine where the thread is created).
-func SetMainThread(thread Thread) {
+// SetRenderingThread must be called from the rendering thread where e.g. OpenGL works.
+//
+// TODO: Create thread in this package instead of setting it externally.
+func SetRenderingThread(thread Thread) {
 	theThread = thread
 }
 
-func runOnMainThread(f func() error) error {
+// runOnRenderingThread calls f on the rendering thread, and returns an error if any.
+func runOnRenderingThread(f func()) {
 	// The thread is nil when 1) GOOS=js or 2) using golang.org/x/mobile/gl.
 	// When golang.org/x/mobile/gl is used, all the GL functions are called via Context, which already runs on an
 	// appropriate thread.
 	if theThread == nil {
-		return f()
+		f()
+		return
 	}
-	return theThread.Call(f)
+	theThread.Call(f)
 }

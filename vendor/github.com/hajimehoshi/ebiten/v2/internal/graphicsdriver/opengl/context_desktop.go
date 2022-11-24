@@ -12,9 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build darwin freebsd linux windows
-// +build !android
-// +build !ios
+//go:build !android && !ios && !js
+// +build !android,!ios,!js
 
 package opengl
 
@@ -22,21 +21,26 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
 type (
-	textureNative     uint32
-	framebufferNative uint32
-	shader            uint32
-	program           uint32
-	buffer            uint32
+	textureNative      uint32
+	renderbufferNative uint32
+	framebufferNative  uint32
+	shader             uint32
+	program            uint32
+	buffer             uint32
 )
 
 func (t textureNative) equal(rhs textureNative) bool {
 	return t == rhs
+}
+
+func (r renderbufferNative) equal(rhs renderbufferNative) bool {
+	return r == rhs
 }
 
 func (f framebufferNative) equal(rhs framebufferNative) bool {
@@ -106,11 +110,11 @@ func (c *context) reset() error {
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
-	c.lastCompositeMode = driver.CompositeModeUnknown
+	c.lastCompositeMode = graphicsdriver.CompositeModeUnknown
 	gl.Enable(gl.BLEND)
 	gl.Enable(gl.SCISSOR_TEST)
 
-	c.blendFunc(driver.CompositeModeSourceOver)
+	c.blendFunc(graphicsdriver.CompositeModeSourceOver)
 
 	f := int32(0)
 	gl.GetIntegerv(gl.FRAMEBUFFER_BINDING, &f)
@@ -118,7 +122,7 @@ func (c *context) reset() error {
 	return nil
 }
 
-func (c *context) blendFunc(mode driver.CompositeMode) {
+func (c *context) blendFunc(mode graphicsdriver.CompositeMode) {
 	if c.lastCompositeMode == mode {
 		return
 	}
@@ -139,14 +143,15 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	if t <= 0 {
 		return 0, errors.New("opengl: creating texture failed")
 	}
-	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
 	texture := textureNative(t)
-
 	c.bindTexture(texture)
+
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+
+	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
 	// If data is nil, this just allocates memory and the content is undefined.
 	// https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml
 	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(width), int32(height), 0, gl.RGBA, gl.UNSIGNED_BYTE, nil)
@@ -157,12 +162,10 @@ func (c *context) bindFramebufferImpl(f framebufferNative) {
 	gl.BindFramebufferEXT(gl.FRAMEBUFFER, uint32(f))
 }
 
-func (c *context) framebufferPixels(f *framebuffer, width, height int) []byte {
+func (c *context) framebufferPixels(buf []byte, f *framebuffer, width, height int) {
 	gl.Flush()
 	c.bindFramebuffer(f.native)
-	pixels := make([]byte, 4*width*height)
-	gl.ReadPixels(0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(pixels))
-	return pixels
+	gl.ReadPixels(0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(buf))
 }
 
 func (c *context) framebufferPixelsToBuffer(f *framebuffer, buffer buffer, width, height int) {
@@ -196,12 +199,43 @@ func (c *context) isTexture(t textureNative) bool {
 	panic("opengl: isTexture is not implemented")
 }
 
+func (c *context) newRenderbuffer(width, height int) (renderbufferNative, error) {
+	var r uint32
+	gl.GenRenderbuffersEXT(1, &r)
+	if r <= 0 {
+		return 0, errors.New("opengl: creating renderbuffer failed")
+	}
+
+	renderbuffer := renderbufferNative(r)
+	c.bindRenderbuffer(renderbuffer)
+
+	// GL_STENCIL_INDEX8 might not be available with OpenGL 2.1.
+	// https://www.khronos.org/opengl/wiki/Image_Format
+	gl.RenderbufferStorageEXT(gl.RENDERBUFFER, gl.DEPTH24_STENCIL8, int32(width), int32(height))
+
+	return renderbuffer, nil
+}
+
+func (c *context) bindRenderbufferImpl(r renderbufferNative) {
+	gl.BindRenderbufferEXT(gl.RENDERBUFFER, uint32(r))
+}
+
+func (c *context) deleteRenderbuffer(r renderbufferNative) {
+	rr := uint32(r)
+	if !gl.IsRenderbufferEXT(rr) {
+		return
+	}
+	if c.lastRenderbuffer.equal(r) {
+		c.lastRenderbuffer = 0
+	}
+	gl.DeleteRenderbuffersEXT(1, &rr)
+}
+
 func (c *context) newFramebuffer(texture textureNative) (framebufferNative, error) {
 	var f uint32
 	gl.GenFramebuffersEXT(1, &f)
-	// TODO: Use gl.IsFramebuffer
 	if f <= 0 {
-		return 0, errors.New("opengl: creating framebuffer failed: gl.IsFramebuffer returns false")
+		return 0, errors.New("opengl: creating framebuffer failed")
 	}
 	c.bindFramebuffer(framebufferNative(f))
 	gl.FramebufferTexture2DEXT(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, uint32(texture), 0)
@@ -216,6 +250,16 @@ func (c *context) newFramebuffer(texture textureNative) (framebufferNative, erro
 		return 0, fmt.Errorf("opengl: creating framebuffer failed: unknown error")
 	}
 	return framebufferNative(f), nil
+}
+
+func (c *context) bindStencilBuffer(f framebufferNative, r renderbufferNative) error {
+	c.bindFramebuffer(f)
+
+	gl.FramebufferRenderbufferEXT(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, uint32(r))
+	if s := gl.CheckFramebufferStatusEXT(gl.FRAMEBUFFER); s != gl.FRAMEBUFFER_COMPLETE {
+		return errors.New(fmt.Sprintf("opengl: glFramebufferRenderbuffer failed: %d", s))
+	}
+	return nil
 }
 
 func (c *context) setViewportImpl(width, height int) {
@@ -435,12 +479,6 @@ func (c *context) maxTextureSizeImpl() int {
 	return int(s)
 }
 
-func (c *context) getShaderPrecisionFormatPrecision() int {
-	// glGetShaderPrecisionFormat is not defined at OpenGL 2.0. Assume that desktop environments always have
-	// enough highp precision.
-	return highpPrecision
-}
-
 func (c *context) flush() {
 	gl.Flush()
 }
@@ -449,46 +487,30 @@ func (c *context) needsRestoring() bool {
 	return false
 }
 
-func (c *context) canUsePBO() bool {
-	return isPBOAvailable()
-}
-
-func (c *context) texSubImage2D(t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
+func (c *context) texSubImage2D(t textureNative, args []*graphicsdriver.WritePixelsArgs) {
 	c.bindTexture(t)
 	for _, a := range args {
 		gl.TexSubImage2D(gl.TEXTURE_2D, 0, int32(a.X), int32(a.Y), int32(a.Width), int32(a.Height), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(a.Pixels))
 	}
 }
 
-func (c *context) newPixelBufferObject(width, height int) buffer {
-	var b uint32
-	gl.GenBuffers(1, &b)
-	gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, b)
-	gl.BufferData(gl.PIXEL_UNPACK_BUFFER, 4*width*height, nil, gl.STREAM_DRAW)
-	gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, 0)
-	return buffer(b)
+func (c *context) enableStencilTest() {
+	gl.Enable(gl.STENCIL_TEST)
 }
 
-func (c *context) replacePixelsWithPBO(buffer buffer, t textureNative, width, height int, args []*driver.ReplacePixelsArgs) {
-	c.bindTexture(t)
-	gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, uint32(buffer))
-
-	stride := 4 * width
-	for _, a := range args {
-		offset := 4 * (a.Y*width + a.X)
-		for j := 0; j < a.Height; j++ {
-			gl.BufferSubData(gl.PIXEL_UNPACK_BUFFER, offset+stride*j, 4*a.Width, gl.Ptr(a.Pixels[4*a.Width*j:4*a.Width*(j+1)]))
-		}
-	}
-
-	gl.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, nil)
-	gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, 0)
+func (c *context) disableStencilTest() {
+	gl.Disable(gl.STENCIL_TEST)
 }
 
-func (c *context) getBufferSubData(buffer buffer, width, height int) []byte {
-	gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, uint32(buffer))
-	pixels := make([]byte, 4*width*height)
-	gl.GetBufferSubData(gl.PIXEL_UNPACK_BUFFER, 0, 4*width*height, gl.Ptr(pixels))
-	gl.BindBuffer(gl.PIXEL_UNPACK_BUFFER, 0)
-	return pixels
+func (c *context) beginStencilWithEvenOddRule() {
+	gl.Clear(gl.STENCIL_BUFFER_BIT)
+	gl.StencilFunc(gl.ALWAYS, 0x00, 0xff)
+	gl.StencilOp(gl.KEEP, gl.KEEP, gl.INVERT)
+	gl.ColorMask(false, false, false, false)
+}
+
+func (c *context) endStencilWithEvenOddRule() {
+	gl.StencilFunc(gl.NOTEQUAL, 0x00, 0xff)
+	gl.StencilOp(gl.KEEP, gl.KEEP, gl.KEEP)
+	gl.ColorMask(true, true, true, true)
 }
