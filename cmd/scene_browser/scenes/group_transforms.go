@@ -9,6 +9,7 @@ import (
 	"github.com/robkau/go-raytrace/lib/patterns"
 	"github.com/robkau/go-raytrace/lib/shapes"
 	"github.com/robkau/go-raytrace/lib/view"
+	"log"
 	"math"
 	"math/rand"
 	"strings"
@@ -70,7 +71,7 @@ func makeObjectGroup() shapes.Group {
 	// a random frame from toribash replay on each table
 	pr, err := parse.ParseReaderAsTori(strings.NewReader(parse.ReplayFile))
 	if err != nil {
-		panic("err parse")
+		log.Fatalf("err parse")
 	}
 	n := rand.Intn(int(math.Min(float64(len(pr.P0Positions)), float64(len(pr.P1Positions)))))
 	pg0 := pr.P0Positions[n].AsGroup()

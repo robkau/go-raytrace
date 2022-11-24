@@ -69,6 +69,8 @@ func start() *state {
 				}
 				s.canvas.SetPixel(p.X, p.Y, p.C)
 			}
+
+			// todo wait if fully drawn
 		}
 	}()
 
@@ -105,35 +107,41 @@ func (s *state) Update() error {
 		s.canvas = view.NewCanvas(width, width)
 	}
 
+	// move toward origin
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
 		s.loc.At = s.loc.At.Mul(0.9)
 		s.cancel()
 		s.canvas = view.NewCanvas(width, width)
 	}
+	// move away from origin
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
 		s.loc.At = s.loc.At.Mul(1.1)
 		s.cancel()
 		s.canvas = view.NewCanvas(width, width)
 	}
+	// translate up
 	if inpututil.IsKeyJustPressed(ebiten.KeyC) {
 		s.loc.At.Y++
 		s.cancel()
 		s.canvas = view.NewCanvas(width, width)
 	}
+	// translate down
 	if inpututil.IsKeyJustPressed(ebiten.KeyZ) {
 		s.loc.At.Y--
 		s.cancel()
 		s.canvas = view.NewCanvas(width, width)
 	}
-
+	// next scene
 	if inpututil.IsKeyJustPressed(ebiten.KeyN) {
 		s.currentScene++
 		if s.currentScene >= len(s.scenes) {
 			s.currentScene = 0
 		}
+		s.currentCamera = 0
 		s.cancel()
 		s.canvas = view.NewCanvas(width, width)
 	}
+	// next camera
 	if inpututil.IsKeyJustPressed(ebiten.KeyM) {
 		s.currentCamera++
 		if s.currentCamera >= len(s.scenes[s.currentScene].Cs) {

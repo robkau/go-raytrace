@@ -15,10 +15,6 @@ const (
 )
 
 func main() {
-	//runtime.SetBlockProfileRate(100_000_000) // WARNING: Can cause some CPU overhead
-	//file, _ := os.Create("./block.pprof")
-	//defer pprof.Lookup("block").WriteTo(file, 0)
-
 	//go func() {
 	//	log.Println(http.ListenAndServe("localhost:6060", nil))
 	//}()
