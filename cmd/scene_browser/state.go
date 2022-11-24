@@ -31,8 +31,8 @@ type state struct {
 func start() *state {
 	s := &state{
 		scenes: scenes.LoadScenes(
-			scenes.NewToriReplayScene,
 			scenes.NewGroupTransformsScene,
+			scenes.NewToriReplayScene,
 			scenes.NewStoneGolemScene,
 			scenes.NewWavyCarpetSpheres,
 		),
@@ -79,49 +79,51 @@ func (s *state) Update() error {
 	s.frameCount++
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyW) {
-
 		s.loc.At = s.loc.At.Sub(s.loc.At.Sub(s.loc.LookingAt).Normalize())
 		s.cancel()
+		s.canvas = view.NewCanvas(width, width)
 
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
 		s.loc.At = s.loc.At.Add(s.loc.At.Sub(s.loc.LookingAt).Normalize())
 		s.cancel()
-
+		s.canvas = view.NewCanvas(width, width)
 	}
 
+	// todo cross product for 90 degree motiuon
 	// todo A D Q E
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
 		s.loc.RotateAroundY(math.Pi / 12)
 		s.cancel()
+		s.canvas = view.NewCanvas(width, width)
 
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
 		s.loc.RotateAroundY(-math.Pi / 12)
 		s.cancel()
-
+		s.canvas = view.NewCanvas(width, width)
 	}
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
 		s.loc.At = s.loc.At.Mul(0.9)
 		s.cancel()
-
+		s.canvas = view.NewCanvas(width, width)
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
 		s.loc.At = s.loc.At.Mul(1.1)
 		s.cancel()
-
+		s.canvas = view.NewCanvas(width, width)
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyC) {
 		s.loc.At.Y++
 		s.cancel()
-
+		s.canvas = view.NewCanvas(width, width)
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyZ) {
 		s.loc.At.Y--
 		s.cancel()
-
+		s.canvas = view.NewCanvas(width, width)
 	}
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyN) {
@@ -130,6 +132,7 @@ func (s *state) Update() error {
 			s.currentScene = 0
 		}
 		s.cancel()
+		s.canvas = view.NewCanvas(width, width)
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyM) {
 		s.currentCamera++
@@ -137,6 +140,7 @@ func (s *state) Update() error {
 			s.currentCamera = 0
 		}
 		s.cancel()
+		s.canvas = view.NewCanvas(width, width)
 	}
 
 	// canvas is updated in background goroutine.

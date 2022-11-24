@@ -1,6 +1,7 @@
 package geom
 
 import (
+	"log"
 	"math"
 	"sync"
 )
@@ -326,7 +327,7 @@ func (m X4Matrix) Invert() X4Matrix {
 
 func (m X4Matrix) doInvert() X4Matrix {
 	if !m.Invertable() {
-		panic("not invertable")
+		log.Fatalf("not invertable")
 	}
 	invert := NewX4Matrix()
 	d := m.Determinant()
