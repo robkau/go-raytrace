@@ -8,6 +8,22 @@ import (
 	"testing"
 )
 
+func Test_NewCone_BoundsOf(t *testing.T) {
+	s := NewCone(-5, 3, true)
+	s.SetTransform(geom.Translate(0, 1, 0)) // no effect
+
+	assert.Equal(t, geom.NewPoint(-5, -5, -5), s.BoundsOf().Min)
+	assert.Equal(t, geom.NewPoint(5, 3, 5), s.BoundsOf().Max)
+}
+
+func Test_NewInfiniteCone_BoundsOf(t *testing.T) {
+	s := NewInfiniteCone()
+	s.SetTransform(geom.Translate(0, 1, 0)) // no effect
+
+	assert.Equal(t, geom.NegInfPoint(), s.BoundsOf().Min)
+	assert.Equal(t, geom.PosInfPoint(), s.BoundsOf().Max)
+}
+
 func Test_ConeIntersections(t *testing.T) {
 	type args struct {
 		origin    geom.Tuple

@@ -15,8 +15,9 @@ func NewSphere() *Sphere {
 	}
 }
 
-func (s *Sphere) Bounds() Bounds {
-	return newBounds(geom.NewPoint(-1, -1, -1), geom.NewPoint(1, 1, 1)).TransformTo(s.t)
+// BoundsOf is for untransformed shape
+func (s *Sphere) BoundsOf() *BoundingBox {
+	return NewBoundingBox(geom.NewPoint(-1, -1, -1), geom.NewPoint(1, 1, 1))
 }
 
 func (s *Sphere) NormalAt(p geom.Tuple, _ Intersection) geom.Tuple {

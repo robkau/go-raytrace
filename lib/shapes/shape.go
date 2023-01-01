@@ -16,7 +16,7 @@ type Shape interface {
 	SetTransform(matrix geom.X4Matrix)
 	GetMaterial() materials.Material
 	SetMaterial(materials.Material)
-	Bounds() Bounds
+	BoundsOf() *BoundingBox
 	GetShadowless() bool
 	SetShadowless(s bool)
 	GetShaded() bool
@@ -139,4 +139,11 @@ func NormalAt(s Shape, p geom.Tuple, lnaf func(p geom.Tuple, in Intersection) ge
 func Intersect(r geom.Ray, t geom.X4Matrix, lif func(geom.Ray) *Intersections) *Intersections {
 	lr := r.Transform(t.Invert())
 	return lif(lr)
+}
+
+// ParentSpaceBoundsOf is for transformed shape
+func ParentSpaceBoundsOf(s Shape) *BoundingBox {
+	bb := s.BoundsOf()
+	bb.Transform(s.GetTransform())
+	return bb
 }

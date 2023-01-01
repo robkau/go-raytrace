@@ -244,6 +244,6 @@ func Test_FacesWithNormals(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, n, ns[2])
 
-	require.Equal(t, t2.Bounds(), t1.Bounds())
+	require.Equal(t, t2.BoundsOf(), t1.BoundsOf())
 	require.Equal(t, t2.Normals(), t1.Normals())
 }

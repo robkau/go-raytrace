@@ -75,7 +75,7 @@ func NewToriReplayScene() *Scene {
 	w.AddObject(g)
 
 	// camera points to center of displayed tori frames
-	c := g.Bounds().Center()
+	c := g.BoundsOf().Center()
 
 	// floor and ceiling as one cube
 	var floorAndCeiling = sizedCubeAt(0, 0, 0, wallDistance, wallDistance-1, wallDistance)
@@ -105,7 +105,7 @@ func NewToriReplayScene() *Scene {
 		log.Fatalf("failed parsing obj file: %s", err.Error())
 	}
 	// todo do this inside parsing and scale for each dimension and scale by largest required
-	lizard.SetTransform(lizard.GetTransform().MulX4Matrix(geom.Scale(2/lizard.Bounds().Max.Y, 2/lizard.Bounds().Max.Y, 2/lizard.Bounds().Max.Y)).MulX4Matrix(geom.Translate(8, 4.7, 0)).MulX4Matrix(geom.RotateY(math.Pi / 1.25)))
+	lizard.SetTransform(lizard.GetTransform().MulX4Matrix(geom.Scale(2/lizard.BoundsOf().Max.Y, 2/lizard.BoundsOf().Max.Y, 2/lizard.BoundsOf().Max.Y)).MulX4Matrix(geom.Translate(8, 4.7, 0)).MulX4Matrix(geom.RotateY(math.Pi / 1.25)))
 	m = materials.Material{}
 	m.Pattern = patterns.NewSolidColorPattern(colors.Green())
 	m.Ambient = 0.15
@@ -115,7 +115,6 @@ func NewToriReplayScene() *Scene {
 	m.Reflective = 0.1
 	lizard.SetMaterial(m)
 	lizard.SetTransform(geom.Translate(0, 9.85, 6.45).MulX4Matrix(geom.Scale(2.4, 2.4, 2.4).MulX4Matrix(lizard.GetTransform())))
-	lizard = parse.CollapseGroups(1, lizard)
 	w.AddObject(lizard)
 
 	newLizard, err := parse.ParseObjFile("data/obj/LizardFolkOBJ.obj")
@@ -128,7 +127,6 @@ func NewToriReplayScene() *Scene {
 
 	newLizard.SetMaterial(lizard.GetMaterial())
 	w.AddObject(newLizard)
-	newLizard = parse.CollapseGroups(1, newLizard)
 
 	ic := shapes.NewInfiniteCylinder()
 	m = materials.NewMaterial()

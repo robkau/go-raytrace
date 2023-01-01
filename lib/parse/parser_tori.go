@@ -112,10 +112,11 @@ func (pr *ParsedReplay) AllScenes(stepsPerLine int, stepWidth float64) shapes.Gr
 		// translate this frame so player midpoint is centered
 		pg0 := pr.P0Positions[i].AsGroup()
 		pg1 := pr.P1Positions[i].AsGroup()
-		b0 := pg0.Bounds()
-		b1 := pg1.Bounds()
-		bCombined := b0.Add(b1.Min, b1.Max)
-		bc := bCombined.Center()
+		b0 := pg0.BoundsOf()
+		b1 := pg1.BoundsOf()
+
+		b0.AddBoundingBoxes(b1)
+		bc := b0.Center()
 
 		// center x-z for this replay frame (from players moving around during tori match)
 		pg0.SetTransform(geom.Translate(-bc.X, 0, -bc.Z).MulX4Matrix(pg0.GetTransform()))

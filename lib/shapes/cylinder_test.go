@@ -8,6 +8,22 @@ import (
 	"testing"
 )
 
+func Test_NewCylinder_BoundsOf(t *testing.T) {
+	s := NewCylinder(-5, 3, true)
+	s.SetTransform(geom.Translate(0, 1, 0)) // no effect
+
+	assert.Equal(t, geom.NewPoint(-1, -5, -1), s.BoundsOf().Min)
+	assert.Equal(t, geom.NewPoint(1, 3, 1), s.BoundsOf().Max)
+}
+
+func Test_NewInfiniteCylinder_BoundsOf(t *testing.T) {
+	s := NewInfiniteCylinder()
+	s.SetTransform(geom.Translate(0, 1, 0)) // no effect
+
+	assert.Equal(t, geom.NewPoint(-1, math.Inf(-1), -1), s.BoundsOf().Min)
+	assert.Equal(t, geom.NewPoint(1, math.Inf(1), 1), s.BoundsOf().Max)
+}
+
 func Test_RayMissesCylinder(t *testing.T) {
 	type args struct {
 		origin    geom.Tuple

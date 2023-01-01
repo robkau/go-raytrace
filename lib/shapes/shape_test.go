@@ -76,6 +76,34 @@ func Test_NormalTransformedShape(t *testing.T) {
 	assert.Equal(t, geom.NewVector(0, 0.97014, -0.24254), n)
 }
 
+func Test_IntersectNoChildrenIfBoundsMissed(t *testing.T) {
+	child := newTestShape()
+
+	g := NewGroup()
+
+	g.AddChild(child)
+
+	r := geom.RayWith(geom.NewPoint(0, 0, -5), geom.NewVector(0, 1, 0))
+
+	g.Intersect(r)
+
+	require.Equal(t, geom.Ray{}, child.savedRay)
+}
+
+func Test_IntersectChildrenIfBoundsMissed(t *testing.T) {
+	child := newTestShape()
+
+	g := NewGroup()
+
+	g.AddChild(child)
+
+	r := geom.RayWith(geom.NewPoint(0, 0, -5), geom.NewVector(0, 0, 1))
+
+	g.Intersect(r)
+
+	require.Equal(t, r, child.savedRay)
+}
+
 type testShape struct {
 	parent     Group
 	t          geom.X4Matrix
@@ -96,8 +124,8 @@ func newTestShape() *testShape {
 	}
 }
 
-func (t *testShape) Bounds() Bounds {
-	return newBounds(geom.NewPoint(-1, -1, -1), geom.NewPoint(1, 1, 1)).TransformTo(t.t)
+func (t *testShape) BoundsOf() *BoundingBox {
+	return NewBoundingBox(geom.NewPoint(-1, -1, -1), geom.NewPoint(1, 1, 1))
 }
 
 func (t *testShape) Invalidate() {

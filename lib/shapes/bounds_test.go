@@ -2,9 +2,9 @@ package shapes
 
 import (
 	"github.com/robkau/go-raytrace/lib/geom"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"math"
+	"strconv"
 	"testing"
 )
 
@@ -13,7 +13,7 @@ func Test_EmptyBoundingBox(t *testing.T) {
 
 	require.Equal(t, geom.NewPoint(math.Inf(1), math.Inf(1), math.Inf(1)), box.Min)
 	require.Equal(t, geom.NewPoint(math.Inf(-1), math.Inf(-1), math.Inf(-1)), box.Max)
-	require.Equal(t, EmptyBoundingBox(), box)
+	require.Equal(t, NewEmptyBoundingBox(), box)
 }
 
 func Test_BoundingBox(t *testing.T) {
@@ -24,7 +24,7 @@ func Test_BoundingBox(t *testing.T) {
 }
 
 func Test_BoundingBox_AddPoints(t *testing.T) {
-	box := EmptyBoundingBox()
+	box := NewEmptyBoundingBox()
 
 	box.Add(geom.NewPoint(-5, 2, 0))
 	box.Add(geom.NewPoint(7, 0, -3))
@@ -33,153 +33,138 @@ func Test_BoundingBox_AddPoints(t *testing.T) {
 	require.Equal(t, geom.NewPoint(7, 2, 0), box.Max)
 }
 
-func Test_Bounds_MinMax(t *testing.T) {
+func Test_BoundingBox_Transform(t *testing.T) {
+	box := NewBoundingBox(geom.NewPoint(-1, -1, -1), geom.NewPoint(1, 1, 1))
+
+	box.Transform(geom.RotateX(math.Pi / 4).MulX4Matrix(geom.RotateY(math.Pi / 4)))
+
+	require.True(t, geom.NewPoint(-1.414213562373095, -1.7071067811865475, -1.7071067811865475).Equals(box.Min))
+	require.True(t, geom.NewPoint(1.414213562373095, 1.7071067811865475, 1.7071067811865475).Equals(box.Max))
+}
+
+func Test_BoundingBox_AddBoxes(t *testing.T) {
+	box1 := NewBoundingBox(geom.NewPoint(-5, -2, 0), geom.NewPoint(7, 4, 4))
+	box2 := NewBoundingBox(geom.NewPoint(8, -7, -2), geom.NewPoint(14, 2, 8))
+
+	box1.AddBoundingBoxes(box2)
+
+	require.Equal(t, geom.NewPoint(-5, -7, -2), box1.Min)
+	require.Equal(t, geom.NewPoint(14, 4, 8), box1.Max)
+}
+
+func Test_BoundingBox_Contains(t *testing.T) {
+	box := NewBoundingBox(geom.NewPoint(5, -2, 0), geom.NewPoint(11, 4, 7))
+
 	type args struct {
-		p1  geom.Tuple
-		p2  geom.Tuple
-		min geom.Tuple
-		max geom.Tuple
-	}
-	tests := []struct {
-		name string
-		args args
-	}{
-		{"p1 smaller p2", args{geom.NewPoint(0.1, 0, -5), geom.NewPoint(1, 2, 3), geom.NewPoint(0.1, 0, -5), geom.NewPoint(1, 2, 3)}},
-		{"p1 equal p2", args{geom.NewPoint(1.2, 4, -5), geom.NewPoint(1.2, 4, -5), geom.NewPoint(1.2, 4, -5), geom.NewPoint(1.2, 4, -5)}},
-		{"p1 some larger than p2", args{geom.NewPoint(0, -999, 5), geom.NewPoint(-1, -2, -3), geom.NewPoint(-1, -999, -3), geom.NewPoint(0, -2, 5)}},
+		val    geom.Tuple
+		expect bool
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			b := newBounds(
-				tt.args.p1,
-				tt.args.p2,
-			)
+	tests := []args{
+		{geom.NewPoint(5, -2, 0), true},
+		{geom.NewPoint(11, 4, 7), true},
+		{geom.NewPoint(8, 1, 3), true},
+		{geom.NewPoint(3, 0, 3), false},
+		{geom.NewPoint(8, -4, 3), false},
+		{geom.NewPoint(8, 1, -1), false},
+		{geom.NewPoint(13, 1, 3), false},
+		{geom.NewPoint(8, 5, 3), false},
+		{geom.NewPoint(8, 1, 8), false},
+	}
 
-			require.Equal(t, tt.args.min, b.Min)
-			require.Equal(t, tt.args.max, b.Max)
+	for ti, tt := range tests {
+		t.Run(t.Name()+strconv.Itoa(ti), func(t *testing.T) {
+			c := box.Contains(tt.val)
+			require.Equal(t, tt.expect, c)
 		})
 	}
 }
 
-func Test_GroupBounds_TransformedChildren(t *testing.T) {
-	// c1 extends up 8 units from the origin, 0.5 in other directions
-	c1 := NewCube()
-	c1.SetTransform(geom.Translate(0, 4, 0).MulX4Matrix(geom.Scale(0.5, 4, 0.5)))
+func Test_BoundingBox_ContainsBox(t *testing.T) {
+	box := NewBoundingBox(geom.NewPoint(5, -2, 0), geom.NewPoint(11, 4, 7))
 
-	// c2 extends 2 units in all directions from origin
-	c2 := NewCube()
-	c2.SetTransform(geom.Scale(2, 2, 2))
+	type args struct {
+		val    *BoundingBox
+		expect bool
+	}
 
-	g := NewGroup()
-	g.AddChild(c1)
-	g.AddChild(c2)
+	tests := []args{
+		{NewBoundingBox(geom.NewPoint(5, -2, 0), geom.NewPoint(11, 4, 7)), true},
+		{NewBoundingBox(geom.NewPoint(6, -1, 1), geom.NewPoint(10, 3, 6)), true},
+		{NewBoundingBox(geom.NewPoint(4, -3, -1), geom.NewPoint(10, 3, 6)), false},
+		{NewBoundingBox(geom.NewPoint(6, -1, 1), geom.NewPoint(12, 5, 8)), false},
+	}
 
-	gb := g.Bounds()
-
-	require.Equal(t, geom.NewPoint(-2, -2, -2), gb.Min)
-	require.Equal(t, geom.NewPoint(2, 8, 2), gb.Max)
+	for ti, tt := range tests {
+		t.Run(t.Name()+strconv.Itoa(ti), func(t *testing.T) {
+			c := box.ContainsBox(tt.val)
+			require.Equal(t, tt.expect, c)
+		})
+	}
 }
 
-func Test_GroupBounds_TransformedGroupAndChild(t *testing.T) {
-	// c extends 1 unit in all directions from origin of 1,0,0
-	c1 := NewCube()
-	c1.SetTransform(geom.Translate(1, 0, 0))
+func Test_BoundingBox_Intersect(t *testing.T) {
+	box := NewBoundingBox(geom.NewPoint(-1, -1, -1), geom.NewPoint(1, 1, 1))
 
-	g := NewGroup()
-	g.AddChild(c1)
+	type args struct {
+		origin    geom.Tuple
+		direction geom.Tuple
+		expect    bool
+	}
 
-	// rotated 180 deg around Y axis and scaled x3
-	g.SetTransform(geom.RotateY(math.Pi).MulX4Matrix(geom.Scale(3, 3, 3)))
+	tests := []args{
+		{geom.NewPoint(5, 0.5, 0), geom.NewVector(-1, 0, 0), true},
+		{geom.NewPoint(-5, 0.5, 0), geom.NewVector(1, 0, 0), true},
+		{geom.NewPoint(0.5, 5, 0), geom.NewVector(0, -1, 0), true},
+		{geom.NewPoint(0.5, -5, 0), geom.NewVector(0, 1, 0), true},
+		{geom.NewPoint(0.5, 0, 5), geom.NewVector(0, 0, -1), true},
+		{geom.NewPoint(0.5, 0, -5), geom.NewVector(0, 0, 1), true},
+		{geom.NewPoint(0, 0.5, 0), geom.NewVector(0, 0, 1), true},
+		{geom.NewPoint(-2, 0, 0), geom.NewVector(2, 4, 6), false},
+		{geom.NewPoint(0, -2, 0), geom.NewVector(6, 2, 4), false},
+		{geom.NewPoint(0, 0, -2), geom.NewVector(4, 6, 2), false},
+		{geom.NewPoint(2, 0, 2), geom.NewVector(0, 0, -1), false},
+		{geom.NewPoint(0, 2, 2), geom.NewVector(0, -1, 0), false},
+		{geom.NewPoint(2, 2, 0), geom.NewVector(-1, 0, 0), false},
+	}
 
-	gb := g.Bounds()
-
-	assert.True(t, geom.NewPoint(-6, -3, -3).Equals(gb.Min))
-	assert.True(t, geom.NewPoint(0, 3, 3).Equals(gb.Max))
+	for ti, tt := range tests {
+		t.Run(t.Name()+strconv.Itoa(ti), func(t *testing.T) {
+			v := box.Intersect(geom.RayWith(tt.origin, tt.direction))
+			require.Equal(t, v, tt.expect)
+		})
+	}
 }
 
-func Test_ShapeHasBounds(t *testing.T) {
-	ts := newTestShape()
-	s := NewSphere()
+func Test_BoundingBoxNonCubic_Intersect(t *testing.T) {
+	box := NewBoundingBox(geom.NewPoint(5, -2, 0), geom.NewPoint(11, 4, 7))
 
-	tsb := ts.Bounds()
-	sb := s.Bounds()
+	type args struct {
+		origin    geom.Tuple
+		direction geom.Tuple
+		expect    bool
+	}
 
-	require.True(t, tsb.Min.X < tsb.Max.X)
-	require.True(t, tsb.Min.Y < tsb.Max.Y)
-	require.True(t, tsb.Min.Z < tsb.Max.Z)
+	tests := []args{
+		{geom.NewPoint(15, 1, 2), geom.NewVector(-1, 0, 0), true},
+		{geom.NewPoint(-5, -1, 4), geom.NewVector(1, 0, 0), true},
+		{geom.NewPoint(7, 6, 5), geom.NewVector(0, -1, 0), true},
+		{geom.NewPoint(9, -5, 6), geom.NewVector(0, 1, 0), true},
+		{geom.NewPoint(8, 2, 12), geom.NewVector(0, 0, -1), true},
+		{geom.NewPoint(6, 0, -5), geom.NewVector(0, 0, 1), true},
+		{geom.NewPoint(8, 1, 3.5), geom.NewVector(0, 0, 1), true},
+		{geom.NewPoint(9, -1, -8), geom.NewVector(2, 4, 6), false},
+		{geom.NewPoint(8, 3, -4), geom.NewVector(6, 2, 4), false},
+		{geom.NewPoint(9, -1, -2), geom.NewVector(4, 6, 2), false},
+		{geom.NewPoint(4, 0, 9), geom.NewVector(0, 0, -1), false},
+		{geom.NewPoint(8, 6, -1), geom.NewVector(0, -1, 0), false},
+		{geom.NewPoint(12, 5, 4), geom.NewVector(-1, 0, 0), false},
+	}
 
-	require.True(t, sb.Min.X < sb.Max.X)
-	require.True(t, sb.Min.Y < sb.Max.Y)
-	require.True(t, sb.Min.Z < sb.Max.Z)
-}
-
-func Test_TransformedShapeBounds_Scale_Sphere(t *testing.T) {
-	s := NewSphere()
-	s.SetTransform(geom.Scale(2, 2, 2))
-
-	sb := s.Bounds()
-
-	require.Equal(t, float64(-2), sb.Min.X)
-	require.Equal(t, float64(-2), sb.Min.Y)
-	require.Equal(t, float64(-2), sb.Min.Z)
-
-	require.Equal(t, float64(2), sb.Max.X)
-	require.Equal(t, float64(2), sb.Max.Y)
-	require.Equal(t, float64(2), sb.Max.Z)
-}
-
-func Test_TransformedShapeBounds_Scale_Cube(t *testing.T) {
-	c := NewCube()
-	c.SetTransform(geom.Scale(0.5, 4, 2))
-
-	cb := c.Bounds()
-
-	require.Equal(t, geom.NewPoint(-0.5, -4, -2), cb.Min)
-	require.Equal(t, geom.NewPoint(0.5, 4, 2), cb.Max)
-}
-
-func Test_TransformedShapeBounds_Translate(t *testing.T) {
-	s := NewSphere()
-	s.SetTransform(geom.Translate(2, 2, 2))
-
-	sb := s.Bounds()
-
-	require.Equal(t, float64(1), sb.Min.X)
-	require.Equal(t, float64(1), sb.Min.Y)
-	require.Equal(t, float64(1), sb.Min.Z)
-
-	require.Equal(t, float64(3), sb.Max.X)
-	require.Equal(t, float64(3), sb.Max.Y)
-	require.Equal(t, float64(3), sb.Max.Z)
-}
-
-func Test_TransformedShapeBounds_Rotate45(t *testing.T) {
-	s := NewCube()
-	s.SetTransform(geom.RotateY(math.Pi / 4))
-
-	sb := s.Bounds()
-
-	require.True(t, geom.AlmostEqual(-math.Sqrt2, sb.Min.X))
-	require.True(t, geom.AlmostEqual(-1, sb.Min.Y))
-	require.True(t, geom.AlmostEqual(-math.Sqrt2, sb.Min.Z))
-
-	require.True(t, geom.AlmostEqual(math.Sqrt2, sb.Max.X))
-	require.True(t, geom.AlmostEqual(1, sb.Max.Y))
-	require.True(t, geom.AlmostEqual(math.Sqrt2, sb.Max.Z))
-}
-
-func Test_TransformedShapeBounds_Rotate90(t *testing.T) {
-	s := NewCube()
-	s.SetTransform(geom.RotateY(math.Pi / 2))
-
-	sb := s.Bounds()
-
-	require.Equal(t, float64(-1), sb.Min.X)
-	require.Equal(t, float64(-1), sb.Min.Y)
-	require.Equal(t, float64(-1), sb.Min.Z)
-
-	require.Equal(t, float64(1), sb.Max.X)
-	require.Equal(t, float64(1), sb.Max.Y)
-	require.Equal(t, float64(1), sb.Max.Z)
+	for ti, tt := range tests {
+		t.Run(t.Name()+strconv.Itoa(ti), func(t *testing.T) {
+			v := box.Intersect(geom.RayWith(tt.origin, tt.direction))
+			require.Equal(t, v, tt.expect)
+		})
+	}
 }

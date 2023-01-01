@@ -134,3 +134,19 @@ func Test_NormalOnChildObject(t *testing.T) {
 
 	require.Equal(t, geom.NewVector(0.286, 0.429, -0.857), n.RoundTo(3))
 }
+
+func Test_GroupBoundsContainsChildren(t *testing.T) {
+	s := NewSphere()
+	s.SetTransform(geom.Translate(2, 5, -3).MulX4Matrix(geom.Scale(2, 2, 2)))
+	c := NewCylinder(-2, 2, true)
+	c.SetTransform(geom.Translate(-4, -1, 4).MulX4Matrix(geom.Scale(0.5, 1, 0.5)))
+
+	g := NewGroup()
+	g.AddChild(s)
+	g.AddChild(c)
+
+	box := g.BoundsOf()
+
+	require.Equal(t, geom.NewPoint(-4.5, -3, -5), box.Min)
+	require.Equal(t, geom.NewPoint(4, 7, 4.5), box.Max)
+}

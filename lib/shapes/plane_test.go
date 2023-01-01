@@ -3,8 +3,17 @@ package shapes
 import (
 	"github.com/robkau/go-raytrace/lib/geom"
 	"github.com/stretchr/testify/assert"
+	"math"
 	"testing"
 )
+
+func Test_NewPlane_BoundsOf(t *testing.T) {
+	s := NewPlane()
+	s.SetTransform(geom.Translate(0, 1, 0)) // no effect
+
+	assert.Equal(t, geom.NewPoint(math.Inf(-1), 0, math.Inf(-1)), s.BoundsOf().Min)
+	assert.Equal(t, geom.NewPoint(math.Inf(1), 0, math.Inf(1)), s.BoundsOf().Max)
+}
 
 func Test_PlaneNormal_Constant(t *testing.T) {
 	p := NewPlane()

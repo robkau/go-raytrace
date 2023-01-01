@@ -22,7 +22,6 @@ func NewTeapotScene() *Scene {
 		log.Fatalf("failed parsing obj file: %s", err.Error())
 	}
 	g.SetTransform(g.GetTransform().MulX4Matrix(geom.Translate(0, 0, -20)).MulX4Matrix(geom.RotateX(-math.Pi / 2)))
-	g = parse.CollapseGroups(2, g)
 	m := materials.NewMaterial()
 	m.Pattern = patterns.NewSolidColorPattern(colors.Green())
 	m.Ambient = 0.3

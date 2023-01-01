@@ -15,8 +15,9 @@ func NewPlane() *Plane {
 	}
 }
 
-func (p *Plane) Bounds() Bounds {
-	return newBounds(geom.NewPoint(math.Inf(-1), 0, math.Inf(-1)), geom.NewPoint(math.Inf(1), 0, math.Inf(1))).TransformTo(p.t)
+// BoundsOf is for untransformed shape
+func (p *Plane) BoundsOf() *BoundingBox {
+	return NewBoundingBox(geom.NewPoint(math.Inf(-1), 0, math.Inf(-1)), geom.NewPoint(math.Inf(1), 0, math.Inf(1)))
 }
 
 func (p *Plane) NormalAt(pt geom.Tuple, _ Intersection) geom.Tuple {

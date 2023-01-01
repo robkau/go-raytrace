@@ -20,50 +20,49 @@ type group struct {
 	shadowless bool
 	id         string
 
-	bounds    Bounds
-	boundsSet bool
-	rw        sync.RWMutex
+	bounds *BoundingBox
+	rw     sync.RWMutex
 }
 
 func NewGroup() Group {
 	return &group{
 		t:        geom.NewIdentityMatrixX4(),
 		children: make([]Shape, 0),
+		bounds:   NewEmptyBoundingBox(),
 	}
 }
 
 func (g *group) Intersect(ray geom.Ray) *Intersections {
-	// if ray does not intersect groups bounding box - skip
-	if !g.Bounds().Intersects(ray) {
-		return NewIntersections()
-	}
 	return Intersect(ray, g.t, g.LocalIntersect)
 }
 
 func (g *group) LocalIntersect(r geom.Ray) *Intersections {
 	xs := NewIntersections()
 
-	// add the intersection for each child in the group
-	// should return sorted by t
-	for _, s := range g.children {
-		xs.AddFrom(s.Intersect(r))
+	if g.bounds.Intersect(r) {
+		// add the intersection for each child in the group
+		// should return sorted by t
+		for _, s := range g.children {
+			xs.AddFrom(s.Intersect(r))
+		}
 	}
 
 	return xs
 }
 
-func (g *group) Bounds() Bounds {
-	return g.bounds
+func (g *group) BoundsOf() *BoundingBox {
+	b := NewEmptyBoundingBox()
+	for _, c := range g.children {
+		childBoundsTransformed := ParentSpaceBoundsOf(c)
+		b.AddBoundingBoxes(childBoundsTransformed)
+	}
+	return b
 }
 
 func (g *group) Invalidate() {
 	// g should already be locked
-	g.bounds = newBounds()
-	for _, c := range g.children {
-		childBounds := c.Bounds()
-		childBoundsTransformed := childBounds.TransformTo(g.t)
-		g.bounds = g.bounds.Add(childBoundsTransformed.Min, childBoundsTransformed.Max)
-	}
+	g.bounds = g.BoundsOf()
+
 	if g.parent != nil {
 		g.parent.Invalidate()
 	}
