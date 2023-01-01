@@ -13,6 +13,24 @@ func Test_EmptyBoundingBox(t *testing.T) {
 
 	require.Equal(t, geom.NewPoint(math.Inf(1), math.Inf(1), math.Inf(1)), box.Min)
 	require.Equal(t, geom.NewPoint(math.Inf(-1), math.Inf(-1), math.Inf(-1)), box.Max)
+	require.Equal(t, EmptyBoundingBox(), box)
+}
+
+func Test_BoundingBox(t *testing.T) {
+	box := NewBoundingBox(geom.NewPoint(-1, -2, -3), geom.NewPoint(3, 2, 1))
+
+	require.Equal(t, geom.NewPoint(-1, -2, -3), box.Min)
+	require.Equal(t, geom.NewPoint(3, 2, 1), box.Max)
+}
+
+func Test_BoundingBox_AddPoints(t *testing.T) {
+	box := EmptyBoundingBox()
+
+	box.Add(geom.NewPoint(-5, 2, 0))
+	box.Add(geom.NewPoint(7, 0, -3))
+
+	require.Equal(t, geom.NewPoint(-5, 0, -3), box.Min)
+	require.Equal(t, geom.NewPoint(7, 2, 0), box.Max)
 }
 
 func Test_Bounds_MinMax(t *testing.T) {

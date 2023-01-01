@@ -20,3 +20,33 @@ func NewBoundingBox(min, max geom.Tuple) *BoundingBox {
 		Max: max,
 	}
 }
+
+func EmptyBoundingBox() *BoundingBox {
+	return &BoundingBox{
+		Min: geom.PosInfPoint(),
+		Max: geom.NegInfPoint(),
+	}
+}
+
+func (b *BoundingBox) Add(points ...geom.Tuple) {
+	for _, p := range points {
+		if p.X < b.Min.X {
+			b.Min.X = p.X
+		}
+		if p.Y < b.Min.Y {
+			b.Min.Y = p.Y
+		}
+		if p.Z < b.Min.Z {
+			b.Min.Z = p.Z
+		}
+		if p.X > b.Max.X {
+			b.Max.X = p.X
+		}
+		if p.Y > b.Max.Y {
+			b.Max.Y = p.Y
+		}
+		if p.Z > b.Max.Z {
+			b.Max.Z = p.Z
+		}
+	}
+}
