@@ -48,6 +48,8 @@ func start() *state {
 
 	// render middle
 	go func() {
+		// todo race when scene changed.
+
 		for {
 			// todo: render option for # of rays picking random pixels & size to multiply color by
 			// (list of pixels hit for each frame and last N frames, average by distance then time)

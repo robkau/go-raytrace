@@ -168,3 +168,47 @@ func Test_BoundingBoxNonCubic_Intersect(t *testing.T) {
 		})
 	}
 }
+
+func Test_SplitPerfectCube(t *testing.T) {
+	box := NewBoundingBox(geom.NewPoint(-1, -4, -5), geom.NewPoint(9, 6, 5))
+
+	left, right := box.SplitBounds()
+
+	require.Equal(t, geom.NewPoint(-1, -4, -5), left.Min)
+	require.Equal(t, geom.NewPoint(4, 6, 5), left.Max)
+	require.Equal(t, geom.NewPoint(4, -4, -5), right.Min)
+	require.Equal(t, geom.NewPoint(9, 6, 5), right.Max)
+}
+
+func Test_SplitXWideCube(t *testing.T) {
+	box := NewBoundingBox(geom.NewPoint(-1, -2, -3), geom.NewPoint(9, 5.5, 3))
+
+	left, right := box.SplitBounds()
+
+	require.Equal(t, geom.NewPoint(-1, -2, -3), left.Min)
+	require.Equal(t, geom.NewPoint(4, 5.5, 3), left.Max)
+	require.Equal(t, geom.NewPoint(4, -2, -3), right.Min)
+	require.Equal(t, geom.NewPoint(9, 5.5, 3), right.Max)
+}
+
+func Test_SplitYWideCube(t *testing.T) {
+	box := NewBoundingBox(geom.NewPoint(-1, -2, -3), geom.NewPoint(5, 8, 3))
+
+	left, right := box.SplitBounds()
+
+	require.Equal(t, geom.NewPoint(-1, -2, -3), left.Min)
+	require.Equal(t, geom.NewPoint(5, 3, 3), left.Max)
+	require.Equal(t, geom.NewPoint(-1, 3, -3), right.Min)
+	require.Equal(t, geom.NewPoint(5, 8, 3), right.Max)
+}
+
+func Test_SplitZWideCube(t *testing.T) {
+	box := NewBoundingBox(geom.NewPoint(-1, -2, -3), geom.NewPoint(5, 3, 7))
+
+	left, right := box.SplitBounds()
+
+	require.Equal(t, geom.NewPoint(-1, -2, -3), left.Min)
+	require.Equal(t, geom.NewPoint(5, 3, 2), left.Max)
+	require.Equal(t, geom.NewPoint(-1, -2, 2), right.Min)
+	require.Equal(t, geom.NewPoint(5, 3, 7), right.Max)
+}

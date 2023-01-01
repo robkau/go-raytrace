@@ -1,6 +1,9 @@
 package shapes
 
-import "github.com/robkau/go-raytrace/lib/geom"
+import (
+	"github.com/robkau/go-raytrace/lib/geom"
+	"math"
+)
 
 type BoundingBox struct {
 	Min geom.Tuple
@@ -99,6 +102,39 @@ func (b *BoundingBox) Intersect(r geom.Ray) bool {
 		return false
 	}
 	return true
+}
+
+func (b *BoundingBox) SplitBounds() (left, right *BoundingBox) {
+	dx := b.Max.X - b.Min.X
+	dy := b.Max.Y - b.Min.Y
+	dz := b.Max.Z - b.Min.Z
+
+	greatest := math.Max(math.Max(dx, dy), dz)
+
+	x0 := b.Min.X
+	y0 := b.Min.Y
+	z0 := b.Min.Z
+	x1 := b.Max.X
+	y1 := b.Max.Y
+	z1 := b.Max.Z
+
+	if greatest == dx {
+		x0 = x0 + dx/2.0
+		x1 = x0
+	} else if greatest == dy {
+		y0 = y0 + dy/2.0
+		y1 = y0
+	} else {
+		z0 = z0 + dz/2.0
+		z1 = z0
+	}
+
+	midMin := geom.NewPoint(x0, y0, z0)
+	midMax := geom.NewPoint(x1, y1, z1)
+
+	left = NewBoundingBox(b.Min, midMax)
+	right = NewBoundingBox(midMin, b.Max)
+	return
 }
 
 func (b *BoundingBox) Center() geom.Tuple {
