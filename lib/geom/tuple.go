@@ -28,6 +28,14 @@ func ZeroPoint() Tuple {
 	return Tuple{0, 0, 0, point}
 }
 
+func NegInfPoint() Tuple {
+	return Tuple{math.Inf(-1), math.Inf(-1), math.Inf(-1), point}
+}
+
+func PosInfPoint() Tuple {
+	return Tuple{math.Inf(1), math.Inf(1), math.Inf(1), point}
+}
+
 func NewVector(x, y, z float64) Tuple {
 	return Tuple{x, y, z, Vector}
 }

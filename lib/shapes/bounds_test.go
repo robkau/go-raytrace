@@ -8,6 +8,13 @@ import (
 	"testing"
 )
 
+func Test_EmptyBoundingBox(t *testing.T) {
+	box := NewBoundingBox(geom.ZeroPoint(), geom.ZeroPoint())
+
+	require.Equal(t, geom.NewPoint(math.Inf(1), math.Inf(1), math.Inf(1)), box.Min)
+	require.Equal(t, geom.NewPoint(math.Inf(-1), math.Inf(-1), math.Inf(-1)), box.Max)
+}
+
 func Test_Bounds_MinMax(t *testing.T) {
 	type args struct {
 		p1  geom.Tuple
