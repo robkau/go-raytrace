@@ -86,7 +86,7 @@ func Test_ConeNormal_EndCaps(t *testing.T) {
 		name string
 		args args
 	}{
-		{"1", args{geom.ZeroPoint(), geom.NewVector(0, 0, 0)}},
+		{"1", args{geom.ZeroPoint(), geom.ZeroVector()}},
 		{"2", args{geom.NewPoint(1, 1, 1), geom.NewVector(1, -math.Sqrt(2), 1)}},
 		{"3", args{geom.NewPoint(-1, -1, 0), geom.NewVector(-1, 1, 0)}},
 	}

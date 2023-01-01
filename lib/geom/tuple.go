@@ -32,6 +32,10 @@ func NewVector(x, y, z float64) Tuple {
 	return Tuple{x, y, z, Vector}
 }
 
+func ZeroVector() Tuple {
+	return Tuple{0, 0, 0, Vector}
+}
+
 func UpVector() Tuple {
 	return NewVector(0, 1, 0)
 }
