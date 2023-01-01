@@ -59,5 +59,7 @@ func NewCappedCylinderScene() *Scene {
 	w.AddObject(walls)
 	w.AddObject(floorAndCeiling)
 
+	w.Divide(8)
+
 	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
 }

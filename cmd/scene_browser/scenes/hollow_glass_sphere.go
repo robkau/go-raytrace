@@ -46,5 +46,6 @@ func NewHollowGlassSphereScene() *Scene {
 	cameraPos := geom.NewPoint(0, 0, -5)
 	cameraLookingAt := geom.ZeroPoint()
 
+	w.Divide(8)
 	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
 }

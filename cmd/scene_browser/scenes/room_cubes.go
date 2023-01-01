@@ -75,5 +75,6 @@ func NewRoomScene() *Scene {
 	w.AddObject(floorAndCeiling)
 	w.AddObject(walls)
 
+	w.Divide(8)
 	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
 }

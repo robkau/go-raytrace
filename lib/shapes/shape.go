@@ -23,6 +23,7 @@ type Shape interface {
 	SetShaded(s bool)
 	GetParent() Group
 	SetParent(g Group)
+	Divide(threshold int)
 	Invalidate()
 	Id() string
 }
@@ -116,6 +117,10 @@ func (b *baseShape) GetParent() Group {
 func (b *baseShape) SetParent(g Group) {
 	b.parent = g
 	b.Invalidate()
+}
+
+func (b *baseShape) Divide(threshold int) {
+	return // noop for shapes.
 }
 
 func (b *baseShape) Invalidate() {

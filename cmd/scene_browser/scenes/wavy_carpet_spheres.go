@@ -82,5 +82,6 @@ func NewWavyCarpetSpheres() *Scene {
 	cameraPos := geom.NewPoint(2, 4, -3)
 	cameraLookingAt := geom.NewPoint(0, 1, 0)
 
+	w.Divide(16)
 	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
 }

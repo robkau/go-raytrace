@@ -150,3 +150,105 @@ func Test_GroupBoundsContainsChildren(t *testing.T) {
 	require.Equal(t, geom.NewPoint(-4.5, -3, -5), box.Min)
 	require.Equal(t, geom.NewPoint(4, 7, 4.5), box.Max)
 }
+
+func Test_Group_PartitionChildren(t *testing.T) {
+	s1 := NewSphere()
+	s1.SetTransform(geom.Translate(-2, 0, 0))
+	s2 := NewSphere()
+	s2.SetTransform(geom.Translate(2, 0, 0))
+	s3 := NewSphere()
+
+	g := NewGroup()
+	g.AddChild(s1) // todo change to shape...
+	g.AddChild(s2)
+	g.AddChild(s3)
+
+	left, right := g.PartitionChildren()
+
+	gChildren := g.GetChildren()
+	leftChildren := left.GetChildren()
+	rightChildren := right.GetChildren()
+
+	require.Equal(t, []Shape{s3}, gChildren)
+	require.Equal(t, []Shape{s1}, leftChildren)
+	require.Equal(t, []Shape{s2}, rightChildren)
+}
+
+func Test_Group_AddSubgroup(t *testing.T) {
+	s1 := NewSphere()
+	s2 := NewSphere()
+
+	g := NewGroup()
+
+	sg := NewGroup()
+	sg.AddChild(s1)
+	sg.AddChild(s2)
+
+	g.AddChild(sg)
+	require.Len(t, g.GetChildren(), 1)
+
+	gg := g.GetChildren()[0].(Group)
+	require.Equal(t, []Shape{s1, s2}, gg.GetChildren())
+}
+
+func Test_Group_Divide(t *testing.T) {
+	s1 := NewSphere()
+	s1.SetTransform(geom.Translate(-2, -2, 0))
+	s2 := NewSphere()
+	s2.SetTransform(geom.Translate(-2, 2, 0))
+	s3 := NewSphere()
+	s3.SetTransform(geom.Scale(4, 4, 4))
+
+	g := NewGroup()
+	g.AddChild(s1)
+	g.AddChild(s2)
+	g.AddChild(s3)
+
+	g.Divide(1)
+
+	require.Equal(t, s3, g.GetChildren()[0])
+
+	gg := g.GetChildren()[1].(Group)
+	require.Len(t, gg.GetChildren(), 2)
+
+	ggl := gg.GetChildren()[0].(Group)
+	ggr := gg.GetChildren()[1].(Group)
+	require.Equal(t, []Shape{s1}, ggl.GetChildren())
+	require.Equal(t, []Shape{s2}, ggr.GetChildren())
+}
+
+func Test_Group_Divide_TooFewChildren(t *testing.T) {
+	s1 := NewSphere()
+	s1.SetTransform(geom.Translate(-2, 0, 0))
+	s2 := NewSphere()
+	s2.SetTransform(geom.Translate(2, 1, 0))
+	s3 := NewSphere()
+	s3.SetTransform(geom.Translate(2, -1, 0))
+	s4 := NewSphere()
+
+	sg := NewGroup()
+	sg.AddChild(s1)
+	sg.AddChild(s2)
+	sg.AddChild(s3)
+
+	g := NewGroup()
+	g.AddChild(sg)
+	g.AddChild(s4)
+
+	g.Divide(3)
+
+	gc := g.GetChildren()
+	require.Len(t, gc, 2)
+
+	require.Equal(t, sg, gc[0])
+	require.Equal(t, s4, gc[1])
+
+	sgc := sg.GetChildren()
+	require.Len(t, sgc, 2)
+
+	sgcl := sgc[0].(Group)
+	sgcr := sgc[1].(Group)
+
+	require.Equal(t, []Shape{s1}, sgcl.GetChildren())
+	require.Equal(t, []Shape{s2, s3}, sgcr.GetChildren())
+}

@@ -41,3 +41,26 @@ package shapes
 //    return ()
 //  end if
 //end function
+
+//There's just one more shape to which you need to add support for divide(): the CSG shape. In this case the divide() function does nothing to the shape itself, but, propagates the call to the shape's children.
+//
+//The following test demonstrates this with a CSG shape consisting of two groups, each containing two spheres. After calling divide() on the CSG shape, the left and right children will have been split into two subgroups.
+//
+//csg.feature
+//Scenario: Subdividing a CSG shape subdivides its children
+//  Given s1 ← sphere() with:
+//      | transform | translation(-1.5, 0, 0) |
+//    And s2 ← sphere() with:
+//      | transform | translation(1.5, 0, 0) |
+//    And left ← group() of [s1, s2]
+//    And s3 ← sphere() with:
+//      | transform | translation(0, 0, -1.5) |
+//    And s4 ← sphere() with:
+//      | transform | translation(0, 0, 1.5) |
+//    And right ← group() of [s3, s4]
+//    And shape ← csg("difference", left, right)
+//  When divide(shape, 1)
+//  Then left[0] is a group of [s1]
+//    And left[1] is a group of [s2]
+//    And right[0] is a group of [s3]
+//    And right[1] is a group of [s4]

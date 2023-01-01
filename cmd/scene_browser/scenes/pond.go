@@ -68,5 +68,7 @@ func NewPondScene() *Scene {
 	cameraPos := geom.NewPoint(18, 5, -10)
 	cameraLookingAt := geom.ZeroPoint()
 
+	w.Divide(8)
+
 	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
 }

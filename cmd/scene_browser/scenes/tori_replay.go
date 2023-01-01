@@ -71,11 +71,13 @@ func NewToriReplayScene() *Scene {
 		w.AddObject(hollowCenter)
 	}
 
-	g := pr.AllScenes(shellsPerLine, sceneSpacing)
-	w.AddObject(g)
+	ss := pr.AllScenes(shellsPerLine, sceneSpacing)
+	for _, sp := range ss {
+		w.AddObject(sp)
+	}
 
 	// camera points to center of displayed tori frames
-	c := g.BoundsOf().Center()
+	c := w.BoundsOf().Center()
 
 	// floor and ceiling as one cube
 	var floorAndCeiling = sizedCubeAt(0, 0, 0, wallDistance, wallDistance-1, wallDistance)
@@ -157,6 +159,8 @@ func NewToriReplayScene() *Scene {
 	//w.AddLight(shapes.NewPointLight(geom.NewPoint(cameraDistance/2, sceneSpacing * 6, 0), colors.NewColorFromHex("af005f").MulBy(2)))
 
 	cLookingAt := geom.NewPoint(0, c.Y, c.Z).Add(geom.NewPoint(0, 1.25, 0))
+
+	w.Divide(8)
 	return NewScene(w, basicRotatedCameras(cLookingAt, cameraDistance)...)
 }
 

@@ -35,6 +35,12 @@ func start() *state {
 			scenes.NewToriReplayScene,
 			scenes.NewStoneGolemScene,
 			scenes.NewWavyCarpetSpheres,
+			scenes.NewTeapotScene,
+			scenes.NewPondScene,
+			scenes.NewCappedCylinderScene,
+			scenes.NewGroupGridScene,
+			scenes.NewHollowGlassSphereScene,
+			scenes.NewRoomScene,
 		),
 		canvas: view.NewCanvas(width, width),
 		loc: &scenes.CameraLocation{

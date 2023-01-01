@@ -10,6 +10,7 @@ type Group interface {
 	Shape
 	GetChildren() []Shape
 	AddChild(s Shape)
+	PartitionChildren() (left, right Group)
 }
 
 type group struct {
@@ -59,6 +60,22 @@ func (g *group) BoundsOf() *BoundingBox {
 	return b
 }
 
+func (g *group) Divide(threshold int) {
+	if threshold <= len(g.children) {
+		left, right := g.PartitionChildren()
+		if len(left.GetChildren()) > 0 {
+			g.AddChild(left)
+		}
+		if len(right.GetChildren()) > 0 {
+			g.AddChild(right)
+		}
+	}
+
+	for _, child := range g.children {
+		child.Divide(threshold)
+	}
+}
+
 func (g *group) Invalidate() {
 	// g should already be locked
 	g.bounds = g.BoundsOf()
@@ -104,6 +121,7 @@ func (g *group) GetParent() Group {
 func (g *group) SetParent(gr Group) {
 	g.rw.Lock()
 	defer g.rw.Unlock()
+	// todo old parent not updated.
 	g.parent = gr
 	g.Invalidate()
 }
@@ -118,6 +136,32 @@ func (g *group) AddChild(s Shape) {
 	s.SetParent(g)
 	g.children = append(g.children, s)
 	g.Invalidate()
+}
+
+func (g *group) PartitionChildren() (left, right Group) {
+	g.rw.Lock()
+	defer g.rw.Unlock()
+
+	left = NewGroup()
+	right = NewGroup()
+
+	leftBounds, rightBounds := g.bounds.SplitBounds()
+	// zero-length slice with the same underlying array
+	remainingChildren := g.children[:0]
+
+	for _, c := range g.children {
+		if leftBounds.ContainsBox(ParentSpaceBoundsOf(c)) {
+			left.AddChild(c)
+		} else if rightBounds.ContainsBox(ParentSpaceBoundsOf(c)) {
+			right.AddChild(c)
+		} else {
+			remainingChildren = append(remainingChildren, c)
+		}
+	}
+
+	g.children = remainingChildren
+	g.Invalidate()
+	return
 }
 
 func (g *group) NormalAt(tuple geom.Tuple, _ Intersection) geom.Tuple {

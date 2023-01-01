@@ -12,13 +12,13 @@ import (
 )
 
 type World struct {
-	objects      []shapes.Shape
+	g            shapes.Group
 	lightSources []shapes.PointLight
 }
 
 func NewWorld() *World {
 	return &World{
-		objects:      []shapes.Shape{},
+		g:            shapes.NewGroup(),
 		lightSources: []shapes.PointLight{},
 	}
 }
@@ -45,7 +45,7 @@ func defaultWorld() *World {
 }
 
 func (w *World) AddObject(s shapes.Shape) {
-	w.objects = append(w.objects, s)
+	w.g.AddChild(s)
 }
 
 func (w *World) AddLight(l shapes.PointLight) {
@@ -54,7 +54,7 @@ func (w *World) AddLight(l shapes.PointLight) {
 
 func (w *World) Intersect(r geom.Ray) *shapes.Intersections {
 	is := shapes.NewIntersections()
-	for _, s := range w.objects {
+	for _, s := range w.g.GetChildren() {
 		xs := s.Intersect(r)
 		is.AddFrom(xs)
 	}
@@ -151,6 +151,14 @@ func (w *World) IsShadowed(p geom.Tuple) bool {
 		}
 	}
 	return false
+}
+
+func (w *World) Divide(threshold int) {
+	w.g.Divide(threshold)
+}
+
+func (w *World) BoundsOf() *shapes.BoundingBox {
+	return w.g.BoundsOf()
 }
 
 // todo replace c.rencder?
