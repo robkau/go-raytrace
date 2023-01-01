@@ -80,7 +80,7 @@ func Test_RayIntersectSphere_Miss(t *testing.T) {
 
 func Test_RayIntersectSphere_FromInside(t *testing.T) {
 	s := NewSphere()
-	r := geom.RayWith(geom.NewPoint(0, 0, 0), geom.NewVector(0, 0, 1))
+	r := geom.RayWith(geom.ZeroPoint(), geom.NewVector(0, 0, 1))
 
 	xs := s.Intersect(r)
 

@@ -6,7 +6,7 @@ import (
 )
 
 func Test_DefaultTransformationMatrix(t *testing.T) {
-	from := NewPoint(0, 0, 0)
+	from := ZeroPoint()
 	to := NewPoint(0, 0, -1)
 	up := NewVector(0, 1, 0)
 
@@ -16,7 +16,7 @@ func Test_DefaultTransformationMatrix(t *testing.T) {
 }
 
 func Test_PositiveZTransformationMatrix(t *testing.T) {
-	from := NewPoint(0, 0, 0)
+	from := ZeroPoint()
 	to := NewPoint(0, 0, 1)
 	up := NewVector(0, 1, 0)
 
@@ -27,7 +27,7 @@ func Test_PositiveZTransformationMatrix(t *testing.T) {
 
 func Test_WorldMovedTransformationMatrix(t *testing.T) {
 	from := NewPoint(0, 0, 8)
-	to := NewPoint(0, 0, 0)
+	to := ZeroPoint()
 	up := NewVector(0, 1, 0)
 
 	tr := ViewTransform(from, to, up)

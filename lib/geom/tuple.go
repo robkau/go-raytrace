@@ -24,6 +24,10 @@ func NewPoint(x, y, z float64) Tuple {
 	return Tuple{x, y, z, point}
 }
 
+func ZeroPoint() Tuple {
+	return Tuple{0, 0, 0, point}
+}
+
 func NewVector(x, y, z float64) Tuple {
 	return Tuple{x, y, z, Vector}
 }

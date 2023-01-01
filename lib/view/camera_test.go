@@ -34,7 +34,7 @@ func Test_RayThrough_Center(t *testing.T) {
 
 	r := c.rayForPixel(100, 50)
 
-	assert.Equal(t, geom.NewPoint(0, 0, 0), r.Origin)
+	assert.Equal(t, geom.ZeroPoint(), r.Origin)
 	assert.Equal(t, geom.NewVector(0, 0, -1), r.Direction)
 
 }
@@ -44,7 +44,7 @@ func Test_RayThrough_Corner(t *testing.T) {
 
 	r := c.rayForPixel(0, 0)
 
-	assert.Equal(t, geom.NewPoint(0, 0, 0), r.Origin)
+	assert.Equal(t, geom.ZeroPoint(), r.Origin)
 	assert.Equal(t, geom.NewVector(0.66519, 0.33259, -0.66851).RoundTo(5), r.Direction.RoundTo(5))
 
 }
@@ -63,7 +63,7 @@ func Test_RenderWorld(t *testing.T) {
 	w := defaultWorld()
 	c := NewCamera(11, 11, math.Pi/2)
 	from := geom.NewPoint(0, 0, -5)
-	to := geom.NewPoint(0, 0, 0)
+	to := geom.ZeroPoint()
 	up := geom.NewVector(0, 1, 0)
 	c.Transform = geom.ViewTransform(from, to, up)
 

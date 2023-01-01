@@ -39,7 +39,7 @@ func start() *state {
 		canvas: view.NewCanvas(width, width),
 		loc: &scenes.CameraLocation{
 			At:        geom.NewPoint(2, 2, 2),
-			LookingAt: geom.NewPoint(0, 0, 0),
+			LookingAt: geom.ZeroPoint(),
 		},
 	}
 

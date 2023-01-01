@@ -18,7 +18,7 @@ type objParsed struct {
 
 func newObjParsed() *objParsed {
 	return &objParsed{
-		triangleCoordinates: []geom.Tuple{geom.NewPoint(0, 0, 0)},  // 0th element is always ignored
+		triangleCoordinates: []geom.Tuple{geom.ZeroPoint()},        // 0th element is always ignored
 		normals:             []geom.Tuple{geom.NewVector(0, 0, 0)}, // 0th element is always ignored
 		defaultGroup:        shapes.NewGroup(),
 		currentNamedGroup:   defaultGroup,

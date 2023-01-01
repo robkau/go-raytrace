@@ -117,7 +117,7 @@ func Test_Compute_Outside(t *testing.T) {
 }
 
 func Test_Compute_Inside(t *testing.T) {
-	r := geom.RayWith(geom.NewPoint(0, 0, 0), geom.NewVector(0, 0, 1))
+	r := geom.RayWith(geom.ZeroPoint(), geom.NewVector(0, 0, 1))
 	s := NewSphere()
 
 	i := NewIntersection(1, s)
@@ -224,7 +224,7 @@ func Test_Schlick_TotalInternalReflection(t *testing.T) {
 func Test_Schlick_PerpendicularAngle(t *testing.T) {
 	s := NewSphere()
 	s.SetMaterial(materials.NewGlassMaterial())
-	r := geom.RayWith(geom.NewPoint(0, 0, 0), geom.NewVector(0, 1, 0))
+	r := geom.RayWith(geom.ZeroPoint(), geom.NewVector(0, 1, 0))
 	xs := NewIntersections(
 		NewIntersection(-1, s),
 		NewIntersection(1, s),

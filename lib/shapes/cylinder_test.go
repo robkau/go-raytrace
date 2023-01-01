@@ -18,7 +18,7 @@ func Test_RayMissesCylinder(t *testing.T) {
 		args args
 	}{
 		{"+x up", args{geom.NewPoint(1, 0, 0), geom.NewVector(0, 1, 0)}},
-		{"origin up", args{geom.NewPoint(0, 0, 0), geom.NewVector(0, 1, 0)}},
+		{"origin up", args{geom.ZeroPoint(), geom.NewVector(0, 1, 0)}},
 		{"-x out", args{geom.NewPoint(0, 0, -5), geom.NewVector(1, 1, 1)}},
 	}
 	for _, tt := range tests {

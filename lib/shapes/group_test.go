@@ -47,7 +47,7 @@ func Test_GroupAddChild(t *testing.T) {
 
 func Test_EmptyGroupRayIntersect(t *testing.T) {
 	g := NewGroup()
-	r := geom.RayWith(geom.NewPoint(0, 0, 0), geom.NewVector(0, 0, 1))
+	r := geom.RayWith(geom.ZeroPoint(), geom.NewVector(0, 0, 1))
 
 	xs := g.LocalIntersect(r)
 

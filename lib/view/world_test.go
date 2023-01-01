@@ -64,7 +64,7 @@ func Test_Shading_Intersection(t *testing.T) {
 func Test_Shading_Intersection_Inside(t *testing.T) {
 	w := defaultWorld()
 	w.lightSources[0] = shapes.NewPointLight(geom.NewPoint(0, 0.25, 0), colors.White())
-	r := geom.RayWith(geom.NewPoint(0, 0, 0), geom.NewVector(0, 0, 1))
+	r := geom.RayWith(geom.ZeroPoint(), geom.NewVector(0, 0, 1))
 	s := w.objects[1]
 
 	i := shapes.NewIntersection(0.5, s)
@@ -215,7 +215,7 @@ func Test_ShadeHit_TransparentAndReflectiveMaterial(t *testing.T) {
 
 func Test_NonReflectiveMaterial_ReflectedColor(t *testing.T) {
 	w := defaultWorld()
-	r := geom.RayWith(geom.NewPoint(0, 0, 0), geom.NewVector(0, 0, 1))
+	r := geom.RayWith(geom.ZeroPoint(), geom.NewVector(0, 0, 1))
 	s := w.objects[1]
 	m := s.GetMaterial()
 	m.Ambient = 1
@@ -281,7 +281,7 @@ func Test_ReflectiveMaterial_ReflectedColor_ShadeHit_NoReflectionsRemaining(t *t
 
 func Test_MutuallyReflecting_InfiniteRecursion(t *testing.T) {
 	w := NewWorld()
-	w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 0, 0), colors.NewColor(1, 1, 1)))
+	w.AddLight(shapes.NewPointLight(geom.ZeroPoint(), colors.NewColor(1, 1, 1)))
 
 	lower := shapes.NewPlane()
 	lower.SetTransform(geom.Translate(0, -1, 0))
@@ -297,7 +297,7 @@ func Test_MutuallyReflecting_InfiniteRecursion(t *testing.T) {
 	upper.SetMaterial(m)
 	w.AddObject(upper)
 
-	r := geom.RayWith(geom.NewPoint(0, 0, 0), geom.NewVector(0, 1, 0))
+	r := geom.RayWith(geom.ZeroPoint(), geom.NewVector(0, 1, 0))
 
 	// just testing that the call finishes
 	assert.NotPanics(t, func() { w.ColorAt(r, 5) })
