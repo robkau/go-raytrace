@@ -24,8 +24,6 @@ func parseReaderAsObj(content io.Reader) (parsed *objParsed, err error) {
 		return nil, errors.Wrap(err, "failed scanning input")
 	}
 
-	// todo BVH/collapse
-
 	return
 }
 

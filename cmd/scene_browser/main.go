@@ -5,6 +5,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/wav"
 	"log"
+	"path"
+
 	//_ "net/http/pprof"
 	"os"
 )
@@ -21,7 +23,7 @@ func main() {
 
 	sb := start()
 
-	f, err := os.Open("intro.wav")
+	f, err := os.Open(path.Join("data", "intro.wav"))
 	if err == nil {
 		defer f.Close()
 		ac := audio.NewContext(44100)

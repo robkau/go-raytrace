@@ -3,7 +3,6 @@ package shapes
 import (
 	"github.com/robkau/go-raytrace/lib/geom"
 	"github.com/robkau/go-raytrace/lib/materials"
-	"sync"
 )
 
 type Group interface {
@@ -22,7 +21,6 @@ type group struct {
 	id         string
 
 	bounds *BoundingBox
-	rw     sync.RWMutex
 }
 
 func NewGroup() Group {
@@ -77,7 +75,6 @@ func (g *group) Divide(threshold int) {
 }
 
 func (g *group) Invalidate() {
-	// g should already be locked
 	g.bounds = g.BoundsOf()
 
 	if g.parent != nil {
@@ -90,8 +87,6 @@ func (g *group) GetTransform() geom.X4Matrix {
 }
 
 func (g *group) SetTransform(matrix geom.X4Matrix) {
-	g.rw.Lock()
-	defer g.rw.Unlock()
 	g.t = matrix
 	g.Invalidate()
 }
@@ -119,11 +114,13 @@ func (g *group) GetParent() Group {
 }
 
 func (g *group) SetParent(gr Group) {
-	g.rw.Lock()
-	defer g.rw.Unlock()
-	// todo old parent not updated.
+	oldParent := g.parent
 	g.parent = gr
 	g.Invalidate()
+	if oldParent != nil {
+		oldParent.Invalidate()
+	}
+
 }
 
 func (g *group) GetChildren() []Shape {
@@ -131,17 +128,12 @@ func (g *group) GetChildren() []Shape {
 }
 
 func (g *group) AddChild(s Shape) {
-	g.rw.Lock()
-	defer g.rw.Unlock()
 	s.SetParent(g)
 	g.children = append(g.children, s)
 	g.Invalidate()
 }
 
 func (g *group) PartitionChildren() (left, right Group) {
-	g.rw.Lock()
-	defer g.rw.Unlock()
-
 	left = NewGroup()
 	right = NewGroup()
 
@@ -179,8 +171,6 @@ func (g *group) GetMaterial() materials.Material {
 }
 
 func (g *group) SetMaterial(material materials.Material) {
-	g.rw.Lock()
-	defer g.rw.Unlock()
 	g.m = material
 }
 
@@ -199,8 +189,6 @@ func (g *group) GetShadowless() bool {
 }
 
 func (g *group) SetShadowless(s bool) {
-	g.rw.Lock()
-	defer g.rw.Unlock()
 	g.shadowless = s
 }
 
