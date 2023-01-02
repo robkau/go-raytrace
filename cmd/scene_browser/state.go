@@ -75,7 +75,10 @@ func start() *state {
 				s.canvas.SetPixel(p.X, p.Y, p.C)
 			}
 
-			// todo wait if fully drawn
+			select {
+			case <-ctx.Done():
+				// wait until this render is done. (don't repeat drawing something already finished)
+			}
 		}
 	}()
 
@@ -98,7 +101,7 @@ func (s *state) Update() error {
 	}
 
 	// todo cross product for 90 degree motiuon
-	// todo A D Q E
+	// todo A D
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
 		s.loc.RotateAroundY(math.Pi / 12)
