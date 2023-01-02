@@ -53,7 +53,6 @@ func (b *baseShape) GetTransform() geom.X4Matrix {
 
 func (b *baseShape) SetTransform(matrix geom.X4Matrix) {
 	b.t = matrix
-	b.Invalidate()
 }
 
 func (b *baseShape) GetMaterial() materials.Material {
@@ -116,7 +115,6 @@ func (b *baseShape) GetParent() Group {
 
 func (b *baseShape) SetParent(g Group) {
 	b.parent = g
-	b.Invalidate()
 }
 
 func (b *baseShape) Divide(threshold int) {
