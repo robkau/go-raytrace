@@ -184,9 +184,9 @@ func IntensityAt(p shapes.PointLight, pt geom.Tuple, w *World) float64 {
 func IntensityAtAreaLight(l shapes.AreaLight, pt geom.Tuple, w *World) float64 {
 	total := 0.0
 
-	for u := 0; u < l.USteps; u++ {
-		for v := 0; v < l.VSteps; v++ {
-			lightPosition := l.PointOnLight(v, u) // todo. flipping fixed test. ?
+	for v := 0; v < l.VSteps; v++ {
+		for u := 0; u < l.USteps; u++ {
+			lightPosition := l.PointOnLight(u, v)
 			if !w.IsShadowed(lightPosition, pt) {
 				total += 1.0
 			}
