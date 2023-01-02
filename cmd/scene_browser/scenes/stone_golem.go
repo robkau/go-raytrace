@@ -61,6 +61,21 @@ func NewStoneGolemScene() *Scene {
 	m.Transparency = 0
 	car.SetMaterial(m)
 
+	dragon, err := parse.ParseObjFile("data/obj/dragon.obj")
+	if err != nil {
+		log.Fatalf("failed parsing obj file: %s", err.Error())
+	}
+	dragon.SetTransform(dragon.GetTransform().MulX4Matrix(geom.Scale(2/dragon.BoundsOf().Max.Y, 2/dragon.BoundsOf().Max.Y, 2/dragon.BoundsOf().Max.Y)).MulX4Matrix(geom.Translate(8, 4.7, 0)).MulX4Matrix(geom.RotateY(math.Pi)))
+	m = materials.Material{}
+	m.Pattern = patterns.NewSolidColorPattern(colors.RandomAnyColor())
+	m.Ambient = 0.2
+	m.Diffuse = 0.2
+	m.Specular = 0.1
+	m.Reflective = 0
+	// todo wrong when transparency != 0 ?
+	m.Transparency = 0
+	dragon.SetMaterial(m)
+
 	// floor and ceiling as one cube
 	var floorAndCeiling = sizedCubeAt(0, 10, 0, 100, 10, 100)
 	m = floorAndCeiling.GetMaterial()
@@ -81,13 +96,14 @@ func NewStoneGolemScene() *Scene {
 	w.AddObject(lizard)
 	//w.AddObject(sphere)
 	w.AddObject(car)
+	w.AddObject(dragon)
 	w.AddObject(floorAndCeiling)
 	w.AddObject(walls)
 
 	//w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 13, 0), colors.NewColor(1.9, 1.4, 1.4)))
 	w.AddLight(shapes.NewPointLight(cameraPos, colors.NewColor(1.9, 1.4, 1.4)))
 
-	w.Divide(64)
+	w.Divide(512)
 
 	return NewScene(
 		w,

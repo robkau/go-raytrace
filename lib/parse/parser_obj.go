@@ -208,10 +208,10 @@ func parseFaceLine(line string, parsed *objParsed) error {
 		// polygons - decompose into multiple triangles
 		vs := []geom.Tuple{}
 		var ns []geom.Tuple
-		for _, is := range indexes {
+		for i := 0; i < len(indexes); i++ {
 			if smooth {
 				// split line
-				parts := strings.Split(is, "/")
+				parts := strings.Split(indexes[i], "/")
 				if len(parts) != 3 {
 					return errors.New("unknown parts syntax")
 				}
@@ -235,7 +235,7 @@ func parseFaceLine(line string, parsed *objParsed) error {
 				vs = append(vs, v)
 				ns = append(ns, n)
 			} else {
-				iv, err := strconv.Atoi(is)
+				iv, err := strconv.Atoi(indexes[i])
 				if err != nil {
 					return errors.Wrap(err, "parsing vertex index")
 				}
@@ -251,8 +251,8 @@ func parseFaceLine(line string, parsed *objParsed) error {
 		triangles = fanTriangulation(vs, ns)
 	}
 
-	for _, triangle := range triangles {
-		parsed.addShape(triangle)
+	for i := 0; i < len(triangles); i++ {
+		parsed.addShape(triangles[i])
 	}
 	return nil
 }
