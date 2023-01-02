@@ -59,8 +59,8 @@ func (g *group) BoundsOf() *BoundingBox {
 }
 
 func (g *group) Divide(threshold int) {
+	g.Invalidate()
 	if threshold <= len(g.children) {
-		g.Invalidate()
 		left, right := g.PartitionChildren()
 		if len(left.GetChildren()) > 0 {
 			g.AddChild(left)

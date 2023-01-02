@@ -65,7 +65,7 @@ func NewStoneGolemScene() *Scene {
 	if err != nil {
 		log.Fatalf("failed parsing obj file: %s", err.Error())
 	}
-	dragon.SetTransform(dragon.GetTransform().MulX4Matrix(geom.Scale(2/dragon.BoundsOf().Max.Y, 2/dragon.BoundsOf().Max.Y, 2/dragon.BoundsOf().Max.Y)).MulX4Matrix(geom.Translate(8, 4.7, 0)).MulX4Matrix(geom.RotateY(math.Pi)))
+	dragon.SetTransform(dragon.GetTransform().MulX4Matrix(geom.Scale(2/dragon.BoundsOf().Max.Y, 2/dragon.BoundsOf().Max.Y, 2/dragon.BoundsOf().Max.Y)))
 	m = materials.Material{}
 	m.Pattern = patterns.NewSolidColorPattern(colors.RandomAnyColor())
 	m.Ambient = 0.2
@@ -103,7 +103,7 @@ func NewStoneGolemScene() *Scene {
 	//w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 13, 0), colors.NewColor(1.9, 1.4, 1.4)))
 	w.AddLight(shapes.NewPointLight(cameraPos, colors.NewColor(1.9, 1.4, 1.4)))
 
-	w.Divide(512)
+	w.Divide(256)
 
 	return NewScene(
 		w,
