@@ -12,13 +12,13 @@ import (
 )
 
 type World struct {
-	g            shapes.Group
+	objects      []shapes.Shape
 	lightSources []shapes.PointLight
 }
 
 func NewWorld() *World {
 	return &World{
-		g:            shapes.NewGroup(),
+		objects:      []shapes.Shape{},
 		lightSources: []shapes.PointLight{},
 	}
 }
@@ -45,7 +45,7 @@ func defaultWorld() *World {
 }
 
 func (w *World) AddObject(s shapes.Shape) {
-	w.g.AddChild(s)
+	w.objects = append(w.objects, s)
 }
 
 func (w *World) AddLight(l shapes.PointLight) {
@@ -54,7 +54,7 @@ func (w *World) AddLight(l shapes.PointLight) {
 
 func (w *World) Intersect(r geom.Ray) *shapes.Intersections {
 	is := shapes.NewIntersections()
-	for _, s := range w.g.GetChildren() {
+	for _, s := range w.objects {
 		xs := s.Intersect(r)
 		is.AddFrom(xs)
 	}
@@ -122,6 +122,20 @@ func (w *World) RefractedColor(c shapes.IntersectionComputed, remaining int) col
 	return col
 }
 
+func (w *World) Divide(threshold int) {
+	for _, c := range w.objects {
+		c.Divide(threshold)
+	}
+}
+
+func (w *World) BoundsOf() *shapes.BoundingBox {
+	b := shapes.NewEmptyBoundingBox()
+	for _, c := range w.objects {
+		b.AddBoundingBoxes(c.BoundsOf())
+	}
+	return b
+}
+
 func (w *World) ColorAt(r geom.Ray, remaining int) colors.Color {
 	is := w.Intersect(r)
 	defer is.Release()
@@ -151,14 +165,6 @@ func (w *World) IsShadowed(p geom.Tuple) bool {
 		}
 	}
 	return false
-}
-
-func (w *World) Divide(threshold int) {
-	w.g.Divide(threshold)
-}
-
-func (w *World) BoundsOf() *shapes.BoundingBox {
-	return w.g.BoundsOf()
 }
 
 // todo replace c.rencder?

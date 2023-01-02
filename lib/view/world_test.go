@@ -13,7 +13,7 @@ import (
 func Test_NewWorld(t *testing.T) {
 	w := NewWorld()
 
-	assert.Len(t, w.g, 0)
+	assert.Len(t, w.objects, 0)
 	assert.Len(t, w.lightSources, 0)
 }
 
@@ -29,9 +29,9 @@ func Test_DefaultWorld(t *testing.T) {
 	sB := shapes.NewSphere()
 	sB.SetTransform(geom.Scale(0.5, 0.5, 0.5))
 
-	assert.Len(t, w.g, 2)
-	assert.Equal(t, w.g[0].GetMaterial(), sA.GetMaterial())
-	assert.Equal(t, w.g[1].GetMaterial(), sB.GetMaterial())
+	assert.Len(t, w.objects, 2)
+	assert.Equal(t, w.objects[0].GetMaterial(), sA.GetMaterial())
+	assert.Equal(t, w.objects[1].GetMaterial(), sB.GetMaterial())
 	assert.Len(t, w.lightSources, 1)
 	assert.Contains(t, w.lightSources, l)
 }
@@ -52,7 +52,7 @@ func Test_World_Ray_Intersect(t *testing.T) {
 func Test_Shading_Intersection(t *testing.T) {
 	w := defaultWorld()
 	r := geom.RayWith(geom.NewPoint(0, 0, -5), geom.NewVector(0, 0, 1))
-	s := w.g[0]
+	s := w.objects[0]
 
 	i := shapes.NewIntersection(4, s)
 	c := i.Compute(r, shapes.NewIntersections())
@@ -64,8 +64,8 @@ func Test_Shading_Intersection(t *testing.T) {
 func Test_Shading_Intersection_Inside(t *testing.T) {
 	w := defaultWorld()
 	w.lightSources[0] = shapes.NewPointLight(geom.NewPoint(0, 0.25, 0), colors.White())
-	r := geom.RayWith(geom.ZeroPoint(), geom.NewVector(0, 0, 1))
-	s := w.g[1]
+	r := geom.RayWith(geom.NewPoint(0, 0, 0), geom.NewVector(0, 0, 1))
+	s := w.objects[1]
 
 	i := shapes.NewIntersection(0.5, s)
 	c := i.Compute(r, shapes.NewIntersections())
@@ -94,18 +94,18 @@ func Test_RayHit_Color(t *testing.T) {
 
 func Test_RayIntersectionBehind_Color(t *testing.T) {
 	w := defaultWorld()
-	m := w.g[0].GetMaterial()
+	m := w.objects[0].GetMaterial()
 	m.Ambient = 1
-	w.g[0].SetMaterial(m)
-	m = w.g[1].GetMaterial()
+	w.objects[0].SetMaterial(m)
+	m = w.objects[1].GetMaterial()
 	m.Ambient = 1
-	w.g[1].SetMaterial(m)
+	w.objects[1].SetMaterial(m)
 
 	r := geom.RayWith(geom.NewPoint(0, 0, 0.75), geom.NewVector(0, 0, -1))
 
 	c := w.ColorAt(r, 0)
 
-	assert.Equal(t, w.g[1].GetMaterial().Color, c)
+	assert.Equal(t, w.objects[1].GetMaterial().Color, c)
 }
 
 func Test_NoShadow(t *testing.T) {
@@ -215,8 +215,8 @@ func Test_ShadeHit_TransparentAndReflectiveMaterial(t *testing.T) {
 
 func Test_NonReflectiveMaterial_ReflectedColor(t *testing.T) {
 	w := defaultWorld()
-	r := geom.RayWith(geom.ZeroPoint(), geom.NewVector(0, 0, 1))
-	s := w.g[1]
+	r := geom.RayWith(geom.NewPoint(0, 0, 0), geom.NewVector(0, 0, 1))
+	s := w.objects[1]
 	m := s.GetMaterial()
 	m.Ambient = 1
 	s.SetMaterial(m)
@@ -281,7 +281,7 @@ func Test_ReflectiveMaterial_ReflectedColor_ShadeHit_NoReflectionsRemaining(t *t
 
 func Test_MutuallyReflecting_InfiniteRecursion(t *testing.T) {
 	w := NewWorld()
-	w.AddLight(shapes.NewPointLight(geom.ZeroPoint(), colors.NewColor(1, 1, 1)))
+	w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 0, 0), colors.NewColor(1, 1, 1)))
 
 	lower := shapes.NewPlane()
 	lower.SetTransform(geom.Translate(0, -1, 0))
@@ -297,7 +297,7 @@ func Test_MutuallyReflecting_InfiniteRecursion(t *testing.T) {
 	upper.SetMaterial(m)
 	w.AddObject(upper)
 
-	r := geom.RayWith(geom.ZeroPoint(), geom.NewVector(0, 1, 0))
+	r := geom.RayWith(geom.NewPoint(0, 0, 0), geom.NewVector(0, 1, 0))
 
 	// just testing that the call finishes
 	assert.NotPanics(t, func() { w.ColorAt(r, 5) })
@@ -305,7 +305,7 @@ func Test_MutuallyReflecting_InfiniteRecursion(t *testing.T) {
 
 func Test_RefractedColor_OpaqueSurface(t *testing.T) {
 	w := defaultWorld()
-	s := w.g[0]
+	s := w.objects[0]
 	r := geom.RayWith(geom.NewPoint(0, 0, -5), geom.NewVector(0, 0, 1))
 
 	xs := shapes.NewIntersections(
@@ -321,12 +321,12 @@ func Test_RefractedColor_OpaqueSurface(t *testing.T) {
 
 func Test_RefractedColor_AtMaxRecursionDepth(t *testing.T) {
 	w := defaultWorld()
-	s := w.g[0]
+	s := w.objects[0]
 	m := s.GetMaterial()
 	m.Transparency = 1
 	m.RefractiveIndex = 1.5
 	s.SetMaterial(m)
-	w.g[0] = s
+	w.objects[0] = s
 
 	r := geom.RayWith(geom.NewPoint(0, 0, -5), geom.NewVector(0, 0, 1))
 
@@ -343,12 +343,12 @@ func Test_RefractedColor_AtMaxRecursionDepth(t *testing.T) {
 
 func Test_RefractedColor_TotalInternalRefraction(t *testing.T) {
 	w := defaultWorld()
-	s := w.g[0]
+	s := w.objects[0]
 	m := s.GetMaterial()
 	m.Transparency = 1
 	m.RefractiveIndex = 1.5
 	s.SetMaterial(m)
-	w.g[0] = s
+	w.objects[0] = s
 
 	r := geom.RayWith(geom.NewPoint(0, 0, math.Sqrt(2)/2), geom.NewVector(0, 1, 0))
 
@@ -365,18 +365,18 @@ func Test_RefractedColor_TotalInternalRefraction(t *testing.T) {
 
 func Test_RefractedColor_Ray(t *testing.T) {
 	w := defaultWorld()
-	sA := w.g[0]
+	sA := w.objects[0]
 	m := sA.GetMaterial()
 	m.Ambient = 1
 	m.Pattern = patterns.NewPositionAsColorPattern()
 	sA.SetMaterial(m)
-	w.g[0] = sA
-	sB := w.g[1]
+	w.objects[0] = sA
+	sB := w.objects[1]
 	m = sB.GetMaterial()
 	m.Transparency = 1
 	m.RefractiveIndex = 1.5
 	sB.SetMaterial(m)
-	w.g[1] = sB
+	w.objects[1] = sB
 
 	r := geom.RayWith(geom.NewPoint(0, 0, 0.1), geom.NewVector(0, 1, 0))
 

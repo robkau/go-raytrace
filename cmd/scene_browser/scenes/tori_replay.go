@@ -71,13 +71,11 @@ func NewToriReplayScene() *Scene {
 		w.AddObject(hollowCenter)
 	}
 
-	ss := pr.AllScenes(shellsPerLine, sceneSpacing)
-	for _, sp := range ss {
-		w.AddObject(sp)
-	}
+	g := pr.AllScenes(shellsPerLine, sceneSpacing)
+	w.AddObject(g)
 
 	// camera points to center of displayed tori frames
-	c := w.BoundsOf().Center()
+	c := g.BoundsOf().Center()
 
 	// floor and ceiling as one cube
 	var floorAndCeiling = sizedCubeAt(0, 0, 0, wallDistance, wallDistance-1, wallDistance)

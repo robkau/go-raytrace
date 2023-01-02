@@ -88,7 +88,7 @@ func (pr *ParsedReplay) RandomFrameBothPlayers() shapes.Group {
 	return g
 }
 
-func (pr *ParsedReplay) AllScenes(stepsPerLine int, stepWidth float64) (ss []shapes.Shape) {
+func (pr *ParsedReplay) AllScenes(stepsPerLine int, stepWidth float64) shapes.Group {
 	cs, err := coordinate_supplier.NewCoordinateSupplierAtomic(coordinate_supplier.CoordinateSupplierOptions{
 		Width:  stepsPerLine,
 		Height: 10000,
@@ -99,6 +99,8 @@ func (pr *ParsedReplay) AllScenes(stepsPerLine int, stepWidth float64) (ss []sha
 	if err != nil {
 		panic(err)
 	}
+
+	g := shapes.NewGroup()
 
 	sceneCount := int(math.Min(float64(len(pr.P0Positions)), float64(len(pr.P1Positions))))
 
@@ -112,9 +114,9 @@ func (pr *ParsedReplay) AllScenes(stepsPerLine int, stepWidth float64) (ss []sha
 		pg1 := pr.P1Positions[i].AsGroup()
 		b0 := pg0.BoundsOf()
 		b1 := pg1.BoundsOf()
-
-		b0.AddBoundingBoxes(b1)
-		bc := b0.Center()
+		bCombined := shapes.NewEmptyBoundingBox()
+		bCombined.AddBoundingBoxes(b0, b1)
+		bc := bCombined.Center()
 
 		// center x-z for this replay frame (from players moving around during tori match)
 		pg0.SetTransform(geom.Translate(-bc.X, 0, -bc.Z).MulX4Matrix(pg0.GetTransform()))
@@ -127,7 +129,7 @@ func (pr *ParsedReplay) AllScenes(stepsPerLine int, stepWidth float64) (ss []sha
 		for _, c := range pg0.GetChildren() {
 			c.SetMaterial(m)
 		}
-		ss = append(ss, pg0)
+		g.AddChild(pg0)
 
 		// center x-z for this replay frame (from players moving around during tori match)
 		pg1.SetTransform(geom.Translate(-bc.X, 0, -bc.Z).MulX4Matrix(pg1.GetTransform()))
@@ -140,11 +142,15 @@ func (pr *ParsedReplay) AllScenes(stepsPerLine int, stepWidth float64) (ss []sha
 		for _, c := range pg1.GetChildren() {
 			c.SetMaterial(m)
 		}
-		ss = append(ss, pg1)
+		g.AddChild(pg1)
 
 	}
 
-	return ss
+	for i := 0; i < sceneCount; i++ {
+
+	}
+
+	return g
 }
 
 func ParseReaderAsTori(content io.Reader) (*ParsedReplay, error) {
