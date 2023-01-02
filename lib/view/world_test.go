@@ -424,3 +424,32 @@ func Test_UnShaded_NotShadedByOthers(t *testing.T) {
 
 	assert.Equal(t, colors.NewColor(1.9, 1.9, 1.9), c)
 }
+
+func Test_PointLight_PassesIntensity(t *testing.T) {
+	w := defaultWorld()
+	require.Len(t, w.lightSources, 1)
+	l := w.lightSources[0]
+
+	type args struct {
+		p      geom.Tuple
+		expect float64
+	}
+
+	tests := []args{
+		{geom.NewPoint(0, 1.0001, 0), 1.0},
+		{geom.NewPoint(-1.0001, 0, 0), 1.0},
+		{geom.NewPoint(0, 0, -1.0001), 1.0},
+		{geom.NewPoint(0, 0, 1.0001), 0.0},
+		{geom.NewPoint(1.0001, 0, 0), 0.0},
+		{geom.NewPoint(0, -1.0001, 0), 0.0},
+		{geom.NewPoint(0, 0, 0), 0.0},
+	}
+
+	for ti, tt := range tests {
+		t.Run(t.Name()+strconv.Itoa(ti), func(t *testing.T) {
+			intensity := IntensityAt(l, tt.p, w)
+			require.Equal(t, tt.expect, intensity)
+		})
+	}
+
+}

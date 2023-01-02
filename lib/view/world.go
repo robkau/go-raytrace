@@ -163,6 +163,14 @@ func (w *World) IsShadowed(lightPosition geom.Tuple, p geom.Tuple) bool {
 	return false
 }
 
+func IntensityAt(p shapes.PointLight, pt geom.Tuple, w *World) float64 {
+	v := w.IsShadowed(p.Position, pt)
+	if v {
+		return 0.0
+	}
+	return 1.0
+}
+
 // todo replace c.rencder?
 // or wrap this with an option to consume all and then return the image and delete c.render
 
