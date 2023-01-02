@@ -67,7 +67,7 @@ func NewTeapotScene() *Scene {
 
 	w.Divide(16)
 
-	w.AddLight(shapes.NewPointLight(cameraPos, colors.NewColor(1.9, 1.4, 1.4)))
+	w.AddPointLight(shapes.NewPointLight(cameraPos, colors.NewColor(1.9, 1.4, 1.4)))
 
 	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
 }

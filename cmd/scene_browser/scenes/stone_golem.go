@@ -101,8 +101,8 @@ func NewStoneGolemScene() *Scene {
 	w.AddObject(floorAndCeiling)
 	w.AddObject(walls)
 
-	//w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 13, 0), colors.NewColor(1.9, 1.4, 1.4)))
-	w.AddLight(shapes.NewPointLight(cameraPos, colors.NewColor(1.9, 1.4, 1.4)))
+	//w.AddPointLight(shapes.NewPointLight(geom.NewPoint(0, 13, 0), colors.NewColor(1.9, 1.4, 1.4)))
+	w.AddPointLight(shapes.NewPointLight(cameraPos, colors.NewColor(1.9, 1.4, 1.4)))
 
 	w.Divide(64)
 

@@ -59,7 +59,7 @@ func NewPondScene() *Scene {
 	floater.SetShadowless(true)
 
 	// light above plane
-	w.AddLight(shapes.NewPointLight(geom.NewPoint(2, 12, -5), colors.NewColor(1.9, 1.4, 1.4)))
+	w.AddPointLight(shapes.NewPointLight(geom.NewPoint(2, 12, -5), colors.NewColor(1.9, 1.4, 1.4)))
 	w.AddObject(waterSurface)
 	w.AddObject(dirtSurface)
 	w.AddObject(middle)

@@ -7,9 +7,23 @@ import (
 	"math"
 )
 
+type Light interface {
+	GetIntensity() colors.Color
+	GetPosition() geom.Tuple
+	// todo unify Intensity functions
+}
+
 type PointLight struct {
 	Position  geom.Tuple
 	Intensity colors.Color
+}
+
+func (p PointLight) GetIntensity() colors.Color {
+	return p.Intensity
+}
+
+func (p PointLight) GetPosition() geom.Tuple {
+	return p.Position
 }
 
 func NewPointLight(p geom.Tuple, i colors.Color) PointLight {
@@ -30,6 +44,14 @@ type AreaLight struct {
 	Position  geom.Tuple
 }
 
+func (a AreaLight) GetIntensity() colors.Color {
+	return a.Intensity
+}
+
+func (a AreaLight) GetPosition() geom.Tuple {
+	return a.Position
+}
+
 func NewAreaLight(corner geom.Tuple, uVec geom.Tuple, uSteps int, vVec geom.Tuple, vSteps int, intensity colors.Color) AreaLight {
 	return AreaLight{
 		Corner:    corner,
@@ -48,7 +70,7 @@ func (a AreaLight) PointOnLight(u, v int) geom.Tuple {
 }
 
 // lighting calculates Phong lighting
-func Lighting(m materials.Material, s Shape, l PointLight, p geom.Tuple, eyev geom.Tuple, nv geom.Tuple, intensity float64) colors.Color {
+func Lighting(m materials.Material, s Shape, l Light, p geom.Tuple, eyev geom.Tuple, nv geom.Tuple, intensity float64) colors.Color {
 	if !s.GetShaded() {
 		// override intensity, cannot be shaded in any way
 		intensity = 1.0
@@ -61,8 +83,8 @@ func Lighting(m materials.Material, s Shape, l PointLight, p geom.Tuple, eyev ge
 		materialColor = m.Color
 	}
 
-	effectiveColor := materialColor.Mul(l.Intensity)
-	lightv := l.Position.Sub(p).Normalize()
+	effectiveColor := materialColor.Mul(l.GetIntensity())
+	lightv := l.GetPosition().Sub(p).Normalize()
 	ambient := effectiveColor.MulBy(m.Ambient)
 
 	if intensity == 0 {
@@ -86,7 +108,7 @@ func Lighting(m materials.Material, s Shape, l PointLight, p geom.Tuple, eyev ge
 			specular = colors.Black()
 		} else {
 			factor := math.Pow(reflectDotEye, m.Shininess)
-			specular = l.Intensity.MulBy(m.Specular).MulBy(factor)
+			specular = l.GetIntensity().MulBy(m.Specular).MulBy(factor)
 		}
 	}
 

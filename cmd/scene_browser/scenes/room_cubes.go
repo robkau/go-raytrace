@@ -71,7 +71,7 @@ func NewRoomScene() *Scene {
 	walls.SetMaterial(m)
 
 	// light above
-	w.AddLight(shapes.NewPointLight(geom.NewPoint(5, 10, -3), colors.NewColor(1.9, 1.4, 1.4)))
+	w.AddPointLight(shapes.NewPointLight(geom.NewPoint(5, 10, -3), colors.NewColor(1.9, 1.4, 1.4)))
 	w.AddObject(floorAndCeiling)
 	w.AddObject(walls)
 

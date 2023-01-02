@@ -17,7 +17,7 @@ func Test_NewWorld(t *testing.T) {
 	w := NewWorld()
 
 	assert.Len(t, w.objects, 0)
-	assert.Len(t, w.lightSources, 0)
+	assert.Len(t, w.pointLights, 0)
 }
 
 func Test_DefaultWorld(t *testing.T) {
@@ -35,8 +35,8 @@ func Test_DefaultWorld(t *testing.T) {
 	assert.Len(t, w.objects, 2)
 	assert.Equal(t, w.objects[0].GetMaterial(), sA.GetMaterial())
 	assert.Equal(t, w.objects[1].GetMaterial(), sB.GetMaterial())
-	assert.Len(t, w.lightSources, 1)
-	assert.Contains(t, w.lightSources, l)
+	assert.Len(t, w.pointLights, 1)
+	assert.Contains(t, w.pointLights, l)
 }
 
 func Test_World_Ray_Intersect(t *testing.T) {
@@ -66,7 +66,7 @@ func Test_Shading_Intersection(t *testing.T) {
 
 func Test_Shading_Intersection_Inside(t *testing.T) {
 	w := defaultWorld()
-	w.lightSources[0] = shapes.NewPointLight(geom.NewPoint(0, 0.25, 0), colors.White())
+	w.pointLights[0] = shapes.NewPointLight(geom.NewPoint(0, 0.25, 0), colors.White())
 	r := geom.RayWith(geom.NewPoint(0, 0, 0), geom.NewVector(0, 0, 1))
 	s := w.objects[1]
 
@@ -137,7 +137,7 @@ func Test_IsShadowed(t *testing.T) {
 
 func Test_ShadeHit_HasShadow(t *testing.T) {
 	w := NewWorld()
-	w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 0, -10), colors.White()))
+	w.AddPointLight(shapes.NewPointLight(geom.NewPoint(0, 0, -10), colors.White()))
 	s1 := shapes.NewSphere()
 	w.AddObject(s1)
 	s2 := shapes.NewSphere()
@@ -280,7 +280,7 @@ func Test_ReflectiveMaterial_ReflectedColor_ShadeHit_NoReflectionsRemaining(t *t
 
 func Test_MutuallyReflecting_InfiniteRecursion(t *testing.T) {
 	w := NewWorld()
-	w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 0, 0), colors.NewColor(1, 1, 1)))
+	w.AddPointLight(shapes.NewPointLight(geom.NewPoint(0, 0, 0), colors.NewColor(1, 1, 1)))
 
 	lower := shapes.NewPlane()
 	lower.SetTransform(geom.Translate(0, -1, 0))
@@ -394,7 +394,7 @@ func Test_RefractedColor_Ray(t *testing.T) {
 
 func Test_Shadowless_NotShadeOthers(t *testing.T) {
 	w := NewWorld()
-	w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 0, -10), colors.White()))
+	w.AddPointLight(shapes.NewPointLight(geom.NewPoint(0, 0, -10), colors.White()))
 	var s1 shapes.Shape = shapes.NewSphere()
 	s1.SetShadowless(true)
 	w.AddObject(s1)
@@ -411,7 +411,7 @@ func Test_Shadowless_NotShadeOthers(t *testing.T) {
 
 func Test_UnShaded_NotShadedByOthers(t *testing.T) {
 	w := NewWorld()
-	w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 0, -10), colors.White()))
+	w.AddPointLight(shapes.NewPointLight(geom.NewPoint(0, 0, -10), colors.White()))
 	s1 := shapes.NewSphere()
 	w.AddObject(s1)
 	s2 := shapes.NewSphere()
@@ -428,8 +428,8 @@ func Test_UnShaded_NotShadedByOthers(t *testing.T) {
 
 func Test_PointLight_PassesIntensity(t *testing.T) {
 	w := defaultWorld()
-	require.Len(t, w.lightSources, 1)
-	l := w.lightSources[0]
+	require.Len(t, w.pointLights, 1)
+	l := w.pointLights[0]
 
 	type args struct {
 		p      geom.Tuple
@@ -452,13 +452,41 @@ func Test_PointLight_PassesIntensity(t *testing.T) {
 			require.Equal(t, tt.expect, intensity)
 		})
 	}
+}
 
+func Test_AreaLight_PassesIntensity(t *testing.T) {
+	w := defaultWorld()
+
+	corner := geom.NewPoint(-0.5, -0.5, -5)
+	v1 := geom.NewVector(1, 0, 0)
+	v2 := geom.NewVector(0, 1, 0)
+	light := shapes.NewAreaLight(corner, v1, 2, v2, 2, colors.White())
+
+	type args struct {
+		p      geom.Tuple
+		expect float64
+	}
+
+	tests := []args{
+		{geom.NewPoint(0, 0, 2), 0.0},
+		{geom.NewPoint(1, -1, 2), 0.25},
+		{geom.NewPoint(1.5, 0, 2), 0.5},
+		{geom.NewPoint(1.25, 1.25, 3), 0.75},
+		{geom.NewPoint(0, 0, -2), 1.0},
+	}
+
+	for ti, tt := range tests {
+		t.Run(t.Name()+strconv.Itoa(ti), func(t *testing.T) {
+			intensity := IntensityAtAreaLight(light, tt.p, w)
+			require.Equal(t, tt.expect, intensity)
+		})
+	}
 }
 
 func Test_Lighting_UsesIntensity(t *testing.T) {
 	w := defaultWorld()
-	require.Len(t, w.lightSources, 1)
-	w.lightSources[0] = shapes.PointLight{
+	require.Len(t, w.pointLights, 1)
+	w.pointLights[0] = shapes.PointLight{
 		Position:  geom.NewPoint(0, 0, -10),
 		Intensity: colors.NewColor(1, 1, 1),
 	}
@@ -488,7 +516,7 @@ func Test_Lighting_UsesIntensity(t *testing.T) {
 
 	for ti, tt := range tests {
 		t.Run(t.Name()+strconv.Itoa(ti), func(t *testing.T) {
-			c := shapes.Lighting(s.GetMaterial(), s, w.lightSources[0], pt, eyeV, normalV, tt.intensity)
+			c := shapes.Lighting(s.GetMaterial(), s, w.pointLights[0], pt, eyeV, normalV, tt.intensity)
 			require.Equal(t, tt.expect, c)
 		})
 	}
