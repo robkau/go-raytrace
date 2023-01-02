@@ -17,7 +17,7 @@ func Test_Light_Eye_Inline(t *testing.T) {
 	nv := geom.NewVector(0, 0, -1)
 	light := NewPointLight(geom.NewPoint(0, 0, -10), colors.White())
 
-	r := Lighting(m, NewSphere(), light, pos, eyev, nv, false)
+	r := Lighting(m, NewSphere(), light, pos, eyev, nv, 1.0)
 
 	assert.Equal(t, colors.NewColor(1.9, 1.9, 1.9), r)
 }
@@ -29,7 +29,7 @@ func Test_Light_Eye_Offset45(t *testing.T) {
 	nv := geom.NewVector(0, 0, -1)
 	light := NewPointLight(geom.NewPoint(0, 0, -10), colors.White())
 
-	r := Lighting(m, NewSphere(), light, pos, eyev, nv, false)
+	r := Lighting(m, NewSphere(), light, pos, eyev, nv, 1.0)
 
 	assert.Equal(t, colors.White(), r)
 }
@@ -41,7 +41,7 @@ func Test_Light_Offset45_Eye(t *testing.T) {
 	nv := geom.NewVector(0, 0, -1)
 	light := NewPointLight(geom.NewPoint(0, 10, -10), colors.White())
 
-	r := Lighting(m, NewSphere(), light, pos, eyev, nv, false).RoundTo(4)
+	r := Lighting(m, NewSphere(), light, pos, eyev, nv, 1.0).RoundTo(4)
 
 	assert.Equal(t, colors.NewColor(0.7364, 0.7364, 0.7364), r)
 }
@@ -53,7 +53,7 @@ func Test_Light_Eye_Reflected(t *testing.T) {
 	nv := geom.NewVector(0, 0, -1)
 	light := NewPointLight(geom.NewPoint(0, 10, -10), colors.White())
 
-	r := Lighting(m, NewSphere(), light, pos, eyev, nv, false).RoundTo(4)
+	r := Lighting(m, NewSphere(), light, pos, eyev, nv, 1.0).RoundTo(4)
 
 	assert.Equal(t, colors.NewColor(1.6364, 1.6364, 1.6364), r)
 }
@@ -65,20 +65,19 @@ func Test_Eye_LightBehindSurface(t *testing.T) {
 	nv := geom.NewVector(0, 0, -1)
 	light := NewPointLight(geom.NewPoint(0, 0, 10), colors.White())
 
-	r := Lighting(m, NewSphere(), light, pos, eyev, nv, false)
+	r := Lighting(m, NewSphere(), light, pos, eyev, nv, 1.0)
 
 	assert.Equal(t, colors.NewColor(0.1, 0.1, 0.1), r)
 }
 
-func Test_Eye_SurfaceDhaded(t *testing.T) {
+func Test_Eye_SurfaceShaded(t *testing.T) {
 	m := materials.NewMaterial()
 	pos := geom.ZeroPoint()
 	eyev := geom.NewVector(0, 0, -1)
 	normalv := geom.NewVector(0, 0, -1)
 	light := NewPointLight(geom.NewPoint(0, 0, -10), colors.White())
-	shaded := true
 
-	result := Lighting(m, NewSphere(), light, pos, eyev, normalv, shaded)
+	result := Lighting(m, NewSphere(), light, pos, eyev, normalv, 0.0)
 
 	assert.Equal(t, colors.NewColor(0.1, 0.1, 0.1), result)
 }
@@ -105,8 +104,8 @@ func Test_Lighting_WithPattern(t *testing.T) {
 	normalV := geom.NewVector(0, 0, -1)
 	light := NewPointLight(geom.NewPoint(0, 0, -10), colors.White())
 
-	c1 := Lighting(m, NewSphere(), light, geom.NewPoint(0.9, 0, 0), eyeV, normalV, false)
-	c2 := Lighting(m, NewSphere(), light, geom.NewPoint(1.1, 0, 0), eyeV, normalV, false)
+	c1 := Lighting(m, NewSphere(), light, geom.NewPoint(0.9, 0, 0), eyeV, normalV, 1.0)
+	c2 := Lighting(m, NewSphere(), light, geom.NewPoint(1.1, 0, 0), eyeV, normalV, 1.0)
 
 	assert.Equal(t, colors.White(), c1)
 	assert.Equal(t, colors.Black(), c2)

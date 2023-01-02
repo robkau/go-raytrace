@@ -3,6 +3,7 @@ package view
 import (
 	"github.com/robkau/go-raytrace/lib/colors"
 	"github.com/robkau/go-raytrace/lib/geom"
+	"github.com/robkau/go-raytrace/lib/materials"
 	"github.com/robkau/go-raytrace/lib/patterns"
 	"github.com/robkau/go-raytrace/lib/shapes"
 	"github.com/stretchr/testify/assert"
@@ -449,6 +450,46 @@ func Test_PointLight_PassesIntensity(t *testing.T) {
 		t.Run(t.Name()+strconv.Itoa(ti), func(t *testing.T) {
 			intensity := IntensityAt(l, tt.p, w)
 			require.Equal(t, tt.expect, intensity)
+		})
+	}
+
+}
+
+func Test_Lighting_UsesIntensity(t *testing.T) {
+	w := defaultWorld()
+	require.Len(t, w.lightSources, 1)
+	w.lightSources[0] = shapes.PointLight{
+		Position:  geom.NewPoint(0, 0, -10),
+		Intensity: colors.NewColor(1, 1, 1),
+	}
+
+	s := w.objects[0]
+	m := materials.NewMaterial()
+	m.Ambient = 0.1
+	m.Diffuse = 0.9
+	m.Specular = 0
+	m.Color = colors.NewColor(1, 1, 1)
+	s.SetMaterial(m)
+
+	pt := geom.NewPoint(0, 0, -1)
+	eyeV := geom.NewVector(0, 0, -1)
+	normalV := geom.NewVector(0, 0, -1)
+
+	type args struct {
+		intensity float64
+		expect    colors.Color
+	}
+
+	tests := []args{
+		{1.0, colors.NewColor(1, 1, 1)},
+		{0.5, colors.NewColor(0.55, 0.55, 0.55)},
+		{0.0, colors.NewColor(0.1, 0.1, 0.1)},
+	}
+
+	for ti, tt := range tests {
+		t.Run(t.Name()+strconv.Itoa(ti), func(t *testing.T) {
+			c := shapes.Lighting(s.GetMaterial(), s, w.lightSources[0], pt, eyeV, normalV, tt.intensity)
+			require.Equal(t, tt.expect, c)
 		})
 	}
 

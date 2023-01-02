@@ -65,7 +65,7 @@ func (w *World) ShadeHit(c shapes.IntersectionComputed, remaining int) colors.Co
 	col := colors.NewColor(0, 0, 0)
 
 	for _, l := range w.lightSources {
-		col = col.Add(shapes.Lighting(c.Object.GetMaterial(), c.Object, l, c.OverPoint, c.Eyev, c.Normalv, w.IsShadowed(l.Position, c.OverPoint)))
+		col = col.Add(shapes.Lighting(c.Object.GetMaterial(), c.Object, l, c.OverPoint, c.Eyev, c.Normalv, IntensityAt(l, c.OverPoint, w)))
 	}
 
 	reflected := w.ReflectedColor(c, remaining)

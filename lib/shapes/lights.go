@@ -20,7 +20,12 @@ func NewPointLight(p geom.Tuple, i colors.Color) PointLight {
 }
 
 // lighting calculates Phong lighting
-func Lighting(m materials.Material, s Shape, l PointLight, p geom.Tuple, eyev geom.Tuple, nv geom.Tuple, shaded bool) colors.Color {
+func Lighting(m materials.Material, s Shape, l PointLight, p geom.Tuple, eyev geom.Tuple, nv geom.Tuple, intensity float64) colors.Color {
+	if !s.GetShaded() {
+		// override intensity, cannot be shaded in any way
+		intensity = 1.0
+	}
+
 	var materialColor colors.Color
 	if m.Pattern != nil {
 		materialColor = m.Pattern.ColorAtShape(s.WorldToObject, p)
@@ -32,8 +37,8 @@ func Lighting(m materials.Material, s Shape, l PointLight, p geom.Tuple, eyev ge
 	lightv := l.Position.Sub(p).Normalize()
 	ambient := effectiveColor.MulBy(m.Ambient)
 
-	if shaded && s.GetShaded() {
-		// object is in the shade, and able to be shaded. no lighting to calculate
+	if intensity == 0 {
+		// object is in the shade, no other lighting to calculate
 		return ambient
 	}
 
@@ -57,5 +62,5 @@ func Lighting(m materials.Material, s Shape, l PointLight, p geom.Tuple, eyev ge
 		}
 	}
 
-	return ambient.Add(diffuse).Add(specular)
+	return ambient.Add(diffuse.MulBy(intensity)).Add(specular.MulBy(intensity))
 }
