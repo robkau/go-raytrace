@@ -65,7 +65,7 @@ func (w *World) ShadeHit(c shapes.IntersectionComputed, remaining int) colors.Co
 	col := colors.NewColor(0, 0, 0)
 
 	for _, l := range w.lightSources {
-		col = col.Add(shapes.Lighting(c.Object.GetMaterial(), c.Object, l, c.OverPoint, c.Eyev, c.Normalv, w.IsShadowed(c.OverPoint)))
+		col = col.Add(shapes.Lighting(c.Object.GetMaterial(), c.Object, l, c.OverPoint, c.Eyev, c.Normalv, w.IsShadowed(l.Position, c.OverPoint)))
 	}
 
 	reflected := w.ReflectedColor(c, remaining)
@@ -148,21 +148,17 @@ func (w *World) ColorAt(r geom.Ray, remaining int) colors.Color {
 	return w.ShadeHit(cs, remaining)
 }
 
-func (w *World) IsShadowed(p geom.Tuple) bool {
-	for _, l := range w.lightSources {
-		v := l.Position.Sub(p)
-		distance := v.Mag()
-		direction := v.Normalize()
+func (w *World) IsShadowed(lightPosition geom.Tuple, p geom.Tuple) bool {
+	v := lightPosition.Sub(p)
+	distance := v.Mag()
+	direction := v.Normalize()
 
-		r := geom.RayWith(p, direction)
-		intersections := w.Intersect(r)
-		h, ok := intersections.Hit()
-		// shadowless object does not cast shadows onto other objects
-		if ok && h.T < distance && !h.O.GetShadowless() {
-			return true
-		} else {
-			continue
-		}
+	r := geom.RayWith(p, direction)
+	intersections := w.Intersect(r)
+	h, ok := intersections.Hit()
+	// shadowless object does not cast shadows onto other objects
+	if ok && h.T < distance && !h.O.GetShadowless() {
+		return true
 	}
 	return false
 }

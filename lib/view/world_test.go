@@ -6,7 +6,9 @@ import (
 	"github.com/robkau/go-raytrace/lib/patterns"
 	"github.com/robkau/go-raytrace/lib/shapes"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"math"
+	"strconv"
 	"testing"
 )
 
@@ -108,32 +110,28 @@ func Test_RayIntersectionBehind_Color(t *testing.T) {
 	assert.Equal(t, w.objects[1].GetMaterial().Color, c)
 }
 
-func Test_NoShadow(t *testing.T) {
+func Test_IsShadowed(t *testing.T) {
 	w := defaultWorld()
-	p := geom.NewPoint(0, 10, 0)
+	lightPosition := geom.NewPoint(-10, -10, -10)
 
-	assert.False(t, w.IsShadowed(p))
-}
+	type args struct {
+		p      geom.Tuple
+		expect bool
+	}
 
-func Test_NoShadow_LightInBetween(t *testing.T) {
-	w := defaultWorld()
-	p := geom.NewPoint(10, -10, 10)
+	tests := []args{
+		{geom.NewPoint(-10, -10, 10), false},
+		{geom.NewPoint(10, 10, 10), true},
+		{geom.NewPoint(-20, -20, -20), false},
+		{geom.NewPoint(-5, -5, -5), false},
+	}
 
-	assert.True(t, w.IsShadowed(p))
-}
-
-func Test_NoShadow_ObjectBehindLight(t *testing.T) {
-	w := defaultWorld()
-	p := geom.NewPoint(-20, 20, -20)
-
-	assert.False(t, w.IsShadowed(p))
-}
-
-func Test_NoShadow_ObjectBehindPoint(t *testing.T) {
-	w := defaultWorld()
-	p := geom.NewPoint(-2, 2, -2)
-
-	assert.False(t, w.IsShadowed(p))
+	for ti, tt := range tests {
+		t.Run(t.Name()+strconv.Itoa(ti), func(t *testing.T) {
+			v := w.IsShadowed(lightPosition, tt.p)
+			require.Equal(t, tt.expect, v)
+		})
+	}
 }
 
 func Test_ShadeHit_HasShadow(t *testing.T) {
