@@ -150,7 +150,7 @@ func NewToriReplayScene() *Scene {
 	ic.SetTransform(geom.Translate(cameraDistance/1.2, 9, 19).MulX4Matrix(geom.RotateX(-math.Pi / 4)).MulX4Matrix(geom.Scale(1, 1, 4)))
 	w.AddObject(ic)
 
-	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(0, wallDistance*0.8, 0), geom.NewVector(15, 0, 0), 8, geom.NewVector(0, 0, 15), 8, colors.NewColorFromHex("ffffd7").MulBy(2)))
+	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(0, wallDistance*0.8, 0), geom.NewVector(15, 0, 0), 4, geom.NewVector(0, 0, 15), 4, colors.NewColorFromHex("ffffd7").MulBy(2), nil))
 	//w.AddPointLight(shapes.NewPointLight(geom.NewPoint(sceneSpacing*4, wallDistance*0.8, -wallDistance/2), colors.NewColorFromHex("ffffd7").MulBy(2)))
 	//w.AddPointLight(shapes.NewPointLight(geom.NewPoint(sceneSpacing*2, sceneSpacing*3, sceneSpacing*3), colors.NewColorFromHex("af005f").MulBy(3)))
 	//w.AddPointLight(shapes.NewPointLight(geom.NewPoint(sceneSpacing*4, -sceneSpacing*5, -sceneSpacing*5), colors.NewColorFromHex("00afaf").MulBy(3)))

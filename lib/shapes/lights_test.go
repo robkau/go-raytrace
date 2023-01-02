@@ -24,7 +24,7 @@ func Test_NewAreaLight(t *testing.T) {
 	v1 := geom.NewVector(2, 0, 0)
 	v2 := geom.NewVector(0, 0, 1)
 
-	light := NewAreaLight(corner, v1, 4, v2, 2, colors.White())
+	light := NewAreaLight(corner, v1, 4, v2, 2, colors.White(), NewJitterSequence(0.5))
 
 	require.Equal(t, corner, light.Corner)
 	require.Equal(t, geom.NewVector(0.5, 0, 0), light.UVec)
@@ -32,7 +32,7 @@ func Test_NewAreaLight(t *testing.T) {
 	require.Equal(t, geom.NewVector(0, 0, 0.5), light.VVec)
 	require.Equal(t, 2, light.VSteps)
 	require.Equal(t, 8, light.Samples)
-	require.Equal(t, geom.NewPoint(1, 0, 0.5), light.Position)
+	require.Equal(t, geom.NewPoint(1, 0, 0.5), light.Center)
 }
 
 func Test_AreaLight_Points(t *testing.T) {
@@ -40,7 +40,7 @@ func Test_AreaLight_Points(t *testing.T) {
 	v1 := geom.NewVector(2, 0, 0)
 	v2 := geom.NewVector(0, 0, 1)
 
-	light := NewAreaLight(corner, v1, 4, v2, 2, colors.White())
+	light := NewAreaLight(corner, v1, 4, v2, 2, colors.White(), NewJitterSequence(0.5))
 
 	type args struct {
 		u      int

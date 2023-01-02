@@ -9,7 +9,7 @@ import (
 
 type Light interface {
 	GetIntensity() colors.Color
-	GetPosition() geom.Tuple
+	GetSamples() []geom.Tuple
 	// todo unify Intensity functions
 }
 
@@ -22,8 +22,8 @@ func (p PointLight) GetIntensity() colors.Color {
 	return p.Intensity
 }
 
-func (p PointLight) GetPosition() geom.Tuple {
-	return p.Position
+func (p PointLight) GetSamples() []geom.Tuple {
+	return []geom.Tuple{p.Position}
 }
 
 func NewPointLight(p geom.Tuple, i colors.Color) PointLight {
@@ -41,18 +41,29 @@ type AreaLight struct {
 	VSteps    int
 	Samples   int
 	Intensity colors.Color
-	Position  geom.Tuple
+	Seq       Sequence
+	Center    geom.Tuple
 }
 
 func (a AreaLight) GetIntensity() colors.Color {
 	return a.Intensity
 }
 
-func (a AreaLight) GetPosition() geom.Tuple {
-	return a.Position
+func (a AreaLight) GetSamples() []geom.Tuple {
+	s := make([]geom.Tuple, a.Samples)
+	for i := 0; i < a.USteps; i++ {
+		for j := 0; j < a.USteps; j++ {
+			s = append(s, a.PointOnLight(i, j))
+		}
+	}
+
+	return s
 }
 
-func NewAreaLight(corner geom.Tuple, uVec geom.Tuple, uSteps int, vVec geom.Tuple, vSteps int, intensity colors.Color) AreaLight {
+func NewAreaLight(corner geom.Tuple, uVec geom.Tuple, uSteps int, vVec geom.Tuple, vSteps int, intensity colors.Color, seq Sequence) AreaLight {
+	if seq == nil {
+		seq = NewRandomSequence()
+	}
 	return AreaLight{
 		Corner:    corner,
 		UVec:      uVec.Div(float64(uSteps)),
@@ -61,12 +72,13 @@ func NewAreaLight(corner geom.Tuple, uVec geom.Tuple, uSteps int, vVec geom.Tupl
 		VSteps:    vSteps,
 		Samples:   uSteps * vSteps,
 		Intensity: intensity,
-		Position:  corner.Add(uVec.Div(2)).Add(vVec.Div(2)),
+		Seq:       seq,
+		Center:    corner.Add(uVec.Div(2)).Add(vVec.Div(2)),
 	}
 }
 
 func (a AreaLight) PointOnLight(u, v int) geom.Tuple {
-	return a.Corner.Add(a.UVec.Mul(float64(u) + 0.5)).Add(a.VVec.Mul(float64(v) + 0.5))
+	return a.Corner.Add(a.UVec.Mul(float64(u) + a.Seq.Next())).Add(a.VVec.Mul(float64(v) + a.Seq.Next()))
 }
 
 // lighting calculates Phong lighting
@@ -84,33 +96,40 @@ func Lighting(m materials.Material, s Shape, l Light, p geom.Tuple, eyev geom.Tu
 	}
 
 	effectiveColor := materialColor.Mul(l.GetIntensity())
-	lightv := l.GetPosition().Sub(p).Normalize()
 	ambient := effectiveColor.MulBy(m.Ambient)
-
 	if intensity == 0 {
 		// object is in the shade, no other lighting to calculate
 		return ambient
 	}
 
-	lightDotNormal := lightv.Dot(nv)
+	sum := colors.Black()
 
-	diffuse := colors.NewColor(0, 0, 0)
-	specular := colors.NewColor(0, 0, 0)
-	if lightDotNormal < 0 {
-		diffuse = colors.Black()
-		specular = colors.Black()
-	} else {
-		diffuse = effectiveColor.MulBy(m.Diffuse).MulBy(lightDotNormal)
-		reflectv := lightv.Neg().Reflect(nv)
-		reflectDotEye := reflectv.Dot(eyev)
+	numSamples := 0
+	for _, sample := range l.GetSamples() {
+		numSamples++
+		lightv := sample.Sub(p).Normalize()
+		lightDotNormal := lightv.Dot(nv)
 
-		if reflectDotEye <= 0 {
+		diffuse := colors.NewColor(0, 0, 0)
+		specular := colors.NewColor(0, 0, 0)
+		if lightDotNormal < 0 {
+			diffuse = colors.Black()
 			specular = colors.Black()
 		} else {
-			factor := math.Pow(reflectDotEye, m.Shininess)
-			specular = l.GetIntensity().MulBy(m.Specular).MulBy(factor)
+			diffuse = effectiveColor.MulBy(m.Diffuse).MulBy(lightDotNormal)
+			reflectv := lightv.Neg().Reflect(nv)
+			reflectDotEye := reflectv.Dot(eyev)
+
+			if reflectDotEye <= 0 {
+				specular = colors.Black()
+			} else {
+				factor := math.Pow(reflectDotEye, m.Shininess)
+				specular = l.GetIntensity().MulBy(m.Specular).MulBy(factor)
+			}
 		}
+		sum = sum.Add(diffuse)
+		sum = sum.Add(specular)
 	}
 
-	return ambient.Add(diffuse.MulBy(intensity)).Add(specular.MulBy(intensity))
+	return ambient.Add(sum.MulBy(1.0 / float64(numSamples)).MulBy(intensity)) // todo or intensity multiply all?
 }

@@ -406,7 +406,7 @@ func Test_Shadowless_NotShadeOthers(t *testing.T) {
 	comps := i.Compute(r, shapes.NewIntersections())
 	c := w.ShadeHit(comps, 0)
 
-	assert.Equal(t, colors.NewColor(1.9, 1.9, 1.9), c)
+	assert.True(t, colors.NewColor(1.9, 1.9, 1.9).Equal(c))
 }
 
 func Test_UnShaded_NotShadedByOthers(t *testing.T) {
@@ -423,7 +423,7 @@ func Test_UnShaded_NotShadedByOthers(t *testing.T) {
 	comps := i.Compute(r, shapes.NewIntersections())
 	c := w.ShadeHit(comps, 0)
 
-	assert.Equal(t, colors.NewColor(1.9, 1.9, 1.9), c)
+	assert.True(t, colors.NewColor(1.9, 1.9, 1.9).Equal(c))
 }
 
 func Test_PointLight_PassesIntensity(t *testing.T) {
@@ -460,7 +460,7 @@ func Test_AreaLight_PassesIntensity(t *testing.T) {
 	corner := geom.NewPoint(-0.5, -0.5, -5)
 	v1 := geom.NewVector(1, 0, 0)
 	v2 := geom.NewVector(0, 1, 0)
-	light := shapes.NewAreaLight(corner, v1, 2, v2, 2, colors.White())
+	light := shapes.NewAreaLight(corner, v1, 2, v2, 2, colors.White(), shapes.NewJitterSequence(0.5))
 
 	type args struct {
 		p      geom.Tuple
@@ -479,6 +479,63 @@ func Test_AreaLight_PassesIntensity(t *testing.T) {
 		t.Run(t.Name()+strconv.Itoa(ti), func(t *testing.T) {
 			intensity := IntensityAtAreaLight(light, tt.p, w)
 			require.Equal(t, tt.expect, intensity)
+		})
+	}
+}
+
+func Test_AreaLightJittered_PassesIntensity(t *testing.T) {
+	w := defaultWorld()
+
+	corner := geom.NewPoint(-0.5, -0.5, -5)
+	v1 := geom.NewVector(1, 0, 0)
+	v2 := geom.NewVector(0, 1, 0)
+
+	type args struct {
+		p      geom.Tuple
+		expect float64
+	}
+
+	tests := []args{
+		{geom.NewPoint(0, 0, 2), 0.0},
+		{geom.NewPoint(1, -1, 2), 0.5},
+		{geom.NewPoint(1.5, 0, 2), 0.75}, // todo fix me , one extra hitting?
+		{geom.NewPoint(1.25, 1.25, 3), 0.75},
+		{geom.NewPoint(0, 0, -2), 1.0},
+	}
+
+	for ti, tt := range tests {
+		t.Run(t.Name()+strconv.Itoa(ti), func(t *testing.T) {
+			light := shapes.NewAreaLight(corner, v1, 2, v2, 2, colors.White(), shapes.NewJitterSequence(0.7, 0.3, 0.9, 0.1, 0.5))
+			intensity := IntensityAtAreaLight(light, tt.p, w)
+			require.Equal(t, tt.expect, intensity)
+		})
+	}
+}
+
+func Test_AreaLight_JitteredPoints(t *testing.T) {
+	corner := geom.NewPoint(0, 0, 0)
+	v1 := geom.NewVector(2, 0, 0)
+	v2 := geom.NewVector(0, 0, 1)
+	light := shapes.NewAreaLight(corner, v1, 4, v2, 2, colors.White(), shapes.NewJitterSequence(0.3, 0.7))
+
+	type args struct {
+		u      int
+		v      int
+		expect geom.Tuple
+	}
+
+	tests := []args{
+		{0, 0, geom.NewPoint(0.15, 0, 0.35)},
+		{1, 0, geom.NewPoint(0.65, 0, 0.35)},
+		{0, 1, geom.NewPoint(0.15, 0, 0.85)},
+		{2, 0, geom.NewPoint(1.15, 0, 0.35)},
+		{3, 1, geom.NewPoint(1.65, 0, 0.85)},
+	}
+
+	for ti, tt := range tests {
+		t.Run(t.Name()+strconv.Itoa(ti), func(t *testing.T) {
+			pt := light.PointOnLight(tt.u, tt.v)
+			require.Equal(t, tt.expect, pt)
 		})
 	}
 }

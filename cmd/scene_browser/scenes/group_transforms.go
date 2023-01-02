@@ -161,7 +161,7 @@ func NewGroupTransformsScene() *Scene {
 	walls.SetMaterial(m)
 
 	// light above
-	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(0, 10, 0), geom.NewVector(15, 0, 0), 8, geom.NewVector(0, 0, 15), 8, colors.NewColorFromHex("ffffd7").MulBy(2)))
+	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(0, 10, 0), geom.NewVector(15, 0, 0), 4, geom.NewVector(0, 0, 15), 4, colors.NewColorFromHex("ffffd7").MulBy(2), nil))
 	//w.AddPointLight(shapes.NewPointLight(geom.NewPoint(5, 10, -3), colors.NewColor(1.9, 1.4, 1.4)))
 	w.AddObject(g1)
 	w.AddObject(g2)

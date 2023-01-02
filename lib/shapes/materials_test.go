@@ -6,7 +6,9 @@ import (
 	"github.com/robkau/go-raytrace/lib/materials"
 	"github.com/robkau/go-raytrace/lib/patterns"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"math"
+	"strconv"
 	"testing"
 )
 
@@ -19,7 +21,7 @@ func Test_Light_Eye_Inline(t *testing.T) {
 
 	r := Lighting(m, NewSphere(), light, pos, eyev, nv, 1.0)
 
-	assert.Equal(t, colors.NewColor(1.9, 1.9, 1.9), r)
+	assert.True(t, colors.NewColor(1.9, 1.9, 1.9).Equal(r))
 }
 
 func Test_Light_Eye_Offset45(t *testing.T) {
@@ -109,4 +111,40 @@ func Test_Lighting_WithPattern(t *testing.T) {
 
 	assert.Equal(t, colors.White(), c1)
 	assert.Equal(t, colors.Black(), c2)
+}
+
+func Test_Lighting_SamplesAreaLight(t *testing.T) {
+	corner := geom.NewPoint(-0.5, -0.5, -5)
+	v1 := geom.NewVector(1, 0, 0)
+	v2 := geom.NewVector(0, 1, 0)
+	light := NewAreaLight(corner, v1, 2, v2, 2, colors.White(), NewJitterSequence(0.5))
+
+	shape := NewSphere()
+	m := materials.NewMaterial()
+	m.Ambient = 0.1
+	m.Diffuse = 0.9
+	m.Specular = 0
+	m.Color = colors.White()
+	shape.SetMaterial(m)
+	eye := geom.NewPoint(0, 0, -5)
+
+	type args struct {
+		p      geom.Tuple
+		expect colors.Color
+	}
+
+	tests := []args{
+		{geom.NewPoint(0, 0, -1), colors.NewColor(0.9965, 0.9965, 0.9965)},
+		{geom.NewPoint(0, 0.7071, -0.7071), colors.NewColor(0.6232, 0.6232, 0.6232)},
+	}
+
+	for ti, tt := range tests {
+		t.Run(t.Name()+strconv.Itoa(ti), func(t *testing.T) {
+			eyeV := eye.Sub(tt.p).Normalize()
+			normalV := geom.NewVector(tt.p.X, tt.p.Y, tt.p.Z)
+			result := Lighting(m, shape, light, tt.p, eyeV, normalV, 1.0)
+			require.Equal(t, tt.expect, result)
+		})
+	}
+
 }
