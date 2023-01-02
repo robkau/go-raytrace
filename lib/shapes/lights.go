@@ -78,7 +78,9 @@ func NewAreaLight(corner geom.Tuple, uVec geom.Tuple, uSteps int, vVec geom.Tupl
 }
 
 func (a AreaLight) PointOnLight(u, v int) geom.Tuple {
-	return a.Corner.Add(a.UVec.Mul(float64(u) + a.Seq.Next())).Add(a.VVec.Mul(float64(v) + a.Seq.Next()))
+	uJit := a.Seq.Next()
+	vJit := a.Seq.Next()
+	return a.Corner.Add(a.UVec.Mul(float64(u) + uJit)).Add(a.VVec.Mul(float64(v) + vJit))
 }
 
 // lighting calculates Phong lighting

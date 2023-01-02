@@ -173,7 +173,6 @@ func (w *World) IsShadowed(lightPosition geom.Tuple, p geom.Tuple) bool {
 	return false
 }
 
-// todo interface for light?
 func IntensityAt(p shapes.PointLight, pt geom.Tuple, w *World) float64 {
 	v := w.IsShadowed(p.Position, pt)
 	if v {
@@ -185,9 +184,9 @@ func IntensityAt(p shapes.PointLight, pt geom.Tuple, w *World) float64 {
 func IntensityAtAreaLight(l shapes.AreaLight, pt geom.Tuple, w *World) float64 {
 	total := 0.0
 
-	for i := 0; i < l.USteps; i++ {
-		for j := 0; j < l.VSteps; j++ {
-			lightPosition := l.PointOnLight(i, j)
+	for u := 0; u < l.USteps; u++ {
+		for v := 0; v < l.VSteps; v++ {
+			lightPosition := l.PointOnLight(v, u) // flipping fixes test. ?
 			if !w.IsShadowed(lightPosition, pt) {
 				total += 1.0
 			}
