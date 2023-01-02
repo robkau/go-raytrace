@@ -19,6 +19,34 @@ func NewPointLight(p geom.Tuple, i colors.Color) PointLight {
 	}
 }
 
+type AreaLight struct {
+	Corner    geom.Tuple
+	UVec      geom.Tuple
+	USteps    int
+	VVec      geom.Tuple
+	VSteps    int
+	Samples   int
+	Intensity colors.Color
+	Position  geom.Tuple
+}
+
+func NewAreaLight(corner geom.Tuple, uVec geom.Tuple, uSteps int, vVec geom.Tuple, vSteps int, intensity colors.Color) AreaLight {
+	return AreaLight{
+		Corner:    corner,
+		UVec:      uVec.Div(float64(uSteps)),
+		USteps:    uSteps,
+		VVec:      vVec.Div(float64(vSteps)),
+		VSteps:    vSteps,
+		Samples:   uSteps * vSteps,
+		Intensity: intensity,
+		Position:  corner.Add(uVec.Div(2)).Add(vVec.Div(2)),
+	}
+}
+
+func (a AreaLight) PointOnLight(u, v int) geom.Tuple {
+	return a.Corner.Add(a.UVec.Mul(float64(u) + 0.5)).Add(a.VVec.Mul(float64(v) + 0.5))
+}
+
 // lighting calculates Phong lighting
 func Lighting(m materials.Material, s Shape, l PointLight, p geom.Tuple, eyev geom.Tuple, nv geom.Tuple, intensity float64) colors.Color {
 	if !s.GetShaded() {
