@@ -50,9 +50,9 @@ func (a AreaLight) GetIntensity() colors.Color {
 }
 
 func (a AreaLight) GetSamples() []geom.Tuple {
-	s := make([]geom.Tuple, a.Samples)
+	s := make([]geom.Tuple, 0, a.Samples)
 	for i := 0; i < a.USteps; i++ {
-		for j := 0; j < a.USteps; j++ {
+		for j := 0; j < a.VSteps; j++ {
 			s = append(s, a.PointOnLight(i, j))
 		}
 	}
@@ -131,5 +131,5 @@ func Lighting(m materials.Material, s Shape, l Light, p geom.Tuple, eyev geom.Tu
 		sum = sum.Add(specular)
 	}
 
-	return ambient.Add(sum.MulBy(1.0 / float64(numSamples)).MulBy(intensity)) // todo or intensity multiply all?
+	return ambient.Add(sum.MulBy(intensity / float64(numSamples))) // todo or intensity multiply all?
 }

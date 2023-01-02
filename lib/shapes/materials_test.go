@@ -117,7 +117,7 @@ func Test_Lighting_SamplesAreaLight(t *testing.T) {
 	corner := geom.NewPoint(-0.5, -0.5, -5)
 	v1 := geom.NewVector(1, 0, 0)
 	v2 := geom.NewVector(0, 1, 0)
-	light := NewAreaLight(corner, v1, 2, v2, 2, colors.White(), NewJitterSequence(0.5))
+	light := NewAreaLight(corner, v1, 2, v2, 2, colors.White(), NewJitterSequence(0.5)) // todo default jitter?
 
 	shape := NewSphere()
 	m := materials.NewMaterial()
@@ -134,8 +134,8 @@ func Test_Lighting_SamplesAreaLight(t *testing.T) {
 	}
 
 	tests := []args{
-		{geom.NewPoint(0, 0, -1), colors.NewColor(0.9965, 0.9965, 0.9965)},
-		{geom.NewPoint(0, 0.7071, -0.7071), colors.NewColor(0.6232, 0.6232, 0.6232)},
+		{geom.NewPoint(0, 0, -1), colors.NewColor(0.9965048411651541, 0.9965048411651541, 0.9965048411651541)},
+		{geom.NewPoint(0, 0.7071, -0.7071), colors.NewColor(0.6231828237025393, 0.6231828237025393, 0.6231828237025393)},
 	}
 
 	for ti, tt := range tests {
