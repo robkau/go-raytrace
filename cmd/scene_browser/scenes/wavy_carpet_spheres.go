@@ -77,7 +77,7 @@ func NewWavyCarpetSpheres() *Scene {
 	w := view.NewWorld()
 	w.AddObject(g)
 
-	w.AddLight(shapes.NewPointLight(geom.NewPoint(-10, 10, -10), colors.White()))
+	w.AddPointLight(shapes.NewPointLight(geom.NewPoint(-10, 10, -10), colors.White()))
 
 	cameraPos := geom.NewPoint(2, 4, -3)
 	cameraLookingAt := geom.NewPoint(0, 1, 0)

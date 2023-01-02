@@ -27,7 +27,7 @@ func NewGroup() Group {
 	return &group{
 		t:        geom.NewIdentityMatrixX4(),
 		children: make([]Shape, 0),
-		bounds:   NewEmptyBoundingBox(),
+		bounds:   nil,
 	}
 }
 
@@ -38,7 +38,13 @@ func (g *group) Intersect(ray geom.Ray) *Intersections {
 func (g *group) LocalIntersect(r geom.Ray) *Intersections {
 	xs := NewIntersections()
 
-	if g.bounds.Intersect(r) {
+	// todo race
+	bounds := g.bounds
+	if bounds == nil {
+		bounds = g.BoundsOf()
+	}
+
+	if bounds.Intersect(r) {
 		// add the intersection for each child in the group
 		// should return sorted by t
 		for _, s := range g.children {
@@ -127,10 +133,16 @@ func (g *group) AddChild(s Shape) {
 }
 
 func (g *group) PartitionChildren() (left, right Group) {
+	// todo race
+	bounds := g.bounds
+	if bounds == nil {
+		bounds = g.BoundsOf()
+	}
+
 	left = NewGroup()
 	right = NewGroup()
 
-	leftBounds, rightBounds := g.bounds.SplitBounds()
+	leftBounds, rightBounds := bounds.SplitBounds()
 	// zero-length slice with the same underlying array
 	remainingChildren := g.children[:0]
 
@@ -145,7 +157,6 @@ func (g *group) PartitionChildren() (left, right Group) {
 	}
 
 	g.children = remainingChildren
-	g.Invalidate()
 	return
 }
 

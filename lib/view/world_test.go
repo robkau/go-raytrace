@@ -3,10 +3,13 @@ package view
 import (
 	"github.com/robkau/go-raytrace/lib/colors"
 	"github.com/robkau/go-raytrace/lib/geom"
+	"github.com/robkau/go-raytrace/lib/materials"
 	"github.com/robkau/go-raytrace/lib/patterns"
 	"github.com/robkau/go-raytrace/lib/shapes"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"math"
+	"strconv"
 	"testing"
 )
 
@@ -14,7 +17,7 @@ func Test_NewWorld(t *testing.T) {
 	w := NewWorld()
 
 	assert.Len(t, w.objects, 0)
-	assert.Len(t, w.lightSources, 0)
+	assert.Len(t, w.pointLights, 0)
 }
 
 func Test_DefaultWorld(t *testing.T) {
@@ -32,8 +35,8 @@ func Test_DefaultWorld(t *testing.T) {
 	assert.Len(t, w.objects, 2)
 	assert.Equal(t, w.objects[0].GetMaterial(), sA.GetMaterial())
 	assert.Equal(t, w.objects[1].GetMaterial(), sB.GetMaterial())
-	assert.Len(t, w.lightSources, 1)
-	assert.Contains(t, w.lightSources, l)
+	assert.Len(t, w.pointLights, 1)
+	assert.Contains(t, w.pointLights, l)
 }
 
 func Test_World_Ray_Intersect(t *testing.T) {
@@ -63,7 +66,7 @@ func Test_Shading_Intersection(t *testing.T) {
 
 func Test_Shading_Intersection_Inside(t *testing.T) {
 	w := defaultWorld()
-	w.lightSources[0] = shapes.NewPointLight(geom.NewPoint(0, 0.25, 0), colors.White())
+	w.pointLights[0] = shapes.NewPointLight(geom.NewPoint(0, 0.25, 0), colors.White())
 	r := geom.RayWith(geom.NewPoint(0, 0, 0), geom.NewVector(0, 0, 1))
 	s := w.objects[1]
 
@@ -108,37 +111,33 @@ func Test_RayIntersectionBehind_Color(t *testing.T) {
 	assert.Equal(t, w.objects[1].GetMaterial().Color, c)
 }
 
-func Test_NoShadow(t *testing.T) {
+func Test_IsShadowed(t *testing.T) {
 	w := defaultWorld()
-	p := geom.NewPoint(0, 10, 0)
+	lightPosition := geom.NewPoint(-10, -10, -10)
 
-	assert.False(t, w.IsShadowed(p))
-}
+	type args struct {
+		p      geom.Tuple
+		expect bool
+	}
 
-func Test_NoShadow_LightInBetween(t *testing.T) {
-	w := defaultWorld()
-	p := geom.NewPoint(10, -10, 10)
+	tests := []args{
+		{geom.NewPoint(-10, -10, 10), false},
+		{geom.NewPoint(10, 10, 10), true},
+		{geom.NewPoint(-20, -20, -20), false},
+		{geom.NewPoint(-5, -5, -5), false},
+	}
 
-	assert.True(t, w.IsShadowed(p))
-}
-
-func Test_NoShadow_ObjectBehindLight(t *testing.T) {
-	w := defaultWorld()
-	p := geom.NewPoint(-20, 20, -20)
-
-	assert.False(t, w.IsShadowed(p))
-}
-
-func Test_NoShadow_ObjectBehindPoint(t *testing.T) {
-	w := defaultWorld()
-	p := geom.NewPoint(-2, 2, -2)
-
-	assert.False(t, w.IsShadowed(p))
+	for ti, tt := range tests {
+		t.Run(t.Name()+strconv.Itoa(ti), func(t *testing.T) {
+			v := w.IsShadowed(lightPosition, tt.p)
+			require.Equal(t, tt.expect, v)
+		})
+	}
 }
 
 func Test_ShadeHit_HasShadow(t *testing.T) {
 	w := NewWorld()
-	w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 0, -10), colors.White()))
+	w.AddPointLight(shapes.NewPointLight(geom.NewPoint(0, 0, -10), colors.White()))
 	s1 := shapes.NewSphere()
 	w.AddObject(s1)
 	s2 := shapes.NewSphere()
@@ -281,7 +280,7 @@ func Test_ReflectiveMaterial_ReflectedColor_ShadeHit_NoReflectionsRemaining(t *t
 
 func Test_MutuallyReflecting_InfiniteRecursion(t *testing.T) {
 	w := NewWorld()
-	w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 0, 0), colors.NewColor(1, 1, 1)))
+	w.AddPointLight(shapes.NewPointLight(geom.NewPoint(0, 0, 0), colors.NewColor(1, 1, 1)))
 
 	lower := shapes.NewPlane()
 	lower.SetTransform(geom.Translate(0, -1, 0))
@@ -395,7 +394,7 @@ func Test_RefractedColor_Ray(t *testing.T) {
 
 func Test_Shadowless_NotShadeOthers(t *testing.T) {
 	w := NewWorld()
-	w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 0, -10), colors.White()))
+	w.AddPointLight(shapes.NewPointLight(geom.NewPoint(0, 0, -10), colors.White()))
 	var s1 shapes.Shape = shapes.NewSphere()
 	s1.SetShadowless(true)
 	w.AddObject(s1)
@@ -407,12 +406,12 @@ func Test_Shadowless_NotShadeOthers(t *testing.T) {
 	comps := i.Compute(r, shapes.NewIntersections())
 	c := w.ShadeHit(comps, 0)
 
-	assert.Equal(t, colors.NewColor(1.9, 1.9, 1.9), c)
+	assert.True(t, colors.NewColor(1.9, 1.9, 1.9).Equal(c))
 }
 
 func Test_UnShaded_NotShadedByOthers(t *testing.T) {
 	w := NewWorld()
-	w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 0, -10), colors.White()))
+	w.AddPointLight(shapes.NewPointLight(geom.NewPoint(0, 0, -10), colors.White()))
 	s1 := shapes.NewSphere()
 	w.AddObject(s1)
 	s2 := shapes.NewSphere()
@@ -424,5 +423,159 @@ func Test_UnShaded_NotShadedByOthers(t *testing.T) {
 	comps := i.Compute(r, shapes.NewIntersections())
 	c := w.ShadeHit(comps, 0)
 
-	assert.Equal(t, colors.NewColor(1.9, 1.9, 1.9), c)
+	assert.True(t, colors.NewColor(1.9, 1.9, 1.9).Equal(c))
+}
+
+func Test_PointLight_PassesIntensity(t *testing.T) {
+	w := defaultWorld()
+	require.Len(t, w.pointLights, 1)
+	l := w.pointLights[0]
+
+	type args struct {
+		p      geom.Tuple
+		expect float64
+	}
+
+	tests := []args{
+		{geom.NewPoint(0, 1.0001, 0), 1.0},
+		{geom.NewPoint(-1.0001, 0, 0), 1.0},
+		{geom.NewPoint(0, 0, -1.0001), 1.0},
+		{geom.NewPoint(0, 0, 1.0001), 0.0},
+		{geom.NewPoint(1.0001, 0, 0), 0.0},
+		{geom.NewPoint(0, -1.0001, 0), 0.0},
+		{geom.NewPoint(0, 0, 0), 0.0},
+	}
+
+	for ti, tt := range tests {
+		t.Run(t.Name()+strconv.Itoa(ti), func(t *testing.T) {
+			intensity := IntensityAt(l, tt.p, w)
+			require.Equal(t, tt.expect, intensity)
+		})
+	}
+}
+
+func Test_AreaLight_PassesIntensity(t *testing.T) {
+	w := defaultWorld()
+
+	corner := geom.NewPoint(-0.5, -0.5, -5)
+	v1 := geom.NewVector(1, 0, 0)
+	v2 := geom.NewVector(0, 1, 0)
+	light := shapes.NewAreaLight(corner, v1, 2, v2, 2, colors.White(), shapes.NewJitterSequence(0.5))
+
+	type args struct {
+		p      geom.Tuple
+		expect float64
+	}
+
+	tests := []args{
+		{geom.NewPoint(0, 0, 2), 0.0},
+		{geom.NewPoint(1, -1, 2), 0.25},
+		{geom.NewPoint(1.5, 0, 2), 0.5},
+		{geom.NewPoint(1.25, 1.25, 3), 0.75},
+		{geom.NewPoint(0, 0, -2), 1.0},
+	}
+
+	for ti, tt := range tests {
+		t.Run(t.Name()+strconv.Itoa(ti), func(t *testing.T) {
+			intensity := IntensityAtAreaLight(light, tt.p, w)
+			require.Equal(t, tt.expect, intensity)
+		})
+	}
+}
+
+func Test_AreaLightJittered_PassesIntensity(t *testing.T) {
+	w := defaultWorld()
+
+	corner := geom.NewPoint(-0.5, -0.5, -5)
+	v1 := geom.NewVector(1, 0, 0)
+	v2 := geom.NewVector(0, 1, 0)
+
+	type args struct {
+		p      geom.Tuple
+		expect float64
+	}
+
+	tests := []args{
+		{geom.NewPoint(0, 0, 2), 0.0},
+		{geom.NewPoint(1, -1, 2), 0.5},
+		{geom.NewPoint(1.5, 0, 2), 0.75}, // todo fix me , one extra hitting?
+		{geom.NewPoint(1.25, 1.25, 3), 0.75},
+		{geom.NewPoint(0, 0, -2), 1.0},
+	}
+
+	for ti, tt := range tests {
+		t.Run(t.Name()+strconv.Itoa(ti), func(t *testing.T) {
+			light := shapes.NewAreaLight(corner, v1, 2, v2, 2, colors.White(), shapes.NewJitterSequence(0.7, 0.3, 0.9, 0.1, 0.5))
+			intensity := IntensityAtAreaLight(light, tt.p, w)
+			require.Equal(t, tt.expect, intensity)
+		})
+	}
+}
+
+func Test_AreaLight_JitteredPoints(t *testing.T) {
+	corner := geom.NewPoint(0, 0, 0)
+	v1 := geom.NewVector(2, 0, 0)
+	v2 := geom.NewVector(0, 0, 1)
+	light := shapes.NewAreaLight(corner, v1, 4, v2, 2, colors.White(), shapes.NewJitterSequence(0.3, 0.7))
+
+	type args struct {
+		u      int
+		v      int
+		expect geom.Tuple
+	}
+
+	tests := []args{
+		{0, 0, geom.NewPoint(0.15, 0, 0.35)},
+		{1, 0, geom.NewPoint(0.65, 0, 0.35)},
+		{0, 1, geom.NewPoint(0.15, 0, 0.85)},
+		{2, 0, geom.NewPoint(1.15, 0, 0.35)},
+		{3, 1, geom.NewPoint(1.65, 0, 0.85)},
+	}
+
+	for ti, tt := range tests {
+		t.Run(t.Name()+strconv.Itoa(ti), func(t *testing.T) {
+			pt := light.PointOnLight(tt.u, tt.v)
+			require.Equal(t, tt.expect, pt)
+		})
+	}
+}
+
+func Test_Lighting_UsesIntensity(t *testing.T) {
+	w := defaultWorld()
+	require.Len(t, w.pointLights, 1)
+	w.pointLights[0] = shapes.PointLight{
+		Position:  geom.NewPoint(0, 0, -10),
+		Intensity: colors.NewColor(1, 1, 1),
+	}
+
+	s := w.objects[0]
+	m := materials.NewMaterial()
+	m.Ambient = 0.1
+	m.Diffuse = 0.9
+	m.Specular = 0
+	m.Color = colors.NewColor(1, 1, 1)
+	s.SetMaterial(m)
+
+	pt := geom.NewPoint(0, 0, -1)
+	eyeV := geom.NewVector(0, 0, -1)
+	normalV := geom.NewVector(0, 0, -1)
+
+	type args struct {
+		intensity float64
+		expect    colors.Color
+	}
+
+	tests := []args{
+		{1.0, colors.NewColor(1, 1, 1)},
+		{0.5, colors.NewColor(0.55, 0.55, 0.55)},
+		{0.0, colors.NewColor(0.1, 0.1, 0.1)},
+	}
+
+	for ti, tt := range tests {
+		t.Run(t.Name()+strconv.Itoa(ti), func(t *testing.T) {
+			c := shapes.Lighting(s.GetMaterial(), s, w.pointLights[0], pt, eyeV, normalV, tt.intensity)
+			require.Equal(t, tt.expect, c)
+		})
+	}
+
 }

@@ -1,7 +1,6 @@
 package scenes
 
 import (
-	"fmt"
 	"github.com/robkau/go-raytrace/lib/colors"
 	"github.com/robkau/go-raytrace/lib/geom"
 	"github.com/robkau/go-raytrace/lib/materials"
@@ -13,7 +12,6 @@ import (
 	"math"
 	"math/rand"
 	"strings"
-	"time"
 )
 
 func makeObjectGroup() shapes.Group {
@@ -132,9 +130,9 @@ func stackTable(t geom.X4Matrix) geom.X4Matrix {
 }
 
 func NewGroupTransformsScene() *Scene {
-	seed := time.Now().UnixNano()
-	fmt.Println("rand seed", seed)
-	rand.Seed(seed)
+	//seed := time.Now().UnixNano()
+	//fmt.Println("rand seed", seed)
+	//rand.Seed(seed)
 
 	w := view.NewWorld()
 	cameraPos := geom.NewPoint(15, 15, 15)
@@ -162,10 +160,10 @@ func NewGroupTransformsScene() *Scene {
 	m.Color = colors.Blue()
 	walls.SetMaterial(m)
 
-	// todo unit test that output png from this is same as output png from collapse(g1, g2)
-
 	// light above
-	w.AddLight(shapes.NewPointLight(geom.NewPoint(5, 10, -3), colors.NewColor(1.9, 1.4, 1.4)))
+	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(0, 10, 0), geom.NewVector(15, 0, 0), 4, geom.NewVector(0, 0, 15), 4, colors.NewColorFromHex("ffffd7").MulBy(1), nil))
+	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(7, 10, 0), geom.NewVector(8, 0, 0), 4, geom.NewVector(0, 15, 15), 4, colors.NewColorFromHex("ffffd7").MulBy(1), nil))
+	//w.AddPointLight(shapes.NewPointLight(geom.NewPoint(5, 10, -3), colors.NewColor(1.9, 1.4, 1.4)))
 	w.AddObject(g1)
 	w.AddObject(g2)
 	w.AddObject(floorAndCeiling)

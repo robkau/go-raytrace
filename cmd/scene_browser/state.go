@@ -61,7 +61,7 @@ func start() *state {
 			ctx, s.cancel = context.WithCancel(context.Background())
 
 			s.loc = &s.scenes[s.currentScene].Cs[s.currentCamera]
-			pc, err := view.Render(ctx, s.scenes[s.currentScene].W, view.NewCameraAt(width, width, fov, s.loc.At, s.loc.LookingAt), 3, int(float64(runtime.NumCPU())/4), coordinate_supplier.Random)
+			pc, err := view.Render(ctx, s.scenes[s.currentScene].W, view.NewCameraAt(width, width, fov, s.loc.At, s.loc.LookingAt), 7, int(float64(runtime.NumCPU())/4), coordinate_supplier.Random)
 			if err != nil {
 				fmt.Println("failed create render")
 				log.Fatalf(err.Error())
