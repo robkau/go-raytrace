@@ -297,6 +297,9 @@ func (m X4Matrix) Determinant() float64 {
 	return d
 }
 
+// todo make me faster
+// time spent on mutex
+// time spent on hashing
 var rwX4MatrixCache = sync.RWMutex{}
 var x4MatrixInvertCache = make(map[X4Matrix]X4Matrix)
 
