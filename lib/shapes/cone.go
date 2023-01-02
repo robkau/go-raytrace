@@ -30,9 +30,14 @@ func NewInfiniteCone() *Cone {
 	return NewCone(math.Inf(-1), math.Inf(1), false)
 }
 
-func (c *Cone) Bounds() Bounds {
-	lg := math.Max(math.Abs(c.minimum), math.Abs(c.maximum))
-	return newBounds(geom.NewPoint(-lg, c.minimum, -lg), geom.NewPoint(lg, c.maximum, lg)).TransformTo(c.t)
+// BoundsOf is for untransformed shape
+func (c *Cone) BoundsOf() *BoundingBox {
+	a := math.Abs(c.minimum)
+	b := math.Abs(c.maximum)
+	limit := math.Max(a, b)
+
+	return NewBoundingBox(geom.NewPoint(-limit, c.minimum, -limit),
+		geom.NewPoint(limit, c.maximum, limit))
 }
 
 func (c *Cone) NormalAt(p geom.Tuple, _ Intersection) geom.Tuple {

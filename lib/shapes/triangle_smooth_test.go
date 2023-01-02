@@ -34,7 +34,7 @@ func Test_SmoothTriangleIntersectStoresUV(t *testing.T) {
 
 func Test_SmoothTriangle_InterpolatesNormalWithUV(t *testing.T) {
 	i := NewIntersectionWithUV(1, newTestSmoothTriangle(), 0.45, 0.25)
-	n := newTestSmoothTriangle().NormalAt(geom.NewPoint(0, 0, 0), i)
+	n := newTestSmoothTriangle().NormalAt(geom.ZeroPoint(), i)
 
 	require.Equal(t, geom.NewVector(-0.5547, 0.83205, 0), n.RoundTo(5))
 }

@@ -2,6 +2,7 @@ package shapes
 
 import (
 	"github.com/robkau/go-raytrace/lib/geom"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -19,6 +20,14 @@ func Test_NewTriangle(t *testing.T) {
 	require.Equal(t, geom.NewVector(-1, -1, 0), tr.e1)
 	require.Equal(t, geom.NewVector(1, -1, 0), tr.e2)
 	require.Equal(t, geom.NewVector(0, 0, -1), tr.normal)
+}
+
+func Test_NewTriangle_BoundsOf(t *testing.T) {
+	s := NewTriangle(geom.NewPoint(-3, 7, 2), geom.NewPoint(6, 2, -4), geom.NewPoint(2, -1, -1))
+	s.SetTransform(geom.Translate(0, 1, 0)) // no effect
+
+	assert.Equal(t, geom.NewPoint(-3, -1, -4), s.BoundsOf().Min)
+	assert.Equal(t, geom.NewPoint(6, 7, 2), s.BoundsOf().Max)
 }
 
 func Test_TriangleNormal(t *testing.T) {

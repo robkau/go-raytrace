@@ -91,6 +91,8 @@ func makeObjectGroup() shapes.Group {
 		c.SetMaterial(m)
 	}
 	g.AddChild(pg1)
+
+	g.Divide(8)
 	return g
 }
 

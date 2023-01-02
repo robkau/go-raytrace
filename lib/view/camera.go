@@ -55,7 +55,7 @@ func (c Camera) rayForPixel(px int, py int) geom.Ray {
 	worldY := c.halfHeight - yOffset
 
 	pixel := c.Transform.Invert().MulTuple(geom.NewPoint(worldX, worldY, -1))
-	origin := c.Transform.Invert().MulTuple(geom.NewPoint(0, 0, 0))
+	origin := c.Transform.Invert().MulTuple(geom.ZeroPoint())
 	direction := pixel.Sub(origin).Normalize()
 
 	return geom.RayWith(origin, direction)

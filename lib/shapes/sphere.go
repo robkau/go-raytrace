@@ -15,8 +15,9 @@ func NewSphere() *Sphere {
 	}
 }
 
-func (s *Sphere) Bounds() Bounds {
-	return newBounds(geom.NewPoint(-1, -1, -1), geom.NewPoint(1, 1, 1)).TransformTo(s.t)
+// BoundsOf is for untransformed shape
+func (s *Sphere) BoundsOf() *BoundingBox {
+	return NewBoundingBox(geom.NewPoint(-1, -1, -1), geom.NewPoint(1, 1, 1))
 }
 
 func (s *Sphere) NormalAt(p geom.Tuple, _ Intersection) geom.Tuple {
@@ -24,7 +25,7 @@ func (s *Sphere) NormalAt(p geom.Tuple, _ Intersection) geom.Tuple {
 }
 
 func (s *Sphere) LocalNormalAt(p geom.Tuple, _ Intersection) geom.Tuple {
-	return p.Sub(geom.NewPoint(0, 0, 0))
+	return p.Sub(geom.ZeroPoint())
 }
 
 func (s *Sphere) Intersect(r geom.Ray) *Intersections {
@@ -32,7 +33,7 @@ func (s *Sphere) Intersect(r geom.Ray) *Intersections {
 }
 
 func (s *Sphere) LocalIntersect(r geom.Ray) *Intersections {
-	sr := r.Origin.Sub(geom.NewPoint(0, 0, 0))
+	sr := r.Origin.Sub(geom.ZeroPoint())
 	a := r.Direction.Dot(r.Direction)
 	b := 2 * r.Direction.Dot(sr)
 	c := sr.Dot(sr) - 1

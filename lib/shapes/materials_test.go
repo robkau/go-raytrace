@@ -12,7 +12,7 @@ import (
 
 func Test_Light_Eye_Inline(t *testing.T) {
 	m := materials.NewMaterial()
-	pos := geom.NewPoint(0, 0, 0)
+	pos := geom.ZeroPoint()
 	eyev := geom.NewVector(0, 0, -1)
 	nv := geom.NewVector(0, 0, -1)
 	light := NewPointLight(geom.NewPoint(0, 0, -10), colors.White())
@@ -24,7 +24,7 @@ func Test_Light_Eye_Inline(t *testing.T) {
 
 func Test_Light_Eye_Offset45(t *testing.T) {
 	m := materials.NewMaterial()
-	pos := geom.NewPoint(0, 0, 0)
+	pos := geom.ZeroPoint()
 	eyev := geom.NewVector(0, math.Sqrt2/2, -math.Sqrt2/2)
 	nv := geom.NewVector(0, 0, -1)
 	light := NewPointLight(geom.NewPoint(0, 0, -10), colors.White())
@@ -36,7 +36,7 @@ func Test_Light_Eye_Offset45(t *testing.T) {
 
 func Test_Light_Offset45_Eye(t *testing.T) {
 	m := materials.NewMaterial()
-	pos := geom.NewPoint(0, 0, 0)
+	pos := geom.ZeroPoint()
 	eyev := geom.NewVector(0, 0, -1)
 	nv := geom.NewVector(0, 0, -1)
 	light := NewPointLight(geom.NewPoint(0, 10, -10), colors.White())
@@ -48,7 +48,7 @@ func Test_Light_Offset45_Eye(t *testing.T) {
 
 func Test_Light_Eye_Reflected(t *testing.T) {
 	m := materials.NewMaterial()
-	pos := geom.NewPoint(0, 0, 0)
+	pos := geom.ZeroPoint()
 	eyev := geom.NewVector(0, -math.Sqrt2/2, -math.Sqrt2/2)
 	nv := geom.NewVector(0, 0, -1)
 	light := NewPointLight(geom.NewPoint(0, 10, -10), colors.White())
@@ -60,7 +60,7 @@ func Test_Light_Eye_Reflected(t *testing.T) {
 
 func Test_Eye_LightBehindSurface(t *testing.T) {
 	m := materials.NewMaterial()
-	pos := geom.NewPoint(0, 0, 0)
+	pos := geom.ZeroPoint()
 	eyev := geom.NewVector(0, 0, -1)
 	nv := geom.NewVector(0, 0, -1)
 	light := NewPointLight(geom.NewPoint(0, 0, 10), colors.White())
@@ -72,7 +72,7 @@ func Test_Eye_LightBehindSurface(t *testing.T) {
 
 func Test_Eye_SurfaceDhaded(t *testing.T) {
 	m := materials.NewMaterial()
-	pos := geom.NewPoint(0, 0, 0)
+	pos := geom.ZeroPoint()
 	eyev := geom.NewVector(0, 0, -1)
 	normalv := geom.NewVector(0, 0, -1)
 	light := NewPointLight(geom.NewPoint(0, 0, -10), colors.White())

@@ -22,8 +22,7 @@ func NewStoneGolemScene() *Scene {
 		log.Fatalf("failed parsing obj file: %s", err.Error())
 	}
 	// todo do this inside parsing and scale for each dimension and scale by largest required
-	g.SetTransform(g.GetTransform().MulX4Matrix(geom.Scale(2/g.Bounds().Max.Y, 2/g.Bounds().Max.Y, 2/g.Bounds().Max.Y)).MulX4Matrix(geom.Translate(0, 4.7, 0)))
-	g = parse.CollapseGroups(4, g)
+	g.SetTransform(g.GetTransform().MulX4Matrix(geom.Scale(2/g.BoundsOf().Max.Y, 2/g.BoundsOf().Max.Y, 2/g.BoundsOf().Max.Y)).MulX4Matrix(geom.Translate(0, 4.7, 0)))
 	m := materials.Material{}
 	m.Pattern = patterns.NewSolidColorPattern(colors.White())
 	m.Ambient = 0.2
@@ -36,8 +35,7 @@ func NewStoneGolemScene() *Scene {
 		log.Fatalf("failed parsing obj file: %s", err.Error())
 	}
 	// todo do this inside parsing and scale for each dimension and scale by largest required
-	lizard.SetTransform(lizard.GetTransform().MulX4Matrix(geom.Scale(2/lizard.Bounds().Max.Y, 2/lizard.Bounds().Max.Y, 2/lizard.Bounds().Max.Y)).MulX4Matrix(geom.Translate(8, 4.7, 0)).MulX4Matrix(geom.RotateY(math.Pi)))
-	lizard = parse.CollapseGroups(4, lizard)
+	lizard.SetTransform(lizard.GetTransform().MulX4Matrix(geom.Scale(2/lizard.BoundsOf().Max.Y, 2/lizard.BoundsOf().Max.Y, 2/lizard.BoundsOf().Max.Y)).MulX4Matrix(geom.Translate(8, 4.7, 0)).MulX4Matrix(geom.RotateY(math.Pi)))
 	m = materials.Material{}
 	m.Pattern = patterns.NewSolidColorPattern(colors.Green())
 	m.Ambient = 0.2
@@ -53,7 +51,6 @@ func NewStoneGolemScene() *Scene {
 	if err != nil {
 		log.Fatalf("failed parsing obj file: %s", err.Error())
 	}
-	car = parse.CollapseGroups(4, car)
 	m = materials.Material{}
 	m.Pattern = patterns.NewSolidColorPattern(colors.Red())
 	m.Ambient = 0.2
@@ -89,6 +86,8 @@ func NewStoneGolemScene() *Scene {
 
 	//w.AddLight(shapes.NewPointLight(geom.NewPoint(0, 13, 0), colors.NewColor(1.9, 1.4, 1.4)))
 	w.AddLight(shapes.NewPointLight(cameraPos, colors.NewColor(1.9, 1.4, 1.4)))
+
+	w.Divide(64)
 
 	return NewScene(
 		w,

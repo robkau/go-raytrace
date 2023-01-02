@@ -3,13 +3,13 @@ package shapes
 import (
 	"github.com/robkau/go-raytrace/lib/geom"
 	"github.com/robkau/go-raytrace/lib/materials"
-	"sync"
 )
 
 type Group interface {
 	Shape
 	GetChildren() []Shape
 	AddChild(s Shape)
+	PartitionChildren() (left, right Group)
 }
 
 type group struct {
@@ -20,50 +20,63 @@ type group struct {
 	shadowless bool
 	id         string
 
-	bounds    Bounds
-	boundsSet bool
-	rw        sync.RWMutex
+	bounds *BoundingBox
 }
 
 func NewGroup() Group {
 	return &group{
 		t:        geom.NewIdentityMatrixX4(),
 		children: make([]Shape, 0),
+		bounds:   NewEmptyBoundingBox(),
 	}
 }
 
 func (g *group) Intersect(ray geom.Ray) *Intersections {
-	// if ray does not intersect groups bounding box - skip
-	if !g.Bounds().Intersects(ray) {
-		return NewIntersections()
-	}
 	return Intersect(ray, g.t, g.LocalIntersect)
 }
 
 func (g *group) LocalIntersect(r geom.Ray) *Intersections {
 	xs := NewIntersections()
 
-	// add the intersection for each child in the group
-	// should return sorted by t
-	for _, s := range g.children {
-		xs.AddFrom(s.Intersect(r))
+	if g.bounds.Intersect(r) {
+		// add the intersection for each child in the group
+		// should return sorted by t
+		for _, s := range g.children {
+			xs.AddFrom(s.Intersect(r))
+		}
 	}
 
 	return xs
 }
 
-func (g *group) Bounds() Bounds {
-	return g.bounds
+func (g *group) BoundsOf() *BoundingBox {
+	b := NewEmptyBoundingBox()
+	for _, c := range g.children {
+		childBoundsTransformed := ParentSpaceBoundsOf(c)
+		b.AddBoundingBoxes(childBoundsTransformed)
+	}
+	return b
+}
+
+func (g *group) Divide(threshold int) {
+	if threshold <= len(g.children) {
+		left, right := g.PartitionChildren()
+		if len(left.GetChildren()) > 0 {
+			g.AddChild(left)
+		}
+		if len(right.GetChildren()) > 0 {
+			g.AddChild(right)
+		}
+	}
+
+	for _, child := range g.children {
+		child.Divide(threshold)
+	}
 }
 
 func (g *group) Invalidate() {
-	// g should already be locked
-	g.bounds = newBounds()
-	for _, c := range g.children {
-		childBounds := c.Bounds()
-		childBoundsTransformed := childBounds.TransformTo(g.t)
-		g.bounds = g.bounds.Add(childBoundsTransformed.Min, childBoundsTransformed.Max)
-	}
+	g.bounds = g.BoundsOf()
+
 	if g.parent != nil {
 		g.parent.Invalidate()
 	}
@@ -74,8 +87,6 @@ func (g *group) GetTransform() geom.X4Matrix {
 }
 
 func (g *group) SetTransform(matrix geom.X4Matrix) {
-	g.rw.Lock()
-	defer g.rw.Unlock()
 	g.t = matrix
 	g.Invalidate()
 }
@@ -103,10 +114,13 @@ func (g *group) GetParent() Group {
 }
 
 func (g *group) SetParent(gr Group) {
-	g.rw.Lock()
-	defer g.rw.Unlock()
+	oldParent := g.parent
 	g.parent = gr
 	g.Invalidate()
+	if oldParent != nil {
+		oldParent.Invalidate()
+	}
+
 }
 
 func (g *group) GetChildren() []Shape {
@@ -114,11 +128,32 @@ func (g *group) GetChildren() []Shape {
 }
 
 func (g *group) AddChild(s Shape) {
-	g.rw.Lock()
-	defer g.rw.Unlock()
 	s.SetParent(g)
 	g.children = append(g.children, s)
 	g.Invalidate()
+}
+
+func (g *group) PartitionChildren() (left, right Group) {
+	left = NewGroup()
+	right = NewGroup()
+
+	leftBounds, rightBounds := g.bounds.SplitBounds()
+	// zero-length slice with the same underlying array
+	remainingChildren := g.children[:0]
+
+	for _, c := range g.children {
+		if leftBounds.ContainsBox(ParentSpaceBoundsOf(c)) {
+			left.AddChild(c)
+		} else if rightBounds.ContainsBox(ParentSpaceBoundsOf(c)) {
+			right.AddChild(c)
+		} else {
+			remainingChildren = append(remainingChildren, c)
+		}
+	}
+
+	g.children = remainingChildren
+	g.Invalidate()
+	return
 }
 
 func (g *group) NormalAt(tuple geom.Tuple, _ Intersection) geom.Tuple {
@@ -136,8 +171,6 @@ func (g *group) GetMaterial() materials.Material {
 }
 
 func (g *group) SetMaterial(material materials.Material) {
-	g.rw.Lock()
-	defer g.rw.Unlock()
 	g.m = material
 }
 
@@ -156,8 +189,6 @@ func (g *group) GetShadowless() bool {
 }
 
 func (g *group) SetShadowless(s bool) {
-	g.rw.Lock()
-	defer g.rw.Unlock()
 	g.shadowless = s
 }
 

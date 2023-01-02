@@ -7,8 +7,12 @@ import (
 	"testing"
 )
 
-func Test_(t *testing.T) {
+func Test_NewCube_BoundsOf(t *testing.T) {
+	s := NewCube()
+	s.SetTransform(geom.Translate(0, 1, 0)) // no effect
 
+	assert.Equal(t, geom.NewPoint(-1, -1, -1), s.BoundsOf().Min)
+	assert.Equal(t, geom.NewPoint(1, 1, 1), s.BoundsOf().Max)
 }
 
 func TestCube_RayIntersects(t *testing.T) {

@@ -44,7 +44,8 @@ func NewHollowGlassSphereScene() *Scene {
 	w.AddLight(shapes.NewPointLight(geom.NewPoint(2, 10, -5), colors.NewColor(0.9, 0.9, 0.9)))
 
 	cameraPos := geom.NewPoint(0, 0, -5)
-	cameraLookingAt := geom.NewPoint(0, 0, 0)
+	cameraLookingAt := geom.ZeroPoint()
 
+	w.Divide(8)
 	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
 }

@@ -122,6 +122,20 @@ func (w *World) RefractedColor(c shapes.IntersectionComputed, remaining int) col
 	return col
 }
 
+func (w *World) Divide(threshold int) {
+	for _, c := range w.objects {
+		c.Divide(threshold)
+	}
+}
+
+func (w *World) BoundsOf() *shapes.BoundingBox {
+	b := shapes.NewEmptyBoundingBox()
+	for _, c := range w.objects {
+		b.AddBoundingBoxes(c.BoundsOf())
+	}
+	return b
+}
+
 func (w *World) ColorAt(r geom.Ray, remaining int) colors.Color {
 	is := w.Intersect(r)
 	defer is.Release()

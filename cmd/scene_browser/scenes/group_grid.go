@@ -29,5 +29,6 @@ func NewGroupGridScene() *Scene {
 	w.AddObject(g)
 	w.AddObject(floor)
 
+	w.Divide(8)
 	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
 }

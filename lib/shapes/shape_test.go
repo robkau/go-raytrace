@@ -20,6 +20,13 @@ func Test_SetTransform(t *testing.T) {
 	require.Equal(t, geom.Translate(2, 3, 4), s.GetTransform())
 }
 
+func Test_DivideShape(t *testing.T) {
+	s := NewSphere()
+	sOrig := s
+	s.Divide(1)
+	require.Equal(t, sOrig, s)
+}
+
 func Test_GetDefaultMaterial(t *testing.T) {
 	s := newTestShape()
 	require.Equal(t, materials.NewMaterial(), s.GetMaterial())
@@ -76,6 +83,34 @@ func Test_NormalTransformedShape(t *testing.T) {
 	assert.Equal(t, geom.NewVector(0, 0.97014, -0.24254), n)
 }
 
+func Test_IntersectNoChildrenIfBoundsMissed(t *testing.T) {
+	child := newTestShape()
+
+	g := NewGroup()
+
+	g.AddChild(child)
+
+	r := geom.RayWith(geom.NewPoint(0, 0, -5), geom.NewVector(0, 1, 0))
+
+	g.Intersect(r)
+
+	require.Equal(t, geom.Ray{}, child.savedRay)
+}
+
+func Test_IntersectChildrenIfBoundsMissed(t *testing.T) {
+	child := newTestShape()
+
+	g := NewGroup()
+
+	g.AddChild(child)
+
+	r := geom.RayWith(geom.NewPoint(0, 0, -5), geom.NewVector(0, 0, 1))
+
+	g.Intersect(r)
+
+	require.Equal(t, r, child.savedRay)
+}
+
 type testShape struct {
 	parent     Group
 	t          geom.X4Matrix
@@ -96,8 +131,8 @@ func newTestShape() *testShape {
 	}
 }
 
-func (t *testShape) Bounds() Bounds {
-	return newBounds(geom.NewPoint(-1, -1, -1), geom.NewPoint(1, 1, 1)).TransformTo(t.t)
+func (t *testShape) BoundsOf() *BoundingBox {
+	return NewBoundingBox(geom.NewPoint(-1, -1, -1), geom.NewPoint(1, 1, 1))
 }
 
 func (t *testShape) Invalidate() {
@@ -120,6 +155,10 @@ func (t *testShape) WorldToObject(p geom.Tuple) geom.Tuple {
 
 func (t *testShape) NormalToWorld(normal geom.Tuple) geom.Tuple {
 	return normal
+}
+
+func (t *testShape) Divide(threshold int) {
+	return // noop
 }
 
 func (t *testShape) Id() string {

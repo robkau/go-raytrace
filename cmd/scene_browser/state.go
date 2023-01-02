@@ -35,11 +35,17 @@ func start() *state {
 			scenes.NewToriReplayScene,
 			scenes.NewStoneGolemScene,
 			scenes.NewWavyCarpetSpheres,
+			scenes.NewTeapotScene,
+			scenes.NewPondScene,
+			scenes.NewCappedCylinderScene,
+			scenes.NewGroupGridScene,
+			scenes.NewHollowGlassSphereScene,
+			scenes.NewRoomScene,
 		),
 		canvas: view.NewCanvas(width, width),
 		loc: &scenes.CameraLocation{
 			At:        geom.NewPoint(2, 2, 2),
-			LookingAt: geom.NewPoint(0, 0, 0),
+			LookingAt: geom.ZeroPoint(),
 		},
 	}
 
@@ -48,10 +54,9 @@ func start() *state {
 
 	// render middle
 	go func() {
-		for {
-			// todo: render option for # of rays picking random pixels & size to multiply color by
-			// (list of pixels hit for each frame and last N frames, average by distance then time)
+		// todo race when scene changed.
 
+		for {
 			var ctx context.Context
 			ctx, s.cancel = context.WithCancel(context.Background())
 
@@ -70,7 +75,10 @@ func start() *state {
 				s.canvas.SetPixel(p.X, p.Y, p.C)
 			}
 
-			// todo wait if fully drawn
+			select {
+			case <-ctx.Done():
+				// wait until this render is done. (don't repeat drawing something already finished)
+			}
 		}
 	}()
 
@@ -93,7 +101,7 @@ func (s *state) Update() error {
 	}
 
 	// todo cross product for 90 degree motiuon
-	// todo A D Q E
+	// todo A D
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
 		s.loc.RotateAroundY(math.Pi / 12)

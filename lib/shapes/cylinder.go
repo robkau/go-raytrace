@@ -26,8 +26,9 @@ func NewInfiniteCylinder() *Cylinder {
 	return NewCylinder(math.Inf(-1), math.Inf(1), false)
 }
 
-func (c *Cylinder) Bounds() Bounds {
-	return newBounds(geom.NewPoint(-1, c.minimum, -1), geom.NewPoint(1, c.maximum, 1)).TransformTo(c.t)
+// BoundsOf is for untransformed shape
+func (c *Cylinder) BoundsOf() *BoundingBox {
+	return NewBoundingBox(geom.NewPoint(-1, c.minimum, -1), geom.NewPoint(1, c.maximum, 1))
 }
 
 func (c *Cylinder) NormalAt(p geom.Tuple, _ Intersection) geom.Tuple {
