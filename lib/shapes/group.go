@@ -59,6 +59,7 @@ func (g *group) BoundsOf() *BoundingBox {
 }
 
 func (g *group) Divide(threshold int) {
+	g.Invalidate()
 	if threshold <= len(g.children) {
 		left, right := g.PartitionChildren()
 		if len(left.GetChildren()) > 0 {
@@ -88,7 +89,6 @@ func (g *group) GetTransform() geom.X4Matrix {
 
 func (g *group) SetTransform(matrix geom.X4Matrix) {
 	g.t = matrix
-	g.Invalidate()
 }
 
 func (g *group) WorldToObject(p geom.Tuple) geom.Tuple {
@@ -114,13 +114,7 @@ func (g *group) GetParent() Group {
 }
 
 func (g *group) SetParent(gr Group) {
-	oldParent := g.parent
 	g.parent = gr
-	g.Invalidate()
-	if oldParent != nil {
-		oldParent.Invalidate()
-	}
-
 }
 
 func (g *group) GetChildren() []Shape {
@@ -130,7 +124,6 @@ func (g *group) GetChildren() []Shape {
 func (g *group) AddChild(s Shape) {
 	s.SetParent(g)
 	g.children = append(g.children, s)
-	g.Invalidate()
 }
 
 func (g *group) PartitionChildren() (left, right Group) {

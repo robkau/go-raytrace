@@ -17,6 +17,8 @@ const (
 )
 
 func main() {
+	//defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
+
 	//go func() {
 	//	log.Println(http.ListenAndServe("localhost:6060", nil))
 	//}()

@@ -51,6 +51,7 @@ func NewStoneGolemScene() *Scene {
 	if err != nil {
 		log.Fatalf("failed parsing obj file: %s", err.Error())
 	}
+	car.SetTransform(geom.Translate(1, 0, 0))
 	m = materials.Material{}
 	m.Pattern = patterns.NewSolidColorPattern(colors.Red())
 	m.Ambient = 0.2
@@ -60,6 +61,21 @@ func NewStoneGolemScene() *Scene {
 	// todo wrong when transparency != 0 ?
 	m.Transparency = 0
 	car.SetMaterial(m)
+
+	dragon, err := parse.ParseObjFile("data/obj/dragon.obj")
+	if err != nil {
+		log.Fatalf("failed parsing obj file: %s", err.Error())
+	}
+	dragon.SetTransform(dragon.GetTransform().MulX4Matrix(geom.Scale(2/dragon.BoundsOf().Max.Y, 2/dragon.BoundsOf().Max.Y, 2/dragon.BoundsOf().Max.Y)).MulX4Matrix(geom.Translate(-4.5, 0, 0)).MulX4Matrix(geom.RotateY(math.Pi / 1.8)))
+	m = materials.Material{}
+	m.Pattern = patterns.NewSolidColorPattern(colors.RandomAnyColor())
+	m.Ambient = 0.2
+	m.Diffuse = 0.2
+	m.Specular = 0.1
+	m.Reflective = 0
+	// todo wrong when transparency != 0 ?
+	m.Transparency = 0
+	dragon.SetMaterial(m)
 
 	// floor and ceiling as one cube
 	var floorAndCeiling = sizedCubeAt(0, 10, 0, 100, 10, 100)
@@ -81,6 +97,7 @@ func NewStoneGolemScene() *Scene {
 	w.AddObject(lizard)
 	//w.AddObject(sphere)
 	w.AddObject(car)
+	w.AddObject(dragon)
 	w.AddObject(floorAndCeiling)
 	w.AddObject(walls)
 
