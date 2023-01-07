@@ -12,7 +12,7 @@ import (
 	"math"
 )
 
-func NewStoneGolemScene() *Scene {
+func NewStoneGolemScene() (*view.World, []CameraLocation) {
 	w := view.NewWorld()
 	cameraPos := geom.NewPoint(4, 3, 7)
 	cameraLookingAt := geom.NewPoint(0, 1, 0)
@@ -62,20 +62,20 @@ func NewStoneGolemScene() *Scene {
 	m.Transparency = 0
 	car.SetMaterial(m)
 
-	dragon, err := parse.ParseObjFile("data/obj/dragon.obj")
-	if err != nil {
-		log.Fatalf("failed parsing obj file: %s", err.Error())
-	}
-	dragon.SetTransform(dragon.GetTransform().MulX4Matrix(geom.Scale(2/dragon.BoundsOf().Max.Y, 2/dragon.BoundsOf().Max.Y, 2/dragon.BoundsOf().Max.Y)).MulX4Matrix(geom.Translate(-4.5, 0, 0)).MulX4Matrix(geom.RotateY(math.Pi / 1.8)))
-	m = materials.Material{}
-	m.Pattern = patterns.NewSolidColorPattern(colors.RandomAnyColor())
-	m.Ambient = 0.2
-	m.Diffuse = 0.2
-	m.Specular = 0.1
-	m.Reflective = 0
-	// todo wrong when transparency != 0 ?
-	m.Transparency = 0
-	dragon.SetMaterial(m)
+	//dragon, err := parse.ParseObjFile("data/obj/dragon.obj")
+	//if err != nil {
+	//	log.Fatalf("failed parsing obj file: %s", err.Error())
+	//}
+	//dragon.SetTransform(dragon.GetTransform().MulX4Matrix(geom.Scale(2/dragon.BoundsOf().Max.Y, 2/dragon.BoundsOf().Max.Y, 2/dragon.BoundsOf().Max.Y)).MulX4Matrix(geom.Translate(-4.5, 0, 0)).MulX4Matrix(geom.RotateY(math.Pi / 1.8)))
+	//m = materials.Material{}
+	//m.Pattern = patterns.NewSolidColorPattern(colors.RandomAnyColor())
+	//m.Ambient = 0.2
+	//m.Diffuse = 0.2
+	//m.Specular = 0.1
+	//m.Reflective = 0
+	//// todo wrong when transparency != 0 ?
+	//m.Transparency = 0
+	//dragon.SetMaterial(m)
 
 	// floor and ceiling as one cube
 	var floorAndCeiling = sizedCubeAt(0, 10, 0, 100, 10, 100)
@@ -97,7 +97,7 @@ func NewStoneGolemScene() *Scene {
 	w.AddObject(lizard)
 	//w.AddObject(sphere)
 	w.AddObject(car)
-	w.AddObject(dragon)
+	//w.AddObject(dragon)
 	w.AddObject(floorAndCeiling)
 	w.AddObject(walls)
 
@@ -106,12 +106,10 @@ func NewStoneGolemScene() *Scene {
 
 	w.Divide(64)
 
-	return NewScene(
-		w,
-		CameraLocation{
-			At:        cameraPos,
-			LookingAt: cameraLookingAt,
-		},
+	return w, []CameraLocation{CameraLocation{
+		At:        cameraPos,
+		LookingAt: cameraLookingAt,
+	},
 		CameraLocation{
 			At:        cameraPos.Add(geom.NewPoint(0, 6, -4)),
 			LookingAt: cameraLookingAt,
@@ -119,6 +117,5 @@ func NewStoneGolemScene() *Scene {
 		CameraLocation{
 			At:        cameraPos.Add(geom.NewPoint(-2, 3, -1)),
 			LookingAt: cameraLookingAt,
-		},
-	)
+		}}
 }

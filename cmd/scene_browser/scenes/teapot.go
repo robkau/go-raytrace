@@ -12,7 +12,7 @@ import (
 	"math"
 )
 
-func NewTeapotScene() *Scene {
+func NewTeapotScene() (*view.World, []CameraLocation) {
 	w := view.NewWorld()
 	cameraPos := geom.NewPoint(85, 10, -10)
 	cameraLookingAt := geom.NewPoint(0, 5, -10)
@@ -69,5 +69,5 @@ func NewTeapotScene() *Scene {
 
 	w.AddPointLight(shapes.NewPointLight(cameraPos, colors.NewColor(1.9, 1.4, 1.4)))
 
-	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
+	return w, []CameraLocation{CameraLocation{cameraPos, cameraLookingAt}}
 }

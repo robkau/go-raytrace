@@ -10,7 +10,7 @@ import (
 	"math"
 )
 
-func NewWavyCarpetSpheres() *Scene {
+func NewWavyCarpetSpheres() (*view.World, []CameraLocation) {
 	var floor shapes.Shape = shapes.NewPlane()
 	m := floor.GetMaterial()
 	m.Color = colors.NewColor(1, 0.9, 0.9)
@@ -83,5 +83,5 @@ func NewWavyCarpetSpheres() *Scene {
 	cameraLookingAt := geom.NewPoint(0, 1, 0)
 
 	w.Divide(16)
-	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
+	return w, []CameraLocation{{cameraPos, cameraLookingAt}}
 }

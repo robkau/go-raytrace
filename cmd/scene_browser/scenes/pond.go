@@ -9,7 +9,7 @@ import (
 	"math"
 )
 
-func NewPondScene() *Scene {
+func NewPondScene() (*view.World, []CameraLocation) {
 	w := view.NewWorld()
 
 	// transparent plane
@@ -70,5 +70,5 @@ func NewPondScene() *Scene {
 
 	w.Divide(8)
 
-	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
+	return w, []CameraLocation{CameraLocation{cameraPos, cameraLookingAt}}
 }

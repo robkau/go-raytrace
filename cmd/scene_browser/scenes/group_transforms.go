@@ -129,7 +129,7 @@ func stackTable(t geom.X4Matrix) geom.X4Matrix {
 	return t.MulX4Matrix(geom.Translate(-1, 4, 1)).MulX4Matrix(geom.RotateY(math.Pi / 9).MulX4Matrix(geom.Scale(0.5, 0.5, 0.5)))
 }
 
-func NewGroupTransformsScene() *Scene {
+func NewGroupTransformsScene() (*view.World, []CameraLocation) {
 	//seed := time.Now().UnixNano()
 	//fmt.Println("rand seed", seed)
 	//rand.Seed(seed)
@@ -161,13 +161,13 @@ func NewGroupTransformsScene() *Scene {
 	walls.SetMaterial(m)
 
 	// light above
-	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(0, 10, 0), geom.NewVector(15, 0, 0), 4, geom.NewVector(0, 0, 15), 4, colors.NewColorFromHex("ffffd7").MulBy(1), nil))
-	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(7, 10, 0), geom.NewVector(8, 0, 0), 4, geom.NewVector(0, 15, 15), 4, colors.NewColorFromHex("ffffd7").MulBy(1), nil))
+	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(0, 10, 0), geom.NewVector(15, 0, 0), 4, geom.NewVector(0, 0, 15), 2, colors.NewColorFromHex("ffffd7").MulBy(1), nil))
+	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(7, 10, 0), geom.NewVector(8, 0, 0), 4, geom.NewVector(0, 15, 15), 2, colors.NewColorFromHex("ffffd7").MulBy(1), nil))
 	//w.AddPointLight(shapes.NewPointLight(geom.NewPoint(5, 10, -3), colors.NewColor(1.9, 1.4, 1.4)))
 	w.AddObject(g1)
 	w.AddObject(g2)
 	w.AddObject(floorAndCeiling)
 	w.AddObject(walls)
 
-	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
+	return w, []CameraLocation{CameraLocation{cameraPos, cameraLookingAt}}
 }

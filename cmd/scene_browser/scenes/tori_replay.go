@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-func NewToriReplayScene() *Scene {
+func NewToriReplayScene() (*view.World, []CameraLocation) {
 	w := view.NewWorld()
 
 	sceneSpacing := 6.5
@@ -150,18 +150,17 @@ func NewToriReplayScene() *Scene {
 	ic.SetTransform(geom.Translate(cameraDistance/1.2, 9, 19).MulX4Matrix(geom.RotateX(-math.Pi / 4)).MulX4Matrix(geom.Scale(1, 1, 4)))
 	w.AddObject(ic)
 
-	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(0, wallDistance*0.8, 0), geom.NewVector(15, 0, 0), 4, geom.NewVector(0, 0, 15), 4, colors.NewColorFromHex("ffffd7").MulBy(2), nil))
 	//w.AddPointLight(shapes.NewPointLight(geom.NewPoint(sceneSpacing*4, wallDistance*0.8, -wallDistance/2), colors.NewColorFromHex("ffffd7").MulBy(2)))
 	//w.AddPointLight(shapes.NewPointLight(geom.NewPoint(sceneSpacing*2, sceneSpacing*3, sceneSpacing*3), colors.NewColorFromHex("af005f").MulBy(3)))
 	//w.AddPointLight(shapes.NewPointLight(geom.NewPoint(sceneSpacing*4, -sceneSpacing*5, -sceneSpacing*5), colors.NewColorFromHex("00afaf").MulBy(3)))
-	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(0, -wallDistance*0.8, 0), geom.NewVector(15, 0, 0), 4, geom.NewVector(0, 0, 15), 4, colors.NewColorFromHex("00afaf").MulBy(2), nil))
+	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(0, -wallDistance*0.8, 0), geom.NewVector(25, 0, 0), 2, geom.NewVector(0, 0, 25), 2, colors.NewColorFromHex("00afaf").MulBy(3), nil))
 
 	//w.AddPointLight(shapes.NewPointLight(geom.NewPoint(cameraDistance/2, sceneSpacing * 6, 0), colors.NewColorFromHex("af005f").MulBy(2)))
 
 	cLookingAt := geom.NewPoint(0, c.Y, c.Z).Add(geom.NewPoint(0, 1.25, 0))
 
 	w.Divide(8)
-	return NewScene(w, basicRotatedCameras(cLookingAt, cameraDistance)...)
+	return w, basicRotatedCameras(cLookingAt, cameraDistance)
 }
 
 func basicRotatedCameras(lookingAt geom.Tuple, distance float64) []CameraLocation {

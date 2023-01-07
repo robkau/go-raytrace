@@ -52,7 +52,7 @@ func start() *state {
 	var rendered uint32 = 0
 	var pixelsPerRenderStat uint32 = 3000
 
-	// render middle
+	// render
 	go func() {
 		// todo race when scene changed.
 
@@ -60,8 +60,11 @@ func start() *state {
 			var ctx context.Context
 			ctx, s.cancel = context.WithCancel(context.Background())
 
+			// todo show loading progress
+			s.scenes[s.currentScene].Load()
+
 			s.loc = &s.scenes[s.currentScene].Cs[s.currentCamera]
-			pc, err := view.Render(ctx, s.scenes[s.currentScene].W, view.NewCameraAt(width, width, fov, s.loc.At, s.loc.LookingAt), 7, int(float64(runtime.NumCPU())/4), coordinate_supplier.Random)
+			pc, err := view.Render(ctx, s.scenes[s.currentScene].W, view.NewCameraAt(width, width, fov, s.loc.At, s.loc.LookingAt), 4, int(float64(runtime.NumCPU())/4), coordinate_supplier.Random)
 			if err != nil {
 				fmt.Println("failed create render")
 				log.Fatalf(err.Error())

@@ -20,7 +20,7 @@ func sizedCubeAt(x, y, z, w, h, d float64) shapes.Shape {
 	return c
 }
 
-func NewRoomScene() *Scene {
+func NewRoomScene() (*view.World, []CameraLocation) {
 	w := view.NewWorld()
 	cameraPos := geom.NewPoint(15, 15, 15)
 	cameraLookingAt := geom.NewPoint(0, 5, 0)
@@ -76,5 +76,5 @@ func NewRoomScene() *Scene {
 	w.AddObject(walls)
 
 	w.Divide(8)
-	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
+	return w, []CameraLocation{CameraLocation{cameraPos, cameraLookingAt}}
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/robkau/go-raytrace/lib/view"
 )
 
-func NewCappedCylinderScene() *Scene {
+func NewCappedCylinderScene() (*view.World, []CameraLocation) {
 	w := view.NewWorld()
 	cameraPos := geom.NewPoint(15, 15, 15)
 	cameraLookingAt := geom.NewPoint(0, 5, 0)
@@ -61,5 +61,5 @@ func NewCappedCylinderScene() *Scene {
 
 	w.Divide(8)
 
-	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
+	return w, []CameraLocation{CameraLocation{cameraPos, cameraLookingAt}}
 }
