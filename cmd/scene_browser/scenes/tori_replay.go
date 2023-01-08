@@ -9,7 +9,6 @@ import (
 	"github.com/robkau/go-raytrace/lib/patterns"
 	"github.com/robkau/go-raytrace/lib/shapes"
 	"github.com/robkau/go-raytrace/lib/view"
-	"log"
 	"math"
 	"strings"
 )
@@ -100,33 +99,33 @@ func NewToriReplayScene() (*view.World, []CameraLocation) {
 	w.AddObject(floorAndCeiling)
 	w.AddObject(walls)
 
-	lizard, err := parse.ParseObjFile("data/obj/LizardFolkOBJ.obj")
-	if err != nil {
-		log.Fatalf("failed parsing obj file: %s", err.Error())
-	}
-	// todo do this inside parsing and scale for each dimension and scale by largest required
-	lizard.SetTransform(lizard.GetTransform().MulX4Matrix(geom.Scale(2/lizard.BoundsOf().Max.Y, 2/lizard.BoundsOf().Max.Y, 2/lizard.BoundsOf().Max.Y)).MulX4Matrix(geom.Translate(8, 4.7, 0)).MulX4Matrix(geom.RotateY(math.Pi / 1.25)))
-	m = materials.Material{}
-	m.Pattern = patterns.NewSolidColorPattern(colors.Green())
-	m.Ambient = 0.15
-	m.Diffuse = 0.15
-	m.Specular = 0.1
-	m.Shininess = 50
-	m.Reflective = 0.1
-	lizard.SetMaterial(m)
-	lizard.SetTransform(geom.Translate(0, 9.85, 6.45).MulX4Matrix(geom.Scale(2.4, 2.4, 2.4).MulX4Matrix(lizard.GetTransform())))
-	w.AddObject(lizard)
-
-	newLizard, err := parse.ParseObjFile("data/obj/LizardFolkOBJ.obj")
-	if err != nil {
-		log.Fatalf("failed parsing obj file: %s", err.Error())
-	}
-	newLizard.SetTransform(geom.RotateY(math.Pi))
-	newLizard.SetTransform(lizard.GetTransform().Copy().MulX4Matrix(newLizard.GetTransform()))
-	newLizard.SetTransform(geom.Translate(0, 0, sceneSpacing).MulX4Matrix(newLizard.GetTransform()))
-
-	newLizard.SetMaterial(lizard.GetMaterial())
-	w.AddObject(newLizard)
+	//lizard, err := parse.ParseObjFile("data/obj/LizardFolkOBJ.obj")
+	//if err != nil {
+	//	log.Fatalf("failed parsing obj file: %s", err.Error())
+	//}
+	//// todo do this inside parsing and scale for each dimension and scale by largest required
+	//lizard.SetTransform(lizard.GetTransform().MulX4Matrix(geom.Scale(2/lizard.BoundsOf().Max.Y, 2/lizard.BoundsOf().Max.Y, 2/lizard.BoundsOf().Max.Y)).MulX4Matrix(geom.Translate(8, 4.7, 0)).MulX4Matrix(geom.RotateY(math.Pi / 1.25)))
+	//m = materials.Material{}
+	//m.Pattern = patterns.NewSolidColorPattern(colors.Green())
+	//m.Ambient = 0.15
+	//m.Diffuse = 0.15
+	//m.Specular = 0.1
+	//m.Shininess = 50
+	//m.Reflective = 0.1
+	//lizard.SetMaterial(m)
+	//lizard.SetTransform(geom.Translate(0, 9.85, 6.45).MulX4Matrix(geom.Scale(2.4, 2.4, 2.4).MulX4Matrix(lizard.GetTransform())))
+	//w.AddObject(lizard)
+	//
+	//newLizard, err := parse.ParseObjFile("data/obj/LizardFolkOBJ.obj")
+	//if err != nil {
+	//	log.Fatalf("failed parsing obj file: %s", err.Error())
+	//}
+	//newLizard.SetTransform(geom.RotateY(math.Pi))
+	//newLizard.SetTransform(lizard.GetTransform().Copy().MulX4Matrix(newLizard.GetTransform()))
+	//newLizard.SetTransform(geom.Translate(0, 0, sceneSpacing).MulX4Matrix(newLizard.GetTransform()))
+	//
+	//newLizard.SetMaterial(lizard.GetMaterial())
+	//w.AddObject(newLizard)
 
 	ic := shapes.NewInfiniteCylinder()
 	m = materials.NewMaterial()
@@ -153,7 +152,8 @@ func NewToriReplayScene() (*view.World, []CameraLocation) {
 	//w.AddPointLight(shapes.NewPointLight(geom.NewPoint(sceneSpacing*4, wallDistance*0.8, -wallDistance/2), colors.NewColorFromHex("ffffd7").MulBy(2)))
 	//w.AddPointLight(shapes.NewPointLight(geom.NewPoint(sceneSpacing*2, sceneSpacing*3, sceneSpacing*3), colors.NewColorFromHex("af005f").MulBy(3)))
 	//w.AddPointLight(shapes.NewPointLight(geom.NewPoint(sceneSpacing*4, -sceneSpacing*5, -sceneSpacing*5), colors.NewColorFromHex("00afaf").MulBy(3)))
-	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(0, -wallDistance*0.8, 0), geom.NewVector(25, 0, 0), 2, geom.NewVector(0, 0, 25), 2, colors.NewColorFromHex("00afaf").MulBy(3), nil))
+	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(0, -wallDistance*0.8, 0), geom.NewVector(wallDistance/2, 0, 0), 3, geom.NewVector(0, 0, wallDistance/2), 3, colors.NewColorFromHex("00afaf").MulBy(6), nil))
+	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(0, 0, -wallDistance*0.8), geom.NewVector(wallDistance/2, 0, 0), 3, geom.NewVector(0, wallDistance/2, 0), 3, colors.NewColorFromHex("af005f").MulBy(3), nil))
 
 	//w.AddPointLight(shapes.NewPointLight(geom.NewPoint(cameraDistance/2, sceneSpacing * 6, 0), colors.NewColorFromHex("af005f").MulBy(2)))
 
