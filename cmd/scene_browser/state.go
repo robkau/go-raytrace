@@ -10,7 +10,6 @@ import (
 	"github.com/robkau/go-raytrace/lib/geom"
 	"github.com/robkau/go-raytrace/lib/view"
 	"log"
-	"math"
 	"runtime"
 	"sync/atomic"
 	"time"
@@ -123,30 +122,39 @@ func (s *state) Update() error {
 		s.canvas = view.NewCanvas(width, width)
 	}
 
-	// todo cross product for 90 degree motiuon
-	// todo A D
-
-	if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
-		s.loc.RotateAroundY(math.Pi / 12)
-		s.cancel()
-		s.canvas = view.NewCanvas(width, width)
-
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
-		s.loc.RotateAroundY(-math.Pi / 12)
-		s.cancel()
-		s.canvas = view.NewCanvas(width, width)
-	}
-
 	// move toward origin
-	if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyW) {
 		s.loc.At = s.loc.At.Mul(0.9)
 		s.cancel()
 		s.canvas = view.NewCanvas(width, width)
 	}
 	// move away from origin
-	if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
 		s.loc.At = s.loc.At.Mul(1.1)
+		s.cancel()
+		s.canvas = view.NewCanvas(width, width)
+	}
+	// translate left
+	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
+		s.loc.At.X++
+		s.cancel()
+		s.canvas = view.NewCanvas(width, width)
+	}
+	// translate right
+	if inpututil.IsKeyJustPressed(ebiten.KeyD) {
+		s.loc.At.X--
+		s.cancel()
+		s.canvas = view.NewCanvas(width, width)
+	}
+	// translate z left
+	if inpututil.IsKeyJustPressed(ebiten.KeyQ) {
+		s.loc.At.Z++
+		s.cancel()
+		s.canvas = view.NewCanvas(width, width)
+	}
+	// translate z right
+	if inpututil.IsKeyJustPressed(ebiten.KeyE) {
+		s.loc.At.Z--
 		s.cancel()
 		s.canvas = view.NewCanvas(width, width)
 	}
@@ -159,6 +167,31 @@ func (s *state) Update() error {
 	// translate down
 	if inpututil.IsKeyJustPressed(ebiten.KeyZ) {
 		s.loc.At.Y--
+		s.cancel()
+		s.canvas = view.NewCanvas(width, width)
+	}
+
+	// look left
+	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
+		s.loc.LookingAt.X += 0.25
+		s.cancel()
+		s.canvas = view.NewCanvas(width, width)
+	}
+	// look right
+	if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
+		s.loc.LookingAt.X -= 0.25
+		s.cancel()
+		s.canvas = view.NewCanvas(width, width)
+	}
+	// look up
+	if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
+		s.loc.LookingAt.Y += 0.25
+		s.cancel()
+		s.canvas = view.NewCanvas(width, width)
+	}
+	// look down
+	if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
+		s.loc.LookingAt.Y -= 0.25
 		s.cancel()
 		s.canvas = view.NewCanvas(width, width)
 	}
