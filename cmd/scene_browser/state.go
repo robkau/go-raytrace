@@ -21,6 +21,7 @@ type state struct {
 	frameCount    int
 	currentScene  int
 	currentCamera int
+	rayBounces    int32
 	loc           *scenes.CameraLocation
 	scenes        []*scenes.Scene
 	canvas        *view.Canvas
@@ -47,6 +48,7 @@ func start() *state {
 			At:        geom.NewPoint(2, 2, 2),
 			LookingAt: geom.ZeroPoint(),
 		},
+		rayBounces: 3,
 	}
 
 	var rendered uint32 = 0
@@ -64,7 +66,11 @@ func start() *state {
 			s.scenes[s.currentScene].Load()
 
 			s.loc = &s.scenes[s.currentScene].Cs[s.currentCamera]
-			pc, err := view.Render(ctx, s.scenes[s.currentScene].W, view.NewCameraAt(width, width, fov, s.loc.At, s.loc.LookingAt), 4, int(float64(runtime.NumCPU())/4), coordinate_supplier.Random)
+			bounces := atomic.LoadInt32(&s.rayBounces)
+			if bounces < 0 {
+				bounces = 0
+			}
+			pc, err := view.Render(ctx, s.scenes[s.currentScene].W, view.NewCameraAt(width, width, fov, s.loc.At, s.loc.LookingAt), int(bounces), int(float64(runtime.NumCPU())/4), coordinate_supplier.Random)
 			if err != nil {
 				fmt.Println("failed create render")
 				log.Fatalf(err.Error())
@@ -99,6 +105,20 @@ func (s *state) Update() error {
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
 		s.loc.At = s.loc.At.Add(s.loc.At.Sub(s.loc.LookingAt).Normalize())
+		s.cancel()
+		s.canvas = view.NewCanvas(width, width)
+	}
+
+	// increase/decrease ray bounces
+	if inpututil.IsKeyJustPressed(ebiten.KeyNumpadAdd) {
+		b := atomic.AddInt32(&s.rayBounces, 1)
+		log.Println(b, "ray bounces")
+		s.cancel()
+		s.canvas = view.NewCanvas(width, width)
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyNumpadSubtract) {
+		b := atomic.AddInt32(&s.rayBounces, -1)
+		log.Println(b, "ray bounces")
 		s.cancel()
 		s.canvas = view.NewCanvas(width, width)
 	}
