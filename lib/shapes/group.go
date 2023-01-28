@@ -13,7 +13,7 @@ type Group interface {
 }
 
 type group struct {
-	t          geom.X4Matrix
+	t          *geom.X4Matrix
 	parent     Group
 	children   []Shape
 	m          materials.Material
@@ -89,11 +89,11 @@ func (g *group) Invalidate() {
 	}
 }
 
-func (g *group) GetTransform() geom.X4Matrix {
+func (g *group) GetTransform() *geom.X4Matrix {
 	return g.t
 }
 
-func (g *group) SetTransform(matrix geom.X4Matrix) {
+func (g *group) SetTransform(matrix *geom.X4Matrix) {
 	g.t = matrix
 }
 

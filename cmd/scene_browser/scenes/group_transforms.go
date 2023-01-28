@@ -125,7 +125,7 @@ func makeGroupOfGroups() shapes.Group {
 	return g1
 }
 
-func stackTable(t geom.X4Matrix) geom.X4Matrix {
+func stackTable(t *geom.X4Matrix) *geom.X4Matrix {
 	return t.MulX4Matrix(geom.Translate(-1, 4, 1)).MulX4Matrix(geom.RotateY(math.Pi / 9).MulX4Matrix(geom.Scale(0.5, 0.5, 0.5)))
 }
 

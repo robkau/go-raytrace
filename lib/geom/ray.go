@@ -13,7 +13,7 @@ func (r Ray) Position(t float64) Tuple {
 	return r.Origin.Add(r.Direction.Mul(t))
 }
 
-func (r Ray) Transform(m X4Matrix) Ray {
+func (r Ray) Transform(m *X4Matrix) Ray {
 	return RayWith(
 		m.MulTuple(r.Origin),
 		m.MulTuple(r.Direction),

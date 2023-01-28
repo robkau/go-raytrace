@@ -137,7 +137,7 @@ func (pr *ParsedReplay) AllScenes(stepsPerLine int, stepWidth float64) shapes.Gr
 		pg1.SetTransform(geom.Translate(0, ToriSphereWidth+stepWidth*float64(y), 0+stepWidth*float64(z)).MulX4Matrix(geom.Scale(1.2, 1.2, 1.2)).MulX4Matrix(pg1.GetTransform()))
 		m = materials.NewMaterial()
 		m.Specular = 1
-		m.Reflective = 0.14
+		m.Reflective = 0
 		m.Pattern = patterns.NewSolidColorPattern(colors.Red())
 		for _, c := range pg1.GetChildren() {
 			c.SetMaterial(m)

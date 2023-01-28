@@ -54,7 +54,7 @@ func (b *BoundingBox) Add(points ...geom.Tuple) {
 	}
 }
 
-func (b *BoundingBox) Transform(t geom.X4Matrix) {
+func (b *BoundingBox) Transform(t *geom.X4Matrix) {
 	p1 := b.Min
 	p2 := geom.NewPoint(b.Min.X, b.Min.Y, b.Max.Z)
 	p3 := geom.NewPoint(b.Min.X, b.Max.Y, b.Min.Z)

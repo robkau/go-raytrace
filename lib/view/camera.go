@@ -14,7 +14,7 @@ type Camera struct {
 	halfWidth  float64
 	halfHeight float64
 	pixelSize  float64
-	Transform  geom.X4Matrix
+	Transform  *geom.X4Matrix
 }
 
 func NewCamera(hs int, vs int, fov float64) Camera {

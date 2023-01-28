@@ -113,7 +113,7 @@ func Test_IntersectChildrenIfBoundsMissed(t *testing.T) {
 
 type testShape struct {
 	parent     Group
-	t          geom.X4Matrix
+	t          *geom.X4Matrix
 	m          materials.Material
 	savedRay   geom.Ray
 	shadowless bool
@@ -173,11 +173,11 @@ func (t *testShape) NormalAt(p geom.Tuple, _ Intersection) geom.Tuple {
 	return worldNormal.Normalize()
 }
 
-func (t *testShape) GetTransform() geom.X4Matrix {
+func (t *testShape) GetTransform() *geom.X4Matrix {
 	return t.t
 }
 
-func (t *testShape) SetTransform(m geom.X4Matrix) {
+func (t *testShape) SetTransform(m *geom.X4Matrix) {
 	t.t = m
 }
 

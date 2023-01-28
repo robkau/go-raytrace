@@ -49,7 +49,7 @@ func NewToriReplayScene() (*view.World, []CameraLocation) {
 		ball.SetMaterial(materials.NewGlassMaterial())
 		m := ball.GetMaterial()
 		m.Specular = 0.2
-		m.Transparency = 0.9775
+		m.Transparency = 0.9875
 		ball.SetTransform(geom.Translate(0, 2+float64(y)*sceneSpacing, float64(z)*sceneSpacing).MulX4Matrix(geom.Scale(outerShellRadius, outerShellRadius, outerShellRadius)))
 
 		hollowCenter := shapes.NewSphere()
@@ -61,7 +61,7 @@ func NewToriReplayScene() (*view.World, []CameraLocation) {
 		m.Ambient = 0
 		m.Specular = 0.4
 		m.Shininess = 300
-		m.Transparency = 0.9775
+		m.Transparency = 0.9875
 		m.Reflective = 0.9
 		m.RefractiveIndex = 1.0000034
 		hollowCenter.SetMaterial(m)
@@ -83,7 +83,7 @@ func NewToriReplayScene() (*view.World, []CameraLocation) {
 	m.Ambient = 0.25
 	m.Diffuse = 0.35
 	m.Specular = 0.25
-	m.Reflective = 0.1
+	m.Reflective = 0
 	floorAndCeiling.SetMaterial(m)
 
 	// walls as another cube
@@ -93,7 +93,7 @@ func NewToriReplayScene() (*view.World, []CameraLocation) {
 	m.Ambient = 0.17
 	m.Diffuse = 0.25
 	m.Specular = 0.12
-	m.Reflective = 0.07
+	m.Reflective = 0
 	walls.SetMaterial(m)
 
 	w.AddObject(floorAndCeiling)
@@ -133,7 +133,7 @@ func NewToriReplayScene() (*view.World, []CameraLocation) {
 	m.Ambient = 0.56
 	m.Specular = 0.76
 	m.Diffuse = 0.56
-	m.Reflective = 0.25
+	m.Reflective = 0
 	ic.SetMaterial(m)
 	ic.SetTransform(geom.Translate(cameraDistance/1.2, 9, -7).MulX4Matrix(geom.RotateX(math.Pi / 4)).MulX4Matrix(geom.Scale(1, 1, 4)))
 	w.AddObject(ic)
@@ -144,7 +144,7 @@ func NewToriReplayScene() (*view.World, []CameraLocation) {
 	m.Ambient = 0.56
 	m.Specular = 0.76
 	m.Diffuse = 0.76
-	m.Reflective = 0.25
+	m.Reflective = 0
 	ic.SetMaterial(m)
 	ic.SetTransform(geom.Translate(cameraDistance/1.2, 9, 19).MulX4Matrix(geom.RotateX(-math.Pi / 4)).MulX4Matrix(geom.Scale(1, 1, 4)))
 	w.AddObject(ic)

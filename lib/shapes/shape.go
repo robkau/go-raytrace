@@ -12,8 +12,8 @@ type Shape interface {
 	NormalAt(at geom.Tuple, i Intersection) geom.Tuple
 	WorldToObject(p geom.Tuple) geom.Tuple
 	NormalToWorld(normal geom.Tuple) geom.Tuple
-	GetTransform() geom.X4Matrix
-	SetTransform(matrix geom.X4Matrix)
+	GetTransform() *geom.X4Matrix
+	SetTransform(matrix *geom.X4Matrix)
 	GetMaterial() materials.Material
 	SetMaterial(materials.Material)
 	BoundsOf() *BoundingBox
@@ -30,7 +30,7 @@ type Shape interface {
 
 type baseShape struct {
 	parent     Group
-	t          geom.X4Matrix
+	t          *geom.X4Matrix
 	m          materials.Material
 	id         string
 	shadowless bool
@@ -47,11 +47,11 @@ func newBaseShape() baseShape {
 	}
 }
 
-func (b *baseShape) GetTransform() geom.X4Matrix {
+func (b *baseShape) GetTransform() *geom.X4Matrix {
 	return b.t
 }
 
-func (b *baseShape) SetTransform(matrix geom.X4Matrix) {
+func (b *baseShape) SetTransform(matrix *geom.X4Matrix) {
 	b.t = matrix
 }
 
@@ -139,7 +139,7 @@ func NormalAt(s Shape, p geom.Tuple, lnaf func(p geom.Tuple, in Intersection) ge
 }
 
 // invert ray from object's transformation matrix then call shape-specific intersection logic
-func Intersect(r geom.Ray, t geom.X4Matrix, lif func(geom.Ray) *Intersections) *Intersections {
+func Intersect(r geom.Ray, t *geom.X4Matrix, lif func(geom.Ray) *Intersections) *Intersections {
 	lr := r.Transform(t.Invert())
 	return lif(lr)
 }
