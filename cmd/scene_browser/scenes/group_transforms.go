@@ -130,9 +130,11 @@ func stackTable(t *geom.X4Matrix) *geom.X4Matrix {
 }
 
 func NewGroupTransformsScene() (*view.World, []CameraLocation) {
-	//seed := time.Now().UnixNano()
-	//fmt.Println("rand seed", seed)
-	//rand.Seed(seed)
+	sc := shapes.NewSphere()
+	ms := sc.GetMaterial()
+	ms.Pattern = patterns.NewTextureMapPattern(patterns.NewCheckerPatternUV(20, 10, colors.White(), colors.Black()), patterns.SphericalMap)
+	sc.SetMaterial(ms)
+	sc.SetTransform(geom.Translate(0, 5, 4))
 
 	w := view.NewWorld()
 	cameraPos := geom.NewPoint(15, 15, 15)
@@ -160,6 +162,8 @@ func NewGroupTransformsScene() (*view.World, []CameraLocation) {
 	m.Color = colors.Blue()
 	walls.SetMaterial(m)
 
+	// texture mapped sphere
+	w.AddObject(sc)
 	// light above
 	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(0, 10, 0), geom.NewVector(15, 0, 0), 4, geom.NewVector(0, 0, 15), 2, colors.NewColorFromHex("ffffd7").MulBy(1), nil))
 	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(7, 10, 0), geom.NewVector(8, 0, 0), 4, geom.NewVector(0, 15, 15), 2, colors.NewColorFromHex("ffffd7").MulBy(1), nil))
