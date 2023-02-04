@@ -148,7 +148,6 @@ func (w *World) BoundsOf() *shapes.BoundingBox {
 
 func (w *World) ColorAt(r geom.Ray, remaining int) colors.Color {
 	is := w.Intersect(r)
-	defer is.Release()
 	i, ok := is.Hit()
 	if !ok {
 		return colors.Black()
