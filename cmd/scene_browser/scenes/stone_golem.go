@@ -51,7 +51,7 @@ func NewStoneGolemScene() (*view.World, []CameraLocation) {
 	if err != nil {
 		log.Fatalf("failed parsing obj file: %s", err.Error())
 	}
-	car.SetTransform(geom.Translate(1, 0, 0))
+	car.SetTransform(geom.Translate(1, 0.25, 0))
 	m = materials.Material{}
 	m.Pattern = patterns.NewSolidColorPattern(colors.Red())
 	m.Ambient = 0.2
@@ -80,7 +80,7 @@ func NewStoneGolemScene() (*view.World, []CameraLocation) {
 	// floor and ceiling as one cube
 	var floorAndCeiling = sizedCubeAt(0, 10, 0, 100, 10, 100)
 	m = floorAndCeiling.GetMaterial()
-	m.Color = colors.Brown()
+	m.Pattern = patterns.NewTextureMapPattern(patterns.NewCheckerPatternUV(80, 80, colors.Purple(), colors.Green()), patterns.PlanarMap)
 	m.Reflective = 0
 	m.Transparency = 0
 	floorAndCeiling.SetMaterial(m)

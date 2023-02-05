@@ -92,3 +92,29 @@ func SphericalMap(p geom.Tuple) (u, v float64) {
 
 	return u, v
 }
+
+func PlanarMap(p geom.Tuple) (u, v float64) {
+	u = remainderOfOneCloserToZero(p.X)
+	v = remainderOfOneCloserToZero(p.Z)
+	return
+}
+
+func remainderOfOneCloserToZero(v float64) float64 {
+	var flipped bool
+	if v < 0 {
+		flipped = true
+	}
+
+	vi := math.Abs(math.Mod(v, 1))
+
+	if vi == 0 {
+		return vi
+	}
+
+	if flipped {
+		vi = 1 - vi
+	}
+
+	return vi
+
+}

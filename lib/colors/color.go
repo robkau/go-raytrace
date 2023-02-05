@@ -86,6 +86,10 @@ func Brown() Color {
 	return Color{R: 0.40, G: 0.26, B: 0.13}
 }
 
+func Purple() Color {
+	return NewColorFromHex("A32CC4")
+}
+
 func Green() Color {
 	return Color{R: 0, G: 1, B: 0}
 }
