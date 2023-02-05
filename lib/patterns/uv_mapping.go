@@ -99,6 +99,20 @@ func PlanarMap(p geom.Tuple) (u, v float64) {
 	return
 }
 
+// todo top/bottom same as cube mapping later
+func CylindricalMap(p geom.Tuple) (u, v float64) {
+	// compute the azimuthal angle, same as with spherical_map()
+	theta := math.Atan2(p.X, p.Z)
+	rawU := theta / (2 * math.Pi)
+	u = 1 - (rawU + 0.5)
+
+	// let v go from 0 to 1 between whole units of y
+	v = remainderOfOneCloserToZero(p.Y)
+
+	return
+}
+
+// todo revisit me.
 func remainderOfOneCloserToZero(v float64) float64 {
 	var flipped bool
 	if v < 0 {

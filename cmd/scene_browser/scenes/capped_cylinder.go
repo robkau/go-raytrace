@@ -17,6 +17,7 @@ func NewCappedCylinderScene() (*view.World, []CameraLocation) {
 	// cylinder
 	cyl := shapes.NewCylinder(0, 5.9, true)
 	m := cyl.GetMaterial()
+	m.Pattern = patterns.NewTextureMapPattern(patterns.NewCheckerPatternUV(16, 4, colors.Purple(), colors.Green()), patterns.CylindricalMap)
 	m.Color = colors.Red()
 	cyl.SetMaterial(m)
 

@@ -90,6 +90,36 @@ func Test_PlanarMapping_3dPoint(t *testing.T) {
 	}
 }
 
+func Test_CylindricalMapping_3dPoint(t *testing.T) {
+
+	type tc struct {
+		p         geom.Tuple
+		expectedU float64
+		expectedV float64
+	}
+
+	tcs := []tc{
+		{geom.NewPoint(0, 0, -1), 0.0, 0.0},
+		{geom.NewPoint(0, 0.5, -1), 0.0, 0.5},
+		{geom.NewPoint(0, 1, -1), 0.0, 0.0},
+		{geom.NewPoint(0.70711, 0.5, -0.70711), 0.125, 0.5},
+		{geom.NewPoint(1, 0.5, 0), 0.25, 0.5},
+		{geom.NewPoint(0.70711, 0.5, 0.70711), 0.375, 0.5},
+		{geom.NewPoint(0, -0.25, 1), 0.5, 0.75},
+		{geom.NewPoint(-0.70711, 0.5, 0.70711), 0.625, 0.5},
+		{geom.NewPoint(-1, 1.25, 0), 0.75, 0.25},
+		{geom.NewPoint(-0.70711, 0.5, -0.70711), 0.875, 0.5},
+	}
+
+	for i, tc := range tcs {
+		t.Run(t.Name()+strconv.Itoa(i), func(t *testing.T) {
+			u, v := CylindricalMap(tc.p)
+			require.True(t, geom.AlmostEqual(tc.expectedU, u))
+			require.True(t, geom.AlmostEqual(tc.expectedV, v))
+		})
+	}
+}
+
 func Test_TextureMapping_SphericalMap(t *testing.T) {
 	type tc struct {
 		p             geom.Tuple
