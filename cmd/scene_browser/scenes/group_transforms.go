@@ -136,6 +136,12 @@ func NewGroupTransformsScene() (*view.World, []CameraLocation) {
 	sc.SetMaterial(ms)
 	sc.SetTransform(geom.Translate(0, 5, 4))
 
+	pc := shapes.NewCube()
+	mc := pc.GetMaterial()
+	mc.Pattern = patterns.NewPrismaticCube()
+	pc.SetMaterial(mc)
+	pc.SetTransform(geom.Scale(0.75, 0.75, 0.75).MulX4Matrix(geom.Translate(4, 4, 4)).MulX4Matrix(geom.RotateX(math.Pi / 5)).MulX4Matrix(geom.RotateY(math.Pi / 5)))
+
 	w := view.NewWorld()
 	cameraPos := geom.NewPoint(15, 15, 15)
 	cameraLookingAt := geom.NewPoint(0, 5, 0)
@@ -162,6 +168,8 @@ func NewGroupTransformsScene() (*view.World, []CameraLocation) {
 	m.Color = colors.Blue()
 	walls.SetMaterial(m)
 
+	// prismatic cube
+	w.AddObject(pc)
 	// texture mapped sphere
 	w.AddObject(sc)
 	// light above

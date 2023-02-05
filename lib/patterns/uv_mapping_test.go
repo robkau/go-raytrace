@@ -148,3 +148,234 @@ func Test_TextureMapping_SphericalMap(t *testing.T) {
 		})
 	}
 }
+
+func Test_UvAlignCheck(t *testing.T) {
+	m := colors.NewColor(1, 1, 1)
+	ul := colors.NewColor(1, 0, 0)
+	ur := colors.NewColor(1, 1, 0)
+	bl := colors.NewColor(0, 1, 0)
+	br := colors.NewColor(0, 1, 1)
+	pattern := NewUVAlignCheck(m, ul, ur, bl, br)
+
+	type tc struct {
+		u        float64
+		v        float64
+		expected colors.Color
+	}
+
+	tcs := []tc{
+		{0.5, 0.5, m},
+		{0.1, 0.9, ul},
+		{0.9, 0.9, ur},
+		{0.1, 0.1, bl},
+		{0.9, 0.1, br},
+	}
+
+	for i, tc := range tcs {
+		t.Run(t.Name()+strconv.Itoa(i), func(t *testing.T) {
+			require.Equal(t, tc.expected, UvPatternAt(pattern, tc.u, tc.v))
+		})
+	}
+}
+
+func Test_CubeFaceFromPoint(t *testing.T) {
+	type tc struct {
+		p        geom.Tuple
+		expected CubeFace
+	}
+
+	tcs := []tc{
+		{geom.NewPoint(-1, 0.5, -0.25), Left},
+		{geom.NewPoint(1.1, -0.75, 0.8), Right},
+		{geom.NewPoint(0.1, 0.6, 0.9), Front},
+		{geom.NewPoint(-0.7, 0, -2), Back},
+		{geom.NewPoint(0.5, 1, 0.9), Up},
+		{geom.NewPoint(-0.2, -1.3, 1.1), Down},
+	}
+
+	for i, tc := range tcs {
+		t.Run(t.Name()+strconv.Itoa(i), func(t *testing.T) {
+			require.Equal(t, tc.expected, CubeFaceFromPoint(tc.p))
+		})
+	}
+}
+
+func Test_UVMap_CubeFront(t *testing.T) {
+	type tc struct {
+		p         geom.Tuple
+		expectedU float64
+		expectedV float64
+	}
+
+	tcs := []tc{
+		{geom.NewPoint(-0.5, 0.5, 1), 0.25, 0.75},
+		{geom.NewPoint(0.5, -0.5, 1), 0.75, 0.25},
+	}
+
+	for i, tc := range tcs {
+		t.Run(t.Name()+strconv.Itoa(i), func(t *testing.T) {
+			u, v := CubeUvFront(tc.p)
+			require.Equal(t, tc.expectedU, u)
+			require.Equal(t, tc.expectedV, v)
+		})
+	}
+}
+
+func Test_UVMap_CubeBack(t *testing.T) {
+	type tc struct {
+		p         geom.Tuple
+		expectedU float64
+		expectedV float64
+	}
+
+	tcs := []tc{
+		{geom.NewPoint(0.5, 0.5, -1), 0.25, 0.75},
+		{geom.NewPoint(-0.5, -0.5, -1), 0.75, 0.25},
+	}
+
+	for i, tc := range tcs {
+		t.Run(t.Name()+strconv.Itoa(i), func(t *testing.T) {
+			u, v := CubeUvBack(tc.p)
+			require.Equal(t, tc.expectedU, u)
+			require.Equal(t, tc.expectedV, v)
+		})
+	}
+}
+
+func Test_UVMap_CubeLeft(t *testing.T) {
+	type tc struct {
+		p         geom.Tuple
+		expectedU float64
+		expectedV float64
+	}
+
+	tcs := []tc{
+		{geom.NewPoint(-1, 0.5, -0.5), 0.25, 0.75},
+		{geom.NewPoint(-1, -0.5, 0.5), 0.75, 0.25},
+	}
+
+	for i, tc := range tcs {
+		t.Run(t.Name()+strconv.Itoa(i), func(t *testing.T) {
+			u, v := CubeUvLeft(tc.p)
+			require.Equal(t, tc.expectedU, u)
+			require.Equal(t, tc.expectedV, v)
+		})
+	}
+}
+
+func Test_UVMap_CubeRight(t *testing.T) {
+	type tc struct {
+		p         geom.Tuple
+		expectedU float64
+		expectedV float64
+	}
+
+	tcs := []tc{
+		{geom.NewPoint(1, 0.5, 0.5), 0.25, 0.75},
+		{geom.NewPoint(1, -0.5, -0.5), 0.75, 0.25},
+	}
+
+	for i, tc := range tcs {
+		t.Run(t.Name()+strconv.Itoa(i), func(t *testing.T) {
+			u, v := CubeUvRight(tc.p)
+			require.Equal(t, tc.expectedU, u)
+			require.Equal(t, tc.expectedV, v)
+		})
+	}
+}
+
+func Test_UVMap_CubeUp(t *testing.T) {
+	type tc struct {
+		p         geom.Tuple
+		expectedU float64
+		expectedV float64
+	}
+
+	tcs := []tc{
+		{geom.NewPoint(-0.5, 1, -0.5), 0.25, 0.75},
+		{geom.NewPoint(0.5, 1, 0.5), 0.75, 0.25},
+	}
+
+	for i, tc := range tcs {
+		t.Run(t.Name()+strconv.Itoa(i), func(t *testing.T) {
+			u, v := CubeUvUp(tc.p)
+			require.Equal(t, tc.expectedU, u)
+			require.Equal(t, tc.expectedV, v)
+		})
+	}
+}
+
+func Test_UVMap_CubeDown(t *testing.T) {
+	type tc struct {
+		p         geom.Tuple
+		expectedU float64
+		expectedV float64
+	}
+
+	tcs := []tc{
+		{geom.NewPoint(-0.5, -1, 0.5), 0.25, 0.75},
+		{geom.NewPoint(0.5, -1, -0.5), 0.75, 0.25},
+	}
+
+	for i, tc := range tcs {
+		t.Run(t.Name()+strconv.Itoa(i), func(t *testing.T) {
+			u, v := CubeUvDown(tc.p)
+			require.Equal(t, tc.expectedU, u)
+			require.Equal(t, tc.expectedV, v)
+		})
+	}
+}
+
+func Test_MappedCube_Colors(t *testing.T) {
+	pattern := NewPrismaticCube()
+
+	type tc struct {
+		p             geom.Tuple
+		expectedColor colors.Color
+	}
+
+	tcs := []tc{
+		// left
+		{geom.NewPoint(-1, 0, 0), colors.Yellow()},
+		{geom.NewPoint(-1, 0.9, -0.9), colors.Cyan()},
+		{geom.NewPoint(-1, 0.9, 0.9), colors.Red()},
+		{geom.NewPoint(-1, -0.9, -0.9), colors.Blue()},
+		{geom.NewPoint(-1, -0.9, 0.9), colors.Brown()},
+		// front
+		{geom.NewPoint(0, 0, 1), colors.Cyan()},
+		{geom.NewPoint(-0.9, 0.9, 1), colors.Red()},
+		{geom.NewPoint(0.9, 0.9, 1), colors.Yellow()},
+		{geom.NewPoint(-0.9, -0.9, 1), colors.Brown()},
+		{geom.NewPoint(0.9, -0.9, 1), colors.Green()},
+		// right
+		{geom.NewPoint(1, 0, 0), colors.Red()},
+		{geom.NewPoint(1, 0.9, 0.9), colors.Yellow()},
+		{geom.NewPoint(1, 0.9, -0.9), colors.Purple()},
+		{geom.NewPoint(1, -0.9, 0.9), colors.Green()},
+		{geom.NewPoint(1, -0.9, -0.9), colors.White()},
+		// back
+		{geom.NewPoint(0, 0, -1), colors.Green()},
+		{geom.NewPoint(0.9, 0.9, -1), colors.Purple()},
+		{geom.NewPoint(-0.9, 0.9, -1), colors.Cyan()},
+		{geom.NewPoint(0.9, -0.9, -1), colors.White()},
+		{geom.NewPoint(-0.9, -0.9, -1), colors.Blue()},
+		// up
+		{geom.NewPoint(0, 1, 0), colors.Brown()},
+		{geom.NewPoint(-0.9, 1, -0.9), colors.Cyan()},
+		{geom.NewPoint(0.9, 1, -0.9), colors.Purple()},
+		{geom.NewPoint(-0.9, 1, 0.9), colors.Red()},
+		{geom.NewPoint(0.9, 1, 0.9), colors.Yellow()},
+		// down
+		{geom.NewPoint(0, -1, 0), colors.Purple()},
+		{geom.NewPoint(-0.9, -1, 0.9), colors.Brown()},
+		{geom.NewPoint(0.9, -1, 0.9), colors.Green()},
+		{geom.NewPoint(-0.9, -1, -0.9), colors.Blue()},
+		{geom.NewPoint(0.9, -1, -0.9), colors.White()},
+	}
+
+	for i, tc := range tcs {
+		t.Run(t.Name()+strconv.Itoa(i), func(t *testing.T) {
+			require.Equal(t, tc.expectedColor, pattern.ColorAt(tc.p))
+		})
+	}
+}

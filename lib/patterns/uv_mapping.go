@@ -8,11 +8,18 @@ import (
 
 type TextureMapPattern struct {
 	basePattern
-	uv     *CheckerPatternUV
+	uv     UvPattern
 	mapper UvMappingF
 }
 
-func NewTextureMapPattern(uv *CheckerPatternUV, mapper UvMappingF) *TextureMapPattern {
+type UvPattern interface {
+	ColorAt(u, v float64) colors.Color
+}
+
+// 3d point to UV-mapped 2d point
+type UvMappingF func(p geom.Tuple) (u, v float64)
+
+func NewTextureMapPattern(uv UvPattern, mapper UvMappingF) *TextureMapPattern {
 	return &TextureMapPattern{
 		basePattern: newBasePattern(),
 		uv:          uv,
@@ -46,19 +53,124 @@ func NewCheckerPatternUV(width, height int, a, b colors.Color) *CheckerPatternUV
 	}
 }
 
-func UvPatternAt(c *CheckerPatternUV, u, v float64) colors.Color {
-	u2 := int(math.Floor(u * float64(c.w)))
-	v2 := int(math.Floor(v * float64(c.h)))
+func (p *CheckerPatternUV) ColorAt(u, v float64) colors.Color {
+	u2 := int(math.Floor(u * float64(p.w)))
+	v2 := int(math.Floor(v * float64(p.h)))
 
 	if (u2+v2)%2 == 0 {
-		return c.a
+		return p.a
 	} else {
-		return c.b
+		return p.b
 	}
 }
 
-// 3d point to UV-mapped 2d point
-type UvMappingF func(p geom.Tuple) (u, v float64)
+func UvPatternAt(p UvPattern, u, v float64) colors.Color {
+	return p.ColorAt(u, v)
+}
+
+type UVAlignCheck struct {
+	main colors.Color
+	ul   colors.Color
+	ur   colors.Color
+	bl   colors.Color
+	br   colors.Color
+}
+
+type CubeMapPattern struct {
+	basePattern
+	l UvPattern
+	f UvPattern
+	r UvPattern
+	b UvPattern
+	u UvPattern
+	d UvPattern
+}
+
+func NewPrismaticCube() *CubeMapPattern {
+	left := NewUVAlignCheck(colors.Yellow(), colors.Cyan(), colors.Red(), colors.Blue(), colors.Brown())
+	front := NewUVAlignCheck(colors.Cyan(), colors.Red(), colors.Yellow(), colors.Brown(), colors.Green())
+	right := NewUVAlignCheck(colors.Red(), colors.Yellow(), colors.Purple(), colors.Green(), colors.White())
+	back := NewUVAlignCheck(colors.Green(), colors.Purple(), colors.Cyan(), colors.White(), colors.Blue())
+	up := NewUVAlignCheck(colors.Brown(), colors.Cyan(), colors.Purple(), colors.Red(), colors.Yellow())
+	down := NewUVAlignCheck(colors.Purple(), colors.Brown(), colors.Green(), colors.Blue(), colors.White())
+	pattern := NewCubeMapPattern(left, front, right, back, up, down)
+	return pattern
+}
+
+func NewCubeMapPattern(l, f, r, b, u, d UvPattern) *CubeMapPattern {
+	return &CubeMapPattern{
+		basePattern: newBasePattern(),
+		l:           l,
+		f:           f,
+		r:           r,
+		b:           b,
+		u:           u,
+		d:           d,
+	}
+}
+
+func (p *CubeMapPattern) ColorAt(t geom.Tuple) colors.Color {
+	face := CubeFaceFromPoint(t)
+
+	var u, v float64
+	var cubeFace UvPattern
+
+	switch face {
+	case Left:
+		u, v = CubeUvLeft(t)
+		cubeFace = p.l
+	case Right:
+		u, v = CubeUvRight(t)
+		cubeFace = p.r
+	case Front:
+		u, v = CubeUvFront(t)
+		cubeFace = p.f
+	case Back:
+		u, v = CubeUvBack(t)
+		cubeFace = p.b
+	case Up:
+		u, v = CubeUvUp(t)
+		cubeFace = p.u
+	default: // down
+		u, v = CubeUvDown(t)
+		cubeFace = p.d
+	}
+
+	return UvPatternAt(cubeFace, u, v)
+}
+
+func (p *CubeMapPattern) ColorAtShape(wtof WorldToObjectF, t geom.Tuple) colors.Color {
+	return ColorAtShape(p, wtof, t)
+}
+
+func NewUVAlignCheck(main, ul, ur, bl, br colors.Color) *UVAlignCheck {
+	return &UVAlignCheck{
+		main: main,
+		ul:   ul,
+		ur:   ur,
+		bl:   bl,
+		br:   br,
+	}
+}
+
+func (p *UVAlignCheck) ColorAt(u, v float64) colors.Color {
+	if v > 0.8 {
+		if u < 0.2 {
+			return p.ul
+		}
+		if u > 0.8 {
+			return p.ur
+		}
+	} else if v < 0.2 {
+		if u < 0.2 {
+			return p.bl
+		}
+		if u > 0.8 {
+			return p.br
+		}
+	}
+	return p.main
+}
 
 func SphericalMap(p geom.Tuple) (u, v float64) {
 	// compute the azimuthal angle
@@ -99,7 +211,6 @@ func PlanarMap(p geom.Tuple) (u, v float64) {
 	return
 }
 
-// todo top/bottom same as cube mapping later
 func CylindricalMap(p geom.Tuple) (u, v float64) {
 	// compute the azimuthal angle, same as with spherical_map()
 	theta := math.Atan2(p.X, p.Z)
@@ -112,7 +223,6 @@ func CylindricalMap(p geom.Tuple) (u, v float64) {
 	return
 }
 
-// todo revisit me.
 func remainderOfOneCloserToZero(v float64) float64 {
 	var flipped bool
 	if v < 0 {
@@ -131,4 +241,73 @@ func remainderOfOneCloserToZero(v float64) float64 {
 
 	return vi
 
+}
+
+type CubeFace uint8
+
+const (
+	Left CubeFace = iota
+	Right
+	Front
+	Back
+	Up
+	Down
+)
+
+// For a unit cube.
+func CubeFaceFromPoint(p geom.Tuple) CubeFace {
+	coord := math.Max(math.Max(math.Abs(p.X), math.Abs(p.Y)), math.Abs(p.Z))
+
+	if coord == p.X {
+		return Right
+	}
+	if coord == -p.X {
+		return Left
+	}
+	if coord == p.Y {
+		return Up
+	}
+	if coord == -p.Y {
+		return Down
+	}
+	if coord == p.Z {
+		return Front
+	}
+	return Back
+}
+
+func CubeUvFront(p geom.Tuple) (u, v float64) {
+	u = math.Mod(p.X+1., 2) / 2.0
+	v = math.Mod(p.Y+1., 2) / 2.0
+	return
+}
+
+func CubeUvBack(p geom.Tuple) (u, v float64) {
+	u = math.Mod(1-p.X, 2) / 2.0
+	v = math.Mod(p.Y+1., 2) / 2.0
+	return
+}
+
+func CubeUvRight(p geom.Tuple) (u, v float64) {
+	u = math.Mod(1-p.Z, 2) / 2.0
+	v = math.Mod(p.Y+1., 2) / 2.0
+	return
+}
+
+func CubeUvLeft(p geom.Tuple) (u, v float64) {
+	u = math.Mod(p.Z+1., 2) / 2.0
+	v = math.Mod(p.Y+1., 2) / 2.0
+	return
+}
+
+func CubeUvUp(p geom.Tuple) (u, v float64) {
+	u = math.Mod(p.X+1, 2) / 2.0
+	v = math.Mod(1-p.Z, 2) / 2.0
+	return
+}
+
+func CubeUvDown(p geom.Tuple) (u, v float64) {
+	u = math.Mod(p.X+1, 2) / 2.0
+	v = math.Mod(p.Z+1., 2) / 2.0
+	return
 }
