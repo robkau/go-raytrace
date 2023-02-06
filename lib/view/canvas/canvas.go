@@ -1,6 +1,7 @@
 package canvas
 
 import (
+	"archive/zip"
 	"bufio"
 	"bytes"
 	"fmt"
@@ -156,6 +157,32 @@ func (c *Canvas) toPPM() string {
 	}
 	b.WriteString("\n")
 	return b.String()
+}
+
+func CanvasFromPPMZipFile(filepath string) (*Canvas, error) {
+	f, err := os.Open(filepath)
+	if err != nil {
+		return nil, fmt.Errorf("open filepath: %w", err)
+	}
+	defer f.Close() // todo me
+
+	stat, err := f.Stat()
+	zr, err := zip.NewReader(f, stat.Size())
+	if err != nil {
+		return nil, fmt.Errorf("open zip reader: %w", err)
+	}
+
+	if len(zr.File) != 1 {
+		return nil, fmt.Errorf("expect one file inside zip but had %d", len(zr.File))
+	}
+
+	zf, err := zr.File[0].Open()
+	if err != nil {
+		return nil, fmt.Errorf("open zip file data: %w", err)
+	}
+	defer zf.Close() // todo me
+
+	return CanvasFromPPMReader(zf)
 }
 
 func CanvasFromPPMFile(filepath string) (*Canvas, error) {
