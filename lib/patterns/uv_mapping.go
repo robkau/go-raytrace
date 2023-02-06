@@ -3,6 +3,7 @@ package patterns
 import (
 	"github.com/robkau/go-raytrace/lib/colors"
 	"github.com/robkau/go-raytrace/lib/geom"
+	"github.com/robkau/go-raytrace/lib/view/canvas"
 	"math"
 )
 
@@ -62,6 +63,26 @@ func (p *CheckerPatternUV) ColorAt(u, v float64) colors.Color {
 	} else {
 		return p.b
 	}
+}
+
+type UVImage struct {
+	canvas *canvas.Canvas
+}
+
+func NewUVImage(c *canvas.Canvas) *UVImage {
+	return &UVImage{canvas: c}
+}
+
+func (i *UVImage) ColorAt(u, v float64) colors.Color {
+	// flip v over so it matches the image layout, with y at the top
+	v = 1 - v
+
+	w, h := i.canvas.GetSize()
+	x := u * (float64(w - 1))
+	y := v * (float64(h - 1))
+
+	// be sure and round x and y to the nearest whole number
+	return i.canvas.GetPixel(int(math.Round(x)), int(math.Round(y)))
 }
 
 func UvPatternAt(p UvPattern, u, v float64) colors.Color {

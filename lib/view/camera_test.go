@@ -69,5 +69,5 @@ func Test_RenderWorld(t *testing.T) {
 
 	image := c.Render(w, 0, 1)
 
-	assert.Equal(t, colors.NewColor(0.38066, 0.47583, 0.2855), image.getPixel(5, 5).RoundTo(5))
+	assert.Equal(t, colors.NewColor(0.38066, 0.47583, 0.2855), image.GetPixel(5, 5).RoundTo(5))
 }

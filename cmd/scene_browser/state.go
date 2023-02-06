@@ -9,6 +9,7 @@ import (
 	"github.com/robkau/go-raytrace/cmd/scene_browser/scenes"
 	"github.com/robkau/go-raytrace/lib/geom"
 	"github.com/robkau/go-raytrace/lib/view"
+	"github.com/robkau/go-raytrace/lib/view/canvas"
 	"log"
 	"runtime"
 	"sync/atomic"
@@ -23,7 +24,7 @@ type state struct {
 	rayBounces    int32
 	loc           *scenes.CameraLocation
 	scenes        []*scenes.Scene
-	canvas        *view.Canvas
+	canvas        *canvas.Canvas
 
 	cancel context.CancelFunc
 }
@@ -42,7 +43,7 @@ func start() *state {
 			scenes.NewHollowGlassSphereScene,
 			scenes.NewRoomScene,
 		),
-		canvas: view.NewCanvas(width, width),
+		canvas: canvas.NewCanvas(width, width),
 		loc: &scenes.CameraLocation{
 			At:        geom.NewPoint(2, 2, 2),
 			LookingAt: geom.ZeroPoint(),
@@ -99,13 +100,13 @@ func (s *state) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyW) {
 		s.loc.At = s.loc.At.Sub(s.loc.At.Sub(s.loc.LookingAt).Normalize())
 		s.cancel()
-		s.canvas = view.NewCanvas(width, width)
+		s.canvas = canvas.NewCanvas(width, width)
 
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
 		s.loc.At = s.loc.At.Add(s.loc.At.Sub(s.loc.LookingAt).Normalize())
 		s.cancel()
-		s.canvas = view.NewCanvas(width, width)
+		s.canvas = canvas.NewCanvas(width, width)
 	}
 
 	// increase/decrease ray bounces
@@ -113,87 +114,87 @@ func (s *state) Update() error {
 		b := atomic.AddInt32(&s.rayBounces, 1)
 		log.Println(b, "ray bounces")
 		s.cancel()
-		s.canvas = view.NewCanvas(width, width)
+		s.canvas = canvas.NewCanvas(width, width)
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyNumpadSubtract) {
 		b := atomic.AddInt32(&s.rayBounces, -1)
 		log.Println(b, "ray bounces")
 		s.cancel()
-		s.canvas = view.NewCanvas(width, width)
+		s.canvas = canvas.NewCanvas(width, width)
 	}
 
 	// move toward origin
 	if inpututil.IsKeyJustPressed(ebiten.KeyW) {
 		s.loc.At = s.loc.At.Mul(0.9)
 		s.cancel()
-		s.canvas = view.NewCanvas(width, width)
+		s.canvas = canvas.NewCanvas(width, width)
 	}
 	// move away from origin
 	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
 		s.loc.At = s.loc.At.Mul(1.1)
 		s.cancel()
-		s.canvas = view.NewCanvas(width, width)
+		s.canvas = canvas.NewCanvas(width, width)
 	}
 	// translate left
 	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
 		s.loc.At.X++
 		s.cancel()
-		s.canvas = view.NewCanvas(width, width)
+		s.canvas = canvas.NewCanvas(width, width)
 	}
 	// translate right
 	if inpututil.IsKeyJustPressed(ebiten.KeyD) {
 		s.loc.At.X--
 		s.cancel()
-		s.canvas = view.NewCanvas(width, width)
+		s.canvas = canvas.NewCanvas(width, width)
 	}
 	// translate z left
 	if inpututil.IsKeyJustPressed(ebiten.KeyQ) {
 		s.loc.At.Z++
 		s.cancel()
-		s.canvas = view.NewCanvas(width, width)
+		s.canvas = canvas.NewCanvas(width, width)
 	}
 	// translate z right
 	if inpututil.IsKeyJustPressed(ebiten.KeyE) {
 		s.loc.At.Z--
 		s.cancel()
-		s.canvas = view.NewCanvas(width, width)
+		s.canvas = canvas.NewCanvas(width, width)
 	}
 	// translate up
 	if inpututil.IsKeyJustPressed(ebiten.KeyC) {
 		s.loc.At.Y++
 		s.cancel()
-		s.canvas = view.NewCanvas(width, width)
+		s.canvas = canvas.NewCanvas(width, width)
 	}
 	// translate down
 	if inpututil.IsKeyJustPressed(ebiten.KeyZ) {
 		s.loc.At.Y--
 		s.cancel()
-		s.canvas = view.NewCanvas(width, width)
+		s.canvas = canvas.NewCanvas(width, width)
 	}
 
 	// look left
 	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
 		s.loc.LookingAt.X += 0.25
 		s.cancel()
-		s.canvas = view.NewCanvas(width, width)
+		s.canvas = canvas.NewCanvas(width, width)
 	}
 	// look right
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
 		s.loc.LookingAt.X -= 0.25
 		s.cancel()
-		s.canvas = view.NewCanvas(width, width)
+		s.canvas = canvas.NewCanvas(width, width)
 	}
 	// look up
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
 		s.loc.LookingAt.Y += 0.25
 		s.cancel()
-		s.canvas = view.NewCanvas(width, width)
+		s.canvas = canvas.NewCanvas(width, width)
 	}
 	// look down
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
 		s.loc.LookingAt.Y -= 0.25
 		s.cancel()
-		s.canvas = view.NewCanvas(width, width)
+		s.canvas = canvas.NewCanvas(width, width)
 	}
 	// next scene
 	if inpututil.IsKeyJustPressed(ebiten.KeyN) {
@@ -203,7 +204,7 @@ func (s *state) Update() error {
 		}
 		s.currentCamera = 0
 		s.cancel()
-		s.canvas = view.NewCanvas(width, width)
+		s.canvas = canvas.NewCanvas(width, width)
 	}
 	// next camera
 	if inpututil.IsKeyJustPressed(ebiten.KeyM) {
@@ -212,7 +213,7 @@ func (s *state) Update() error {
 			s.currentCamera = 0
 		}
 		s.cancel()
-		s.canvas = view.NewCanvas(width, width)
+		s.canvas = canvas.NewCanvas(width, width)
 	}
 
 	// canvas is updated in background goroutine.

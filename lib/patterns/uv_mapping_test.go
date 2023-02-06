@@ -3,9 +3,11 @@ package patterns
 import (
 	"github.com/robkau/go-raytrace/lib/colors"
 	"github.com/robkau/go-raytrace/lib/geom"
+	"github.com/robkau/go-raytrace/lib/view/canvas"
 	"github.com/stretchr/testify/require"
 	"math"
 	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -378,4 +380,45 @@ func Test_MappedCube_Colors(t *testing.T) {
 			require.Equal(t, tc.expectedColor, pattern.ColorAt(tc.p))
 		})
 	}
+}
+
+func Test_UVImage_FromPPMCanvas(t *testing.T) {
+	ppmFile := `P3
+    10 10
+    10
+    0 0 0  1 1 1  2 2 2  3 3 3  4 4 4  5 5 5  6 6 6  7 7 7  8 8 8  9 9 9
+    1 1 1  2 2 2  3 3 3  4 4 4  5 5 5  6 6 6  7 7 7  8 8 8  9 9 9  0 0 0
+    2 2 2  3 3 3  4 4 4  5 5 5  6 6 6  7 7 7  8 8 8  9 9 9  0 0 0  1 1 1
+    3 3 3  4 4 4  5 5 5  6 6 6  7 7 7  8 8 8  9 9 9  0 0 0  1 1 1  2 2 2
+    4 4 4  5 5 5  6 6 6  7 7 7  8 8 8  9 9 9  0 0 0  1 1 1  2 2 2  3 3 3
+    5 5 5  6 6 6  7 7 7  8 8 8  9 9 9  0 0 0  1 1 1  2 2 2  3 3 3  4 4 4
+    6 6 6  7 7 7  8 8 8  9 9 9  0 0 0  1 1 1  2 2 2  3 3 3  4 4 4  5 5 5
+    7 7 7  8 8 8  9 9 9  0 0 0  1 1 1  2 2 2  3 3 3  4 4 4  5 5 5  6 6 6
+    8 8 8  9 9 9  0 0 0  1 1 1  2 2 2  3 3 3  4 4 4  5 5 5  6 6 6  7 7 7
+    9 9 9  0 0 0  1 1 1  2 2 2  3 3 3  4 4 4  5 5 5  6 6 6  7 7 7  8 8 8`
+
+	canvas, err := canvas.CanvasFromPPMReader(strings.NewReader(ppmFile))
+	require.NoError(t, err)
+
+	pattern := NewUVImage(canvas)
+
+	type tc struct {
+		u             float64
+		v             float64
+		expectedColor colors.Color
+	}
+
+	tcs := []tc{
+		{0, 0, colors.NewColor(0.9, 0.9, 0.9)},
+		{0.3, 0, colors.NewColor(0.2, 0.2, 0.2)},
+		{0.6, 0.3, colors.NewColor(0.1, 0.1, 0.1)},
+		{1, 1, colors.NewColor(0.9, 0.9, 0.9)},
+	}
+
+	for i, tc := range tcs {
+		t.Run(t.Name()+strconv.Itoa(i), func(t *testing.T) {
+			require.Equal(t, tc.expectedColor, UvPatternAt(pattern, tc.u, tc.v))
+		})
+	}
+
 }

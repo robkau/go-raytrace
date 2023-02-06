@@ -1,6 +1,7 @@
 package scenes
 
 import (
+	"fmt"
 	"github.com/robkau/go-raytrace/lib/colors"
 	"github.com/robkau/go-raytrace/lib/geom"
 	"github.com/robkau/go-raytrace/lib/materials"
@@ -8,6 +9,7 @@ import (
 	"github.com/robkau/go-raytrace/lib/patterns"
 	"github.com/robkau/go-raytrace/lib/shapes"
 	"github.com/robkau/go-raytrace/lib/view"
+	canvas2 "github.com/robkau/go-raytrace/lib/view/canvas"
 	"log"
 	"math"
 	"math/rand"
@@ -132,7 +134,11 @@ func stackTable(t *geom.X4Matrix) *geom.X4Matrix {
 func NewGroupTransformsScene() (*view.World, []CameraLocation) {
 	sc := shapes.NewSphere()
 	ms := sc.GetMaterial()
-	ms.Pattern = patterns.NewTextureMapPattern(patterns.NewCheckerPatternUV(20, 10, colors.White(), colors.Black()), patterns.SphericalMap)
+	canvas, err := canvas2.CanvasFromPPMFile("data/ppm/earth.ppm")
+	if err != nil {
+		panic(fmt.Sprintf("loading earth ppm to canvas: %s", err.Error()))
+	}
+	ms.Pattern = patterns.NewTextureMapPattern(patterns.NewUVImage(canvas), patterns.SphericalMap)
 	sc.SetMaterial(ms)
 	sc.SetTransform(geom.Translate(0, 5, 4))
 

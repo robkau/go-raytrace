@@ -1,6 +1,7 @@
 package colors
 
 import (
+	"fmt"
 	"github.com/robkau/go-raytrace/lib/geom"
 	"image/color"
 	"math"
@@ -151,9 +152,9 @@ func (c Color) MulBy(x float64) Color {
 }
 
 func (c Color) Equal(other Color) bool {
-	return geom.AlmostEqual(c.R, other.R) &&
-		geom.AlmostEqual(c.G, other.G) &&
-		geom.AlmostEqual(c.B, other.B)
+	return geom.AlmostEqualWithPrecision(c.R, other.R, 1e-3) &&
+		geom.AlmostEqualWithPrecision(c.G, other.G, 1e-3) &&
+		geom.AlmostEqualWithPrecision(c.B, other.B, 1e-3)
 }
 
 func (c Color) RoundTo(places int) Color {
@@ -163,4 +164,8 @@ func (c Color) RoundTo(places int) Color {
 		G: math.Round(c.G*scale) / scale,
 		B: math.Round(c.B*scale) / scale,
 	}
+}
+
+func (c Color) String() string {
+	return fmt.Sprintf("%f:%f:%f", c.R, c.G, c.B)
 }
