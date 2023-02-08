@@ -9,7 +9,7 @@ import (
 	"github.com/robkau/go-raytrace/lib/view"
 )
 
-func NewCappedCylinderScene() *Scene {
+func NewCappedCylinderScene() (*view.World, []CameraLocation) {
 	w := view.NewWorld()
 	cameraPos := geom.NewPoint(15, 15, 15)
 	cameraLookingAt := geom.NewPoint(0, 5, 0)
@@ -17,6 +17,7 @@ func NewCappedCylinderScene() *Scene {
 	// cylinder
 	cyl := shapes.NewCylinder(0, 5.9, true)
 	m := cyl.GetMaterial()
+	m.Pattern = patterns.NewTextureMapPattern(patterns.NewCheckerPatternUV(16, 4, colors.Purple(), colors.Green()), patterns.CylindricalMap)
 	m.Color = colors.Red()
 	cyl.SetMaterial(m)
 
@@ -51,7 +52,7 @@ func NewCappedCylinderScene() *Scene {
 	walls.SetMaterial(m)
 
 	// light above
-	w.AddLight(shapes.NewPointLight(geom.NewPoint(5, 10, -3), colors.NewColor(1.9, 1.4, 1.4)))
+	w.AddPointLight(shapes.NewPointLight(geom.NewPoint(5, 10, -3), colors.NewColor(1.9, 1.4, 1.4)))
 
 	w.AddObject(cyl)
 	w.AddObject(gs)
@@ -59,5 +60,7 @@ func NewCappedCylinderScene() *Scene {
 	w.AddObject(walls)
 	w.AddObject(floorAndCeiling)
 
-	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
+	w.Divide(8)
+
+	return w, []CameraLocation{CameraLocation{cameraPos, cameraLookingAt}}
 }

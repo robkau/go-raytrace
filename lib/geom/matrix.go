@@ -1,8 +1,9 @@
 package geom
 
 import (
+	"log"
 	"math"
-	"sync"
+	"sync/atomic"
 )
 
 // This file provides structs to represent 2x2, 3x3, and 4x4 matrices, and their associated operations.
@@ -124,16 +125,17 @@ func (m X3Matrix) Determinant() float64 {
 }
 
 type X4Matrix struct {
-	b [16]float64
+	b        [16]float64
+	inverted atomic.Pointer[X4Matrix]
 }
 
-func NewX4Matrix() X4Matrix {
-	return X4Matrix{
+func NewX4Matrix() *X4Matrix {
+	return &X4Matrix{
 		b: [16]float64{},
 	}
 }
 
-func NewX4MatrixFrom(t [16]float64) X4Matrix {
+func NewX4MatrixFrom(t [16]float64) *X4Matrix {
 	m := NewX4Matrix()
 	m.b[0] = t[0]
 	m.b[1] = t[1]
@@ -155,7 +157,7 @@ func NewX4MatrixFrom(t [16]float64) X4Matrix {
 	return m
 }
 
-func NewX4MatrixWith(aa, ab, ac, ad, ba, bb, bc, bd, ca, cb, cc, cd, da, db, dc, dd float64) X4Matrix {
+func NewX4MatrixWith(aa, ab, ac, ad, ba, bb, bc, bd, ca, cb, cc, cd, da, db, dc, dd float64) *X4Matrix {
 	m := NewX4Matrix()
 	m.b[0] = aa
 	m.b[1] = ab
@@ -176,22 +178,22 @@ func NewX4MatrixWith(aa, ab, ac, ad, ba, bb, bc, bd, ca, cb, cc, cd, da, db, dc,
 	return m
 }
 
-func (m X4Matrix) Get(r, c int) float64 {
+func (m *X4Matrix) Get(r, c int) float64 {
 	return m.b[r*4+c]
 }
 
-func (m X4Matrix) Set(r int, c int, v float64) X4Matrix {
+func (m *X4Matrix) Set(r int, c int, v float64) *X4Matrix {
 	ret := NewX4Matrix()
 	ret.b = m.b
 	ret.b[r*4+c] = v
 	return ret
 }
 
-func (m X4Matrix) Equals(o X4Matrix) bool {
+func (m *X4Matrix) Equals(o *X4Matrix) bool {
 	return compareFloat16(m.b, o.b)
 }
 
-func (m X4Matrix) Transpose() X4Matrix {
+func (m *X4Matrix) Transpose() *X4Matrix {
 	n := NewX4Matrix()
 	for r := 0; r < 4; r++ {
 		for c := 0; c < 4; c++ {
@@ -201,7 +203,7 @@ func (m X4Matrix) Transpose() X4Matrix {
 	return n
 }
 
-func (m X4Matrix) MulX4Matrix(o X4Matrix) X4Matrix {
+func (m *X4Matrix) MulX4Matrix(o *X4Matrix) *X4Matrix {
 	n := NewX4Matrix()
 	for r := 0; r < 4; r++ {
 		for c := 0; c < 4; c++ {
@@ -215,7 +217,7 @@ func (m X4Matrix) MulX4Matrix(o X4Matrix) X4Matrix {
 	return n
 }
 
-func (m X4Matrix) MulTuple(t Tuple) Tuple {
+func (m *X4Matrix) MulTuple(t Tuple) Tuple {
 	n := NewTuple(0, 0, 0, 0)
 
 	n.X = m.Get(0, 0)*t.X +
@@ -241,7 +243,7 @@ func (m X4Matrix) MulTuple(t Tuple) Tuple {
 	return n
 }
 
-func (m X4Matrix) RoundTo(places int) X4Matrix {
+func (m *X4Matrix) RoundTo(places int) *X4Matrix {
 	n := NewX4Matrix()
 	scale := math.Pow10(places)
 
@@ -254,7 +256,7 @@ func (m X4Matrix) RoundTo(places int) X4Matrix {
 	return n
 }
 
-func (m X4Matrix) Submatrix(rr, cr int) X3Matrix {
+func (m *X4Matrix) Submatrix(rr, cr int) X3Matrix {
 	n := NewX3Matrix()
 
 	rOffset := 0
@@ -275,12 +277,12 @@ func (m X4Matrix) Submatrix(rr, cr int) X3Matrix {
 	return n
 }
 
-func (m X4Matrix) Minor(rr, cr int) float64 {
+func (m *X4Matrix) Minor(rr, cr int) float64 {
 	n := m.Submatrix(rr, cr)
 	return n.Determinant()
 }
 
-func (m X4Matrix) Cofactor(rr, cr int) float64 {
+func (m *X4Matrix) Cofactor(rr, cr int) float64 {
 	n := m.Minor(rr, cr)
 	if (rr+cr)%2 != 0 {
 		n *= -1
@@ -288,7 +290,7 @@ func (m X4Matrix) Cofactor(rr, cr int) float64 {
 	return n
 }
 
-func (m X4Matrix) Determinant() float64 {
+func (m *X4Matrix) Determinant() float64 {
 	d := 0.0
 	for c := 0; c < 4; c++ {
 		d += m.Get(0, c) * m.Cofactor(0, c)
@@ -296,37 +298,23 @@ func (m X4Matrix) Determinant() float64 {
 	return d
 }
 
-var rwX4MatrixCache = sync.RWMutex{}
-var x4MatrixInvertCache = make(map[X4Matrix]X4Matrix)
-
-func cachedX4MatrixInverter(m X4Matrix) X4Matrix {
-	rwX4MatrixCache.RLock()
-	if ret, ok := x4MatrixInvertCache[m]; ok {
-		rwX4MatrixCache.RUnlock()
-		// was cached
-		return ret
-	}
-	rwX4MatrixCache.RUnlock()
-
-	// compute it
-	rwX4MatrixCache.Lock()
-	defer rwX4MatrixCache.Unlock()
-	cm := m.doInvert()
-	x4MatrixInvertCache[m] = cm
-	return cm
-}
-
-func (m X4Matrix) Invertable() bool {
+func (m *X4Matrix) Invertable() bool {
 	return m.Determinant() != 0
 }
 
-func (m X4Matrix) Invert() X4Matrix {
-	return cachedX4MatrixInverter(m)
+func (m *X4Matrix) Invert() *X4Matrix {
+	loaded := m.inverted.Load()
+	if loaded == nil {
+		n := m.doInvert()
+		m.inverted.CompareAndSwap(nil, n)
+		return n.Copy()
+	}
+	return loaded
 }
 
-func (m X4Matrix) doInvert() X4Matrix {
+func (m *X4Matrix) doInvert() *X4Matrix {
 	if !m.Invertable() {
-		panic("not invertable")
+		log.Fatalf("not invertable")
 	}
 	invert := NewX4Matrix()
 	d := m.Determinant()
@@ -339,11 +327,11 @@ func (m X4Matrix) doInvert() X4Matrix {
 	return invert
 }
 
-func (m X4Matrix) Copy() X4Matrix {
+func (m *X4Matrix) Copy() *X4Matrix {
 	return NewX4MatrixFrom(m.b)
 }
 
-func NewIdentityMatrixX4() X4Matrix {
+func NewIdentityMatrixX4() *X4Matrix {
 	return NewX4MatrixWith(1, 0, 0, 0,
 		0, 1, 0, 0,
 		0, 0, 1, 0,

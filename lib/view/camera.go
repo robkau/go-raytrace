@@ -3,6 +3,7 @@ package view
 import (
 	"github.com/robkau/go-raytrace/lib/colors"
 	"github.com/robkau/go-raytrace/lib/geom"
+	"github.com/robkau/go-raytrace/lib/view/canvas"
 	"math"
 	"sync"
 )
@@ -14,7 +15,7 @@ type Camera struct {
 	halfWidth  float64
 	halfHeight float64
 	pixelSize  float64
-	Transform  geom.X4Matrix
+	Transform  *geom.X4Matrix
 }
 
 func NewCamera(hs int, vs int, fov float64) Camera {
@@ -55,22 +56,22 @@ func (c Camera) rayForPixel(px int, py int) geom.Ray {
 	worldY := c.halfHeight - yOffset
 
 	pixel := c.Transform.Invert().MulTuple(geom.NewPoint(worldX, worldY, -1))
-	origin := c.Transform.Invert().MulTuple(geom.NewPoint(0, 0, 0))
+	origin := c.Transform.Invert().MulTuple(geom.ZeroPoint())
 	direction := pixel.Sub(origin).Normalize()
 
 	return geom.RayWith(origin, direction)
 }
 
-func (c Camera) Render(w *World, rayBounces int, numGoRoutines int) *Canvas {
-	image := NewCanvas(c.HSize, c.VSize)
+func (c Camera) Render(w *World, rayBounces int, numGoRoutines int) *canvas.Canvas {
+	image := canvas.NewCanvas(c.HSize, c.VSize)
 
 	wg := sync.WaitGroup{}
-	pixelsPerWorker := len(image.pixels) / numGoRoutines
-	for i := 0; i < len(image.pixels); i += pixelsPerWorker {
+	pixelsPerWorker := c.HSize * c.VSize / numGoRoutines
+	for i := 0; i < c.HSize*c.VSize; i += pixelsPerWorker {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			for j := i; j < i+pixelsPerWorker && j < len(image.pixels); j++ {
+			for j := i; j < i+pixelsPerWorker && j < c.HSize*c.VSize; j++ {
 				x := j % c.VSize
 				y := j / c.VSize
 

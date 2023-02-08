@@ -1,23 +1,28 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/wav"
+	"io"
 	"log"
+	"math/rand"
+	"path"
+	"time"
+
 	//_ "net/http/pprof"
 	"os"
 )
 
 const (
-	width = 333
+	width = 1080
 	fov   = 0.45
 )
 
 func main() {
-	//runtime.SetBlockProfileRate(100_000_000) // WARNING: Can cause some CPU overhead
-	//file, _ := os.Create("./block.pprof")
-	//defer pprof.Lookup("block").WriteTo(file, 0)
+	//defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
 
 	//go func() {
 	//	log.Println(http.ListenAndServe("localhost:6060", nil))
@@ -25,19 +30,25 @@ func main() {
 
 	sb := start()
 
-	f, err := os.Open("intro.wav")
+	// play a random intro file, sometimes.
+	rand.Seed(time.Now().UnixNano())
+	audioIndex := rand.Intn(1)
+	f, err := os.Open(path.Join("data", "audio", fmt.Sprintf("intro_%d.wav", audioIndex)))
 	if err == nil {
-		defer f.Close()
-		ac := audio.NewContext(44100)
-		d, err := wav.Decode(ac, f)
-		if err == nil {
-			ap, err := audio.NewPlayer(ac, d)
+		var fBytes = &bytes.Buffer{}
+		if _, err := io.Copy(fBytes, f); err == nil {
+			ac := audio.NewContext(44100)
+			d, err := wav.Decode(ac, fBytes)
 			if err == nil {
-				ap.Play()
-				defer ap.Close()
-			}
+				ap, err := audio.NewPlayer(ac, d)
+				if err == nil {
+					ap.Play()
+					defer ap.Close()
+				}
 
+			}
 		}
+		f.Close()
 	}
 
 	ebiten.SetWindowSize(width, width)

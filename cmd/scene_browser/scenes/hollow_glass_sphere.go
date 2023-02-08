@@ -9,7 +9,7 @@ import (
 	"github.com/robkau/go-raytrace/lib/view"
 )
 
-func NewHollowGlassSphereScene() *Scene {
+func NewHollowGlassSphereScene() (*view.World, []CameraLocation) {
 	w := view.NewWorld()
 
 	wall := shapes.NewPlane()
@@ -41,10 +41,11 @@ func NewHollowGlassSphereScene() *Scene {
 	w.AddObject(wall)
 	w.AddObject(ball)
 	w.AddObject(hollowCenter)
-	w.AddLight(shapes.NewPointLight(geom.NewPoint(2, 10, -5), colors.NewColor(0.9, 0.9, 0.9)))
+	w.AddPointLight(shapes.NewPointLight(geom.NewPoint(2, 10, -5), colors.NewColor(0.9, 0.9, 0.9)))
 
 	cameraPos := geom.NewPoint(0, 0, -5)
-	cameraLookingAt := geom.NewPoint(0, 0, 0)
+	cameraLookingAt := geom.ZeroPoint()
 
-	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
+	w.Divide(8)
+	return w, []CameraLocation{CameraLocation{cameraPos, cameraLookingAt}}
 }

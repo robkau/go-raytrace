@@ -32,7 +32,8 @@ func NewMaterial() Material {
 
 func NewGlassMaterial() Material {
 	m := NewMaterial()
-	m.Diffuse = 0
+	m.Color = colors.NewColor(0, 0, 0.2)
+	m.Diffuse = 0.2
 	m.Ambient = 0
 	m.Specular = 0.9
 	m.Shininess = 300

@@ -4,7 +4,6 @@ import (
 	"github.com/robkau/go-raytrace/lib/geom"
 	"math"
 	"sort"
-	"sync"
 )
 
 type Intersection struct {
@@ -122,10 +121,6 @@ func (ic IntersectionComputed) Schlick() float64 {
 	return r0 + (1-r0)*math.Pow(1-cos, 5)
 }
 
-var intersectionsPool = sync.Pool{
-	New: func() interface{} { return SortableIntersections{} },
-}
-
 type Intersections struct {
 	I SortableIntersections
 }
@@ -140,7 +135,6 @@ func (so SortableIntersections) Less(i, j int) bool {
 
 func NewIntersections(s ...Intersection) *Intersections {
 	i := &Intersections{
-		//I: intersectionsPool.Get().(SortableIntersections), // todo i actually slow things down!
 		I: make(SortableIntersections, 0, len(s)),
 	}
 	i.Add(s...)
@@ -160,19 +154,12 @@ func (is *Intersections) Add(s ...Intersection) {
 	if len(s) < 1 {
 		return
 	}
-	for _, i := range s {
-		is.I = append(is.I, i)
-	}
+	is.I = append(is.I, s...)
 	sort.Sort(is.I)
 }
 
 func (is *Intersections) AddFrom(s *Intersections) {
 	is.Add(s.I...)
-}
-
-func (is *Intersections) Release() {
-	//is.I = is.I[:0]
-	//intersectionsPool.Put(is.I)
 }
 
 func removeIndex(s []Shape, index int) []Shape {

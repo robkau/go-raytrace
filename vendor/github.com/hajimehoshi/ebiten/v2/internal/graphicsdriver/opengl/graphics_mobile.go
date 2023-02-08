@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build android || ios
 // +build android ios
 
 package opengl
@@ -22,8 +23,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gles"
 )
 
-func init() {
-	theGraphics.context.ctx = gles.DefaultContext{}
+func (g *Graphics) init() {
+	g.context.ctx = gles.DefaultContext{}
 }
 
 func (g *Graphics) SetGomobileGLContext(context gl.Context) {

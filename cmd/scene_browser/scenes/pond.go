@@ -9,7 +9,7 @@ import (
 	"math"
 )
 
-func NewPondScene() *Scene {
+func NewPondScene() (*view.World, []CameraLocation) {
 	w := view.NewWorld()
 
 	// transparent plane
@@ -59,14 +59,16 @@ func NewPondScene() *Scene {
 	floater.SetShadowless(true)
 
 	// light above plane
-	w.AddLight(shapes.NewPointLight(geom.NewPoint(2, 12, -5), colors.NewColor(1.9, 1.4, 1.4)))
+	w.AddPointLight(shapes.NewPointLight(geom.NewPoint(2, 12, -5), colors.NewColor(1.9, 1.4, 1.4)))
 	w.AddObject(waterSurface)
 	w.AddObject(dirtSurface)
 	w.AddObject(middle)
 	w.AddObject(floater)
 
 	cameraPos := geom.NewPoint(18, 5, -10)
-	cameraLookingAt := geom.NewPoint(0, 0, 0)
+	cameraLookingAt := geom.ZeroPoint()
 
-	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
+	w.Divide(8)
+
+	return w, []CameraLocation{CameraLocation{cameraPos, cameraLookingAt}}
 }

@@ -92,6 +92,7 @@ func (pr *ParsedReplay) AllScenes(stepsPerLine int, stepWidth float64) shapes.Gr
 	cs, err := coordinate_supplier.NewCoordinateSupplierAtomic(coordinate_supplier.CoordinateSupplierOptions{
 		Width:  stepsPerLine,
 		Height: 10000,
+		Depth:  1,
 		Order:  coordinate_supplier.Asc,
 		Repeat: false,
 	})
@@ -104,16 +105,17 @@ func (pr *ParsedReplay) AllScenes(stepsPerLine int, stepWidth float64) shapes.Gr
 	sceneCount := int(math.Min(float64(len(pr.P0Positions)), float64(len(pr.P1Positions))))
 
 	for i := 0; i < sceneCount; i++ {
-		z, y, done := cs.Next()
+		z, y, _, done := cs.Next()
 		if done {
 			panic("out of coordinates")
 		}
 		// translate this frame so player midpoint is centered
 		pg0 := pr.P0Positions[i].AsGroup()
 		pg1 := pr.P1Positions[i].AsGroup()
-		b0 := pg0.Bounds()
-		b1 := pg1.Bounds()
-		bCombined := b0.Add(b1.Min, b1.Max)
+		b0 := pg0.BoundsOf()
+		b1 := pg1.BoundsOf()
+		bCombined := shapes.NewEmptyBoundingBox()
+		bCombined.AddBoundingBoxes(b0, b1)
 		bc := bCombined.Center()
 
 		// center x-z for this replay frame (from players moving around during tori match)
@@ -121,10 +123,15 @@ func (pr *ParsedReplay) AllScenes(stepsPerLine int, stepWidth float64) shapes.Gr
 		// translated position according to replay frame index
 		pg0.SetTransform(geom.Translate(0, ToriSphereWidth+stepWidth*float64(y), 0+stepWidth*float64(z)).MulX4Matrix(geom.Scale(1.2, 1.2, 1.2)).MulX4Matrix(pg0.GetTransform()))
 		m := materials.NewMaterial()
-		m.Specular = 1
-		m.Reflective = 0.14
+		m.Diffuse = 0.25
+		m.Specular = 0.25
+		m.Shininess = 150
+		m.Reflective = 0.15
+		m.Transparency = 0
+		m.Ambient = 0.09
 		m.Pattern = patterns.NewSolidColorPattern(colors.Green())
 		for _, c := range pg0.GetChildren() {
+			// todo index 0 for head (and maybe other for hand feet) should be special colors.
 			c.SetMaterial(m)
 		}
 		g.AddChild(pg0)
@@ -133,9 +140,6 @@ func (pr *ParsedReplay) AllScenes(stepsPerLine int, stepWidth float64) shapes.Gr
 		pg1.SetTransform(geom.Translate(-bc.X, 0, -bc.Z).MulX4Matrix(pg1.GetTransform()))
 		// translated position according to replay frame index
 		pg1.SetTransform(geom.Translate(0, ToriSphereWidth+stepWidth*float64(y), 0+stepWidth*float64(z)).MulX4Matrix(geom.Scale(1.2, 1.2, 1.2)).MulX4Matrix(pg1.GetTransform()))
-		m = materials.NewMaterial()
-		m.Specular = 1
-		m.Reflective = 0.14
 		m.Pattern = patterns.NewSolidColorPattern(colors.Red())
 		for _, c := range pg1.GetChildren() {
 			c.SetMaterial(m)

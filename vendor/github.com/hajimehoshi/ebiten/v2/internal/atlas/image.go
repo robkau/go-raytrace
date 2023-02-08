@@ -17,27 +17,71 @@ package atlas
 import (
 	"fmt"
 	"image"
+	"math"
 	"runtime"
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/affine"
-	"github.com/hajimehoshi/ebiten/v2/internal/driver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
-	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/packing"
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
-)
-
-const (
-	// paddingSize represents the size of padding around an image.
-	// Every image or node except for a screen image has its padding.
-	paddingSize = 1
 )
 
 var (
 	minSize = 0
 	maxSize = 0
 )
+
+type temporaryBytes struct {
+	pixels           []byte
+	pos              int
+	notFullyUsedTime int
+}
+
+var theTemporaryBytes temporaryBytes
+
+func temporaryBytesSize(size int) int {
+	l := 16
+	for l < size {
+		l *= 2
+	}
+	return l
+}
+
+// alloc allocates the pixels and reutrns it.
+// Be careful that the returned pixels might not be zero-cleared.
+func (t *temporaryBytes) alloc(size int) []byte {
+	if len(t.pixels) < t.pos+size {
+		t.pixels = make([]byte, max(len(t.pixels)*2, temporaryBytesSize(size)))
+		t.pos = 0
+	}
+	pix := t.pixels[t.pos : t.pos+size]
+	t.pos += size
+	return pix
+}
+
+func (t *temporaryBytes) resetAtFrameEnd() {
+	const maxNotFullyUsedTime = 60
+
+	if temporaryBytesSize(t.pos) < len(t.pixels) {
+		if t.notFullyUsedTime < maxNotFullyUsedTime {
+			t.notFullyUsedTime++
+		}
+	} else {
+		t.notFullyUsedTime = 0
+	}
+
+	// Let the pixels GCed if this is not used for a while.
+	if t.notFullyUsedTime == maxNotFullyUsedTime && len(t.pixels) > 0 {
+		t.pixels = nil
+		t.notFullyUsedTime = 0
+	}
+
+	// Reset the position and reuse the allocated bytes.
+	// t.pixels should already be sent to GPU, then this can be reused.
+	t.pos = 0
+}
 
 func max(a, b int) int {
 	if a > b {
@@ -46,14 +90,11 @@ func max(a, b int) int {
 	return b
 }
 
-func init() {
-	hooks.AppendHookOnBeforeUpdate(func() error {
-		backendsM.Lock()
-		defer backendsM.Unlock()
-
-		resolveDeferred()
-		return putImagesOnAtlas()
-	})
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func resolveDeferred() {
@@ -71,18 +112,11 @@ func resolveDeferred() {
 // Actual time duration is increased in an exponential way for each usages as a rendering target.
 const baseCountToPutOnAtlas = 10
 
-func min(a, b uint) uint {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func putImagesOnAtlas() error {
+func putImagesOnAtlas(graphicsDriver graphicsdriver.Graphics) error {
 	for i := range imagesToPutOnAtlas {
 		i.usedAsSourceCount++
-		if i.usedAsSourceCount >= baseCountToPutOnAtlas*(1<<min(uint(i.isolatedCount), 31)) {
-			if err := i.putOnAtlas(); err != nil {
+		if i.usedAsSourceCount >= baseCountToPutOnAtlas*(1<<uint(min(i.isolatedCount, 31))) {
+			if err := i.putOnAtlas(graphicsDriver); err != nil {
 				return err
 			}
 			i.usedAsSourceCount = 0
@@ -166,13 +200,21 @@ func init() {
 	backendsM.Lock()
 }
 
-// Image is a renctangle pixel set that might be on an atlas.
+type ImageType int
+
+const (
+	ImageTypeRegular ImageType = iota
+	ImageTypeScreen
+	ImageTypeVolatile
+	ImageTypeUnmanaged
+)
+
+// Image is a rectangle pixel set that might be on an atlas.
 type Image struct {
-	width    int
-	height   int
-	disposed bool
-	volatile bool
-	screen   bool
+	width     int
+	height    int
+	imageType ImageType
+	disposed  bool
 
 	backend *backend
 
@@ -186,7 +228,7 @@ type Image struct {
 	// usedAsSourceCount is increased if the image is used as a rendering source, or set to 0 if the image is
 	// modified.
 	//
-	// ReplacePixels doesn't affect this value since ReplacePixels can be done on images on an atlas.
+	// WritePixels doesn't affect this value since WritePixels can be done on images on an atlas.
 	usedAsSourceCount int
 
 	// isolatedCount represents how many times the image on a texture atlas is changed into an isolated image.
@@ -216,6 +258,13 @@ func (i *Image) resetUsedAsSourceCount() {
 	delete(imagesToPutOnAtlas, i)
 }
 
+func (i *Image) paddingSize() int {
+	if i.imageType == ImageTypeRegular {
+		return 1
+	}
+	return 0
+}
+
 func (i *Image) ensureIsolated() {
 	i.resetUsedAsSourceCount()
 
@@ -237,8 +286,16 @@ func (i *Image) ensureIsolated() {
 	sy0 := float32(oy)
 	sx1 := float32(ox + w)
 	sy1 := float32(oy + h)
-	newImg := restorable.NewImage(w, h)
-	newImg.SetVolatile(i.volatile)
+	sw, sh := i.backend.restorable.InternalSize()
+	sx0 /= float32(sw)
+	sy0 /= float32(sh)
+	sx1 /= float32(sw)
+	sy1 /= float32(sh)
+	typ := restorable.ImageTypeRegular
+	if i.imageType == ImageTypeVolatile {
+		typ = restorable.ImageTypeVolatile
+	}
+	newImg := restorable.NewImage(w, h, typ)
 	vs := []float32{
 		dx0, dy0, sx0, sy0, 1, 1, 1, 1,
 		dx1, dy0, sx1, sy0, 1, 1, 1, 1,
@@ -246,15 +303,15 @@ func (i *Image) ensureIsolated() {
 		dx1, dy1, sx1, sy1, 1, 1, 1, 1,
 	}
 	is := graphics.QuadIndices()
-	srcs := [graphics.ShaderImageNum]*restorable.Image{i.backend.restorable}
-	var offsets [graphics.ShaderImageNum - 1][2]float32
-	dstRegion := driver.Region{
-		X:      paddingSize,
-		Y:      paddingSize,
-		Width:  float32(w - 2*paddingSize),
-		Height: float32(h - 2*paddingSize),
+	srcs := [graphics.ShaderImageCount]*restorable.Image{i.backend.restorable}
+	var offsets [graphics.ShaderImageCount - 1][2]float32
+	dstRegion := graphicsdriver.Region{
+		X:      float32(i.paddingSize()),
+		Y:      float32(i.paddingSize()),
+		Width:  float32(w - 2*i.paddingSize()),
+		Height: float32(h - 2*i.paddingSize()),
 	}
-	newImg.DrawTriangles(srcs, offsets, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dstRegion, driver.Region{}, nil, nil)
+	newImg.DrawTriangles(srcs, offsets, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dstRegion, graphicsdriver.Region{}, nil, nil, false)
 
 	i.dispose(false)
 	i.backend = &backend{
@@ -264,7 +321,7 @@ func (i *Image) ensureIsolated() {
 	i.isolatedCount++
 }
 
-func (i *Image) putOnAtlas() error {
+func (i *Image) putOnAtlas(graphicsDriver graphicsdriver.Graphics) error {
 	if i.backend == nil {
 		i.allocate(true)
 		return nil
@@ -278,40 +335,22 @@ func (i *Image) putOnAtlas() error {
 		panic("atlas: putOnAtlas cannot be called on a image that cannot be on an atlas")
 	}
 
-	newI := NewImage(i.width, i.height)
-	newI.SetVolatile(i.volatile)
-
-	if restorable.NeedsRestoring() {
-		// If the underlying graphics driver requires restoring from the context lost, the pixel data is
-		// needed. A image on an atlas must have its complete pixel data in this case.
-		pixels := make([]byte, 4*i.width*i.height)
-		for y := 0; y < i.height; y++ {
-			for x := 0; x < i.width; x++ {
-				r, g, b, a, err := i.at(x+paddingSize, y+paddingSize)
-				if err != nil {
-					return err
-				}
-				pixels[4*(i.width*y+x)] = r
-				pixels[4*(i.width*y+x)+1] = g
-				pixels[4*(i.width*y+x)+2] = b
-				pixels[4*(i.width*y+x)+3] = a
-			}
-		}
-		newI.replacePixels(pixels)
-	} else {
-		// If the underlying graphics driver doesn't require restoring from the context lost, just a regular
-		// rendering works.
-		w, h := float32(i.width), float32(i.height)
-		vs := graphics.QuadVertices(0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
-		is := graphics.QuadIndices()
-		dr := driver.Region{
-			X:      0,
-			Y:      0,
-			Width:  w,
-			Height: h,
-		}
-		newI.drawTriangles([graphics.ShaderImageNum]*Image{i}, vs, is, nil, driver.CompositeModeCopy, driver.FilterNearest, driver.AddressUnsafe, dr, driver.Region{}, [graphics.ShaderImageNum - 1][2]float32{}, nil, nil, true)
+	if i.imageType != ImageTypeRegular {
+		panic(fmt.Sprintf("atlas: the image type must be ImageTypeRegular but %d", i.imageType))
 	}
+
+	newI := NewImage(i.width, i.height, ImageTypeRegular)
+
+	w, h := float32(i.width), float32(i.height)
+	vs := graphics.QuadVertices(0, 0, w, h, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1)
+	is := graphics.QuadIndices()
+	dr := graphicsdriver.Region{
+		X:      0,
+		Y:      0,
+		Width:  w,
+		Height: h,
+	}
+	newI.drawTriangles([graphics.ShaderImageCount]*Image{i}, vs, is, affine.ColorMIdentity{}, graphicsdriver.CompositeModeCopy, graphicsdriver.FilterNearest, graphicsdriver.AddressUnsafe, dr, graphicsdriver.Region{}, [graphics.ShaderImageCount - 1][2]float32{}, nil, nil, false, true)
 
 	newI.moveTo(i)
 	i.usedAsSourceCount = 0
@@ -323,7 +362,7 @@ func (i *Image) regionWithPadding() (x, y, width, height int) {
 		panic("atlas: backend must not be nil: not allocated yet?")
 	}
 	if !i.isOnAtlas() {
-		return 0, 0, i.width + 2*paddingSize, i.height + 2*paddingSize
+		return 0, 0, i.width + 2*i.paddingSize(), i.height + 2*i.paddingSize()
 	}
 	return i.node.Region()
 }
@@ -350,21 +389,21 @@ func (i *Image) processSrc(src *Image) {
 //
 // The vertex floats are:
 //
-//   0: Destination X in pixels
-//   1: Destination Y in pixels
-//   2: Source X in pixels (the upper-left is (0, 0))
-//   3: Source Y in pixels
-//   4: Color R [0.0-1.0]
-//   5: Color G
-//   6: Color B
-//   7: Color Y
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms []interface{}) {
+//	0: Destination X in pixels
+//	1: Destination Y in pixels
+//	2: Source X in pixels (the upper-left is (0, 0))
+//	3: Source Y in pixels
+//	4: Color R [0.0-1.0]
+//	5: Color G
+//	6: Color B
+//	7: Color Y
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	i.drawTriangles(srcs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, shader, uniforms, false)
+	i.drawTriangles(srcs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd, false)
 }
 
-func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []float32, indices []uint16, colorm *affine.ColorM, mode driver.CompositeMode, filter driver.Filter, address driver.Address, dstRegion, srcRegion driver.Region, subimageOffsets [graphics.ShaderImageNum - 1][2]float32, shader *Shader, uniforms []interface{}, keepOnAtlas bool) {
+func (i *Image) drawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool, keepOnAtlas bool) {
 	if i.disposed {
 		panic("atlas: the drawing target image must not be disposed (DrawTriangles)")
 	}
@@ -380,29 +419,28 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		i.processSrc(src)
 	}
 
-	var dx, dy float32
-	// A screen image doesn't have its padding.
-	if !i.screen {
-		x, y, _, _ := i.regionWithPadding()
-		dx = float32(x) + paddingSize
-		dy = float32(y) + paddingSize
-		// TODO: Check if dstRegion does not to violate the region.
-	}
+	x, y, _, _ := i.regionWithPadding()
+	dx := float32(x + i.paddingSize())
+	dy := float32(y + i.paddingSize())
+	// TODO: Check if dstRegion does not to violate the region.
+
 	dstRegion.X += dx
 	dstRegion.Y += dy
 
 	var oxf, oyf float32
 	if srcs[0] != nil {
 		ox, oy, _, _ := srcs[0].regionWithPadding()
-		ox += paddingSize
-		oy += paddingSize
+		ox += srcs[0].paddingSize()
+		oy += srcs[0].paddingSize()
 		oxf, oyf = float32(ox), float32(oy)
-		n := len(vertices) / graphics.VertexFloatNum
-		for i := 0; i < n; i++ {
-			vertices[i*graphics.VertexFloatNum+0] += dx
-			vertices[i*graphics.VertexFloatNum+1] += dy
-			vertices[i*graphics.VertexFloatNum+2] += oxf
-			vertices[i*graphics.VertexFloatNum+3] += oyf
+		sw, sh := srcs[0].backend.restorable.InternalSize()
+		swf, shf := float32(sw), float32(sh)
+		n := len(vertices)
+		for i := 0; i < n; i += graphics.VertexFloatCount {
+			vertices[i] = adjustDestinationPixel(vertices[i] + dx)
+			vertices[i+1] = adjustDestinationPixel(vertices[i+1] + dy)
+			vertices[i+2] = (vertices[i+2] + oxf) / swf
+			vertices[i+3] = (vertices[i+3] + oyf) / shf
 		}
 		// srcRegion can be delibarately empty when this is not needed in order to avoid unexpected
 		// performance issue (#1293).
@@ -411,16 +449,16 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 			srcRegion.Y += oyf
 		}
 	} else {
-		n := len(vertices) / graphics.VertexFloatNum
-		for i := 0; i < n; i++ {
-			vertices[i*graphics.VertexFloatNum+0] += dx
-			vertices[i*graphics.VertexFloatNum+1] += dy
+		n := len(vertices)
+		for i := 0; i < n; i += graphics.VertexFloatCount {
+			vertices[i] = adjustDestinationPixel(vertices[i] + dx)
+			vertices[i+1] = adjustDestinationPixel(vertices[i+1] + dy)
 		}
 	}
 
-	var offsets [graphics.ShaderImageNum - 1][2]float32
+	var offsets [graphics.ShaderImageCount - 1][2]float32
 	var s *restorable.Shader
-	var imgs [graphics.ShaderImageNum]*restorable.Image
+	var imgs [graphics.ShaderImageCount]*restorable.Image
 	if shader == nil {
 		// Fast path for rendering without a shader (#1355).
 		imgs[0] = srcs[0].backend.restorable
@@ -431,8 +469,8 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 				continue
 			}
 			ox, oy, _, _ := src.regionWithPadding()
-			offsets[i][0] = float32(ox) + paddingSize - oxf + subimageOffset[0]
-			offsets[i][1] = float32(oy) + paddingSize - oyf + subimageOffset[1]
+			offsets[i][0] = float32(ox+src.paddingSize()) - oxf + subimageOffset[0]
+			offsets[i][1] = float32(oy+src.paddingSize()) - oyf + subimageOffset[1]
 		}
 		s = shader.shader
 		for i, src := range srcs {
@@ -443,7 +481,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 		}
 	}
 
-	i.backend.restorable.DrawTriangles(imgs, offsets, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, s, uniforms)
+	i.backend.restorable.DrawTriangles(imgs, offsets, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, s, uniforms, evenOdd)
 
 	for _, src := range srcs {
 		if src == nil {
@@ -456,15 +494,20 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderImageNum]*Image, vertices []f
 	}
 }
 
-func (i *Image) ReplacePixels(pix []byte) {
+// WritePixels replaces the pixels on the image.
+func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	i.replacePixels(pix)
+	i.replacePixels(pix, x, y, width, height)
 }
 
-func (i *Image) replacePixels(pix []byte) {
+func (i *Image) replacePixels(pix []byte, x, y, width, height int) {
 	if i.disposed {
 		panic("atlas: the image must not be disposed at replacePixels")
+	}
+
+	if l := 4 * width * height; len(pix) != l {
+		panic(fmt.Sprintf("atlas: len(p) must be %d but %d", l, len(pix)))
 	}
 
 	i.resetUsedAsSourceCount()
@@ -476,62 +519,73 @@ func (i *Image) replacePixels(pix []byte) {
 		i.allocate(true)
 	}
 
-	x, y, w, h := i.regionWithPadding()
-	if pix == nil {
-		i.backend.restorable.ReplacePixels(nil, x, y, w, h)
+	px, py, pw, ph := i.regionWithPadding()
+
+	if x != 0 || y != 0 || width != i.width || height != i.height || i.paddingSize() == 0 {
+		x += px + i.paddingSize()
+		y += py + i.paddingSize()
+
+		if pix == nil {
+			i.backend.restorable.WritePixels(nil, x, y, width, height)
+			return
+		}
+
+		// Copy pixels in the case when pix is modified before the graphics command is executed.
+		pix2 := theTemporaryBytes.alloc(len(pix))
+		copy(pix2, pix)
+		i.backend.restorable.WritePixels(pix2, x, y, width, height)
 		return
 	}
 
-	ow, oh := w-2*paddingSize, h-2*paddingSize
-	if l := 4 * ow * oh; len(pix) != l {
-		panic(fmt.Sprintf("atlas: len(p) must be %d but %d", l, len(pix)))
+	pixb := theTemporaryBytes.alloc(4 * pw * ph)
+
+	// Clear the edges. pixb might not be zero-cleared.
+	// TODO: These loops assume that paddingSize is 1.
+	// TODO: Is clearing edges explicitly really needed?
+	const paddingSize = 1
+	if paddingSize != i.paddingSize() {
+		panic(fmt.Sprintf("atlas: replacePixels assumes the padding is always 1 but the actual padding was %d", i.paddingSize()))
+	}
+	rowPixels := 4 * pw
+	for i := 0; i < rowPixels; i++ {
+		pixb[i] = 0
+		pixb[rowPixels*(ph-1)+i] = 0
+	}
+	for j := 1; j < ph-1; j++ {
+		pixb[rowPixels*j] = 0
+		pixb[rowPixels*j+1] = 0
+		pixb[rowPixels*j+2] = 0
+		pixb[rowPixels*j+3] = 0
+		pixb[rowPixels*(j+1)-4] = 0
+		pixb[rowPixels*(j+1)-3] = 0
+		pixb[rowPixels*(j+1)-2] = 0
+		pixb[rowPixels*(j+1)-1] = 0
 	}
 
-	// Add a padding around the image.
-	pixb := make([]byte, 4*w*h)
-	for j := 0; j < oh; j++ {
-		copy(pixb[4*((j+paddingSize)*w+paddingSize):], pix[4*j*ow:4*(j+1)*ow])
+	// Copy the content.
+	for j := 0; j < height; j++ {
+		copy(pixb[4*((j+paddingSize)*pw+paddingSize):], pix[4*j*width:4*(j+1)*width])
 	}
 
-	i.backend.restorable.ReplacePixels(pixb, x, y, w, h)
+	x += px
+	y += py
+	i.backend.restorable.WritePixels(pixb, x, y, pw, ph)
 }
 
-func (img *Image) Pixels(x, y, width, height int) ([]byte, error) {
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
-	x += paddingSize
-	y += paddingSize
-
-	bs := make([]byte, 4*width*height)
-	idx := 0
-	for j := y; j < y+height; j++ {
-		for i := x; i < x+width; i++ {
-			r, g, b, a, err := img.at(i, j)
-			if err != nil {
-				return nil, err
-			}
-			bs[4*idx] = r
-			bs[4*idx+1] = g
-			bs[4*idx+2] = b
-			bs[4*idx+3] = a
-			idx++
+	if i.backend == nil || i.backend.restorable == nil {
+		for i := range pixels {
+			pixels[i] = 0
 		}
-	}
-	return bs, nil
-}
-
-func (i *Image) at(x, y int) (byte, byte, byte, byte, error) {
-	if i.backend == nil {
-		return 0, 0, 0, 0, nil
+		return nil
 	}
 
+	ps := i.paddingSize()
 	ox, oy, w, h := i.regionWithPadding()
-	if x < 0 || y < 0 || x >= w || y >= h {
-		return 0, 0, 0, 0, nil
-	}
-
-	return i.backend.restorable.At(x+ox, y+oy)
+	return i.backend.restorable.ReadPixels(graphicsDriver, pixels, ox+ps, oy+ps, w-ps*2, h-ps*2)
 }
 
 // MarkDisposed marks the image as disposed. The actual operation is deferred.
@@ -540,6 +594,7 @@ func (i *Image) at(x, y int) (byte, byte, byte, byte, error) {
 // A function from finalizer must not be blocked, but disposing operation can be blocked.
 // Defer this operation until it becomes safe. (#913)
 func (i *Image) MarkDisposed() {
+	// As MarkDisposed can be invoked from finalizers, backendsM should not be used.
 	deferredM.Lock()
 	deferred = append(deferred, func() {
 		i.dispose(true)
@@ -596,36 +651,23 @@ func (i *Image) dispose(markDisposed bool) {
 	theBackends = append(theBackends[:index], theBackends[index+1:]...)
 }
 
-func NewImage(width, height int) *Image {
+func NewImage(width, height int, imageType ImageType) *Image {
 	// Actual allocation is done lazily, and the lock is not needed.
 	return &Image{
-		width:  width,
-		height: height,
+		width:     width,
+		height:    height,
+		imageType: imageType,
 	}
-}
-
-func (i *Image) SetVolatile(volatile bool) {
-	i.volatile = volatile
-	if i.backend == nil {
-		return
-	}
-	if i.volatile {
-		i.ensureIsolated()
-	}
-	i.backend.restorable.SetVolatile(i.volatile)
 }
 
 func (i *Image) canBePutOnAtlas() bool {
 	if minSize == 0 || maxSize == 0 {
 		panic("atlas: minSize or maxSize must be initialized")
 	}
-	if i.volatile {
+	if i.imageType != ImageTypeRegular {
 		return false
 	}
-	if i.screen {
-		return false
-	}
-	return i.width+2*paddingSize <= maxSize && i.height+2*paddingSize <= maxSize
+	return i.width+2*i.paddingSize() <= maxSize && i.height+2*i.paddingSize() <= maxSize
 }
 
 func (i *Image) allocate(putOnAtlas bool) {
@@ -635,45 +677,55 @@ func (i *Image) allocate(putOnAtlas bool) {
 
 	runtime.SetFinalizer(i, (*Image).MarkDisposed)
 
-	if i.screen {
+	if i.imageType == ImageTypeScreen {
 		// A screen image doesn't have a padding.
 		i.backend = &backend{
-			restorable: restorable.NewScreenFramebufferImage(i.width, i.height),
+			restorable: restorable.NewImage(i.width, i.height, restorable.ImageTypeScreen),
 		}
 		return
 	}
 
 	if !putOnAtlas || !i.canBePutOnAtlas() {
-		i.backend = &backend{
-			restorable: restorable.NewImage(i.width+2*paddingSize, i.height+2*paddingSize),
+		if i.width+2*i.paddingSize() > maxSize || i.height+2*i.paddingSize() > maxSize {
+			panic(fmt.Sprintf("atlas: the image being put on an atlas is too big: width: %d, height: %d", i.width, i.height))
 		}
-		i.backend.restorable.SetVolatile(i.volatile)
+
+		typ := restorable.ImageTypeRegular
+		if i.imageType == ImageTypeVolatile {
+			typ = restorable.ImageTypeVolatile
+		}
+		i.backend = &backend{
+			restorable: restorable.NewImage(i.width+2*i.paddingSize(), i.height+2*i.paddingSize(), typ),
+		}
 		return
 	}
 
 	for _, b := range theBackends {
-		if n, ok := b.tryAlloc(i.width+2*paddingSize, i.height+2*paddingSize); ok {
+		if n, ok := b.tryAlloc(i.width+2*i.paddingSize(), i.height+2*i.paddingSize()); ok {
 			i.backend = b
 			i.node = n
 			return
 		}
 	}
 	size := minSize
-	for i.width+2*paddingSize > size || i.height+2*paddingSize > size {
+	for i.width+2*i.paddingSize() > size || i.height+2*i.paddingSize() > size {
 		if size == maxSize {
 			panic(fmt.Sprintf("atlas: the image being put on an atlas is too big: width: %d, height: %d", i.width, i.height))
 		}
 		size *= 2
 	}
 
+	typ := restorable.ImageTypeRegular
+	if i.imageType == ImageTypeVolatile {
+		typ = restorable.ImageTypeVolatile
+	}
 	b := &backend{
-		restorable: restorable.NewImage(size, size),
+		restorable: restorable.NewImage(size, size, typ),
 		page:       packing.NewPage(size, maxSize),
 	}
-	b.restorable.SetVolatile(i.volatile)
 	theBackends = append(theBackends, b)
 
-	n := b.page.Alloc(i.width+2*paddingSize, i.height+2*paddingSize)
+	n := b.page.Alloc(i.width+2*i.paddingSize(), i.height+2*i.paddingSize())
 	if n == nil {
 		panic("atlas: Alloc result must not be nil at allocate")
 	}
@@ -681,53 +733,81 @@ func (i *Image) allocate(putOnAtlas bool) {
 	i.node = n
 }
 
-func (i *Image) DumpScreenshot(path string, blackbg bool) error {
+func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
-	return i.backend.restorable.Dump(path, blackbg, image.Rect(paddingSize, paddingSize, paddingSize+i.width, paddingSize+i.height))
+	return i.backend.restorable.Dump(graphicsDriver, path, blackbg, image.Rect(i.paddingSize(), i.paddingSize(), i.width+i.paddingSize(), i.height+i.paddingSize()))
 }
 
-func NewScreenFramebufferImage(width, height int) *Image {
-	// Actual allocation is done lazily.
-	i := &Image{
-		width:  width,
-		height: height,
-		screen: true,
-	}
-	return i
-}
-
-func EndFrame() error {
+func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 	backendsM.Lock()
 
-	return restorable.ResolveStaleImages()
+	if err := restorable.ResolveStaleImages(graphicsDriver, true); err != nil {
+		return err
+	}
+
+	theTemporaryBytes.resetAtFrameEnd()
+	return nil
 }
 
-func BeginFrame() error {
+func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 	defer backendsM.Unlock()
 
 	var err error
 	initOnce.Do(func() {
-		err = restorable.InitializeGraphicsDriverState()
+		err = restorable.InitializeGraphicsDriverState(graphicsDriver)
 		if err != nil {
 			return
 		}
 		if len(theBackends) != 0 {
 			panic("atlas: all the images must be not on an atlas before the game starts")
 		}
-		minSize = 1024
-		maxSize = max(minSize, restorable.MaxImageSize())
+
+		// minSize and maxSize can already be set for testings.
+		if minSize == 0 {
+			minSize = 1024
+		}
+		if maxSize == 0 {
+			maxSize = restorable.MaxImageSize(graphicsDriver)
+		}
 	})
 	if err != nil {
 		return err
 	}
 
-	return restorable.RestoreIfNeeded()
+	// Restore images first before other image manipulations (#2075).
+	if err := restorable.RestoreIfNeeded(graphicsDriver); err != nil {
+		return err
+	}
+
+	resolveDeferred()
+	if err := putImagesOnAtlas(graphicsDriver); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func DumpImages(dir string) error {
+func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	return restorable.DumpImages(dir)
+	return restorable.DumpImages(graphicsDriver, dir)
+}
+
+func adjustDestinationPixel(x float32) float32 {
+	// Avoid the center of the pixel, which is problematic (#929, #1171).
+	// Instead, align the vertices with about 1/3 pixels.
+	ix := float32(math.Floor(float64(x)))
+	frac := x - ix
+	switch {
+	case frac < 3.0/16.0:
+		return ix
+	case frac < 8.0/16.0:
+		return ix + 5.0/16.0
+	case frac < 13.0/16.0:
+		return ix + 11.0/16.0
+	default:
+		return ix + 16.0/16.0
+	}
 }

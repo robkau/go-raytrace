@@ -4,19 +4,28 @@ import (
 	"github.com/robkau/go-raytrace/lib/geom"
 	"github.com/robkau/go-raytrace/lib/view"
 	"math"
+	"sync/atomic"
 )
 
-type NewSceneFunc func() *Scene
-
 type Scene struct {
-	W  *view.World
-	Cs []CameraLocation
+	W      *view.World
+	Cs     []CameraLocation
+	loadF  NewSceneFunc
+	loaded *atomic.Bool
 }
 
-func NewScene(w *view.World, cs ...CameraLocation) *Scene {
+func NewScene(loadF NewSceneFunc) *Scene {
 	return &Scene{
-		W:  w,
-		Cs: cs,
+		W:      nil,
+		Cs:     nil,
+		loadF:  loadF,
+		loaded: &atomic.Bool{}, // todo zerovalue ok? not reference ok?
+	}
+}
+
+func (s *Scene) Load() {
+	if s.loaded.CompareAndSwap(false, true) {
+		s.W, s.Cs = s.loadF()
 	}
 }
 
@@ -55,10 +64,12 @@ func (l *CameraLocation) RotateAroundZ(radians float64) {
 	l.At.Y = yNew
 }
 
+type NewSceneFunc func() (*view.World, []CameraLocation)
+
 func LoadScenes(fs ...NewSceneFunc) []*Scene {
 	scenes := []*Scene{}
 	for _, initF := range fs {
-		scenes = append(scenes, initF())
+		scenes = append(scenes, NewScene(initF))
 	}
 	return scenes
 }

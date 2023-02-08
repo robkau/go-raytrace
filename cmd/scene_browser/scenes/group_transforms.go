@@ -9,10 +9,11 @@ import (
 	"github.com/robkau/go-raytrace/lib/patterns"
 	"github.com/robkau/go-raytrace/lib/shapes"
 	"github.com/robkau/go-raytrace/lib/view"
+	canvas2 "github.com/robkau/go-raytrace/lib/view/canvas"
+	"log"
 	"math"
 	"math/rand"
 	"strings"
-	"time"
 )
 
 func makeObjectGroup() shapes.Group {
@@ -44,11 +45,11 @@ func makeObjectGroup() shapes.Group {
 	g.AddChild(tt)
 
 	// a few cubes on table
-	cl := sizedCubeAt(1.75, 4.64, 1.5, 0.4, 0.4, 0.4)
+	cl := sizedCubeAt(-2.75, 4.64, 1.5, 0.4, 0.4, 0.4)
 	m.Color = colors.Blue()
 	cl.SetMaterial(m)
 	g.AddChild(cl)
-	cr := sizedCubeAt(1, 4.83, -0.75, 0.6, 0.6, 0.6)
+	cr := sizedCubeAt(-2, 4.83, -0.75, 0.6, 0.6, 0.6)
 	m.Color = colors.Red()
 	cr.SetMaterial(m)
 	g.AddChild(cr)
@@ -70,7 +71,7 @@ func makeObjectGroup() shapes.Group {
 	// a random frame from toribash replay on each table
 	pr, err := parse.ParseReaderAsTori(strings.NewReader(parse.ReplayFile))
 	if err != nil {
-		panic("err parse")
+		log.Fatalf("err parse")
 	}
 	n := rand.Intn(int(math.Min(float64(len(pr.P0Positions)), float64(len(pr.P1Positions)))))
 	pg0 := pr.P0Positions[n].AsGroup()
@@ -90,6 +91,8 @@ func makeObjectGroup() shapes.Group {
 		c.SetMaterial(m)
 	}
 	g.AddChild(pg1)
+
+	g.Divide(8)
 	return g
 }
 
@@ -124,18 +127,30 @@ func makeGroupOfGroups() shapes.Group {
 	return g1
 }
 
-func stackTable(t geom.X4Matrix) geom.X4Matrix {
+func stackTable(t *geom.X4Matrix) *geom.X4Matrix {
 	return t.MulX4Matrix(geom.Translate(-1, 4, 1)).MulX4Matrix(geom.RotateY(math.Pi / 9).MulX4Matrix(geom.Scale(0.5, 0.5, 0.5)))
 }
 
-func NewGroupTransformsScene() *Scene {
-	seed := time.Now().UnixNano()
-	fmt.Println("rand seed", seed)
-	rand.Seed(seed)
+func NewGroupTransformsScene() (*view.World, []CameraLocation) {
+	sc := shapes.NewSphere()
+	ms := sc.GetMaterial()
+	canvas, err := canvas2.CanvasFromPPMZipFile("data/ppm/earth.ppm.zip")
+	if err != nil {
+		panic(fmt.Sprintf("loading earth ppm to canvas: %s", err.Error()))
+	}
+	ms.Pattern = patterns.NewTextureMapPattern(patterns.NewUVImage(canvas), patterns.SphericalMap)
+	sc.SetMaterial(ms)
+	sc.SetTransform(geom.Translate(-6, 9, 1))
+
+	pc := shapes.NewCube()
+	mc := pc.GetMaterial()
+	mc.Pattern = patterns.NewPrismaticCube()
+	pc.SetMaterial(mc)
+	pc.SetTransform(geom.Scale(0.75, 0.75, 0.75).MulX4Matrix(geom.Translate(9, 12, 1)).MulX4Matrix(geom.RotateX(math.Pi / 5)).MulX4Matrix(geom.RotateY(math.Pi / 5)))
 
 	w := view.NewWorld()
-	cameraPos := geom.NewPoint(15, 15, 15)
-	cameraLookingAt := geom.NewPoint(0, 5, 0)
+	cameraPos := geom.NewPoint(22, 8, 22)
+	cameraLookingAt := geom.NewPoint(0, 9, 0)
 
 	g1 := makeGroupOfGroups()
 	g1.SetTransform(geom.Translate(-7, 0, -3))
@@ -143,30 +158,31 @@ func NewGroupTransformsScene() *Scene {
 	g2 := makeGroupOfGroups()
 	g2.SetTransform(geom.Translate(0.5, 0, -3).MulX4Matrix(geom.RotateY(math.Pi)))
 
-	// floor and ceiling as one cube
-	var floorAndCeiling = sizedCubeAt(0, 10, 0, 100, 10, 100)
-	m := floorAndCeiling.GetMaterial()
-	m.Color = colors.Brown()
-	m.Reflective = 0
-	m.Transparency = 0
-	floorAndCeiling.SetMaterial(m)
+	// skybox sphere
+	var skybox = shapes.NewSphere()
+	skybox.SetTransform(geom.Scale(35, 35, 35))
+	m := skybox.GetMaterial()
+	canvas, err = canvas2.CanvasFromPPMZipFile("data/ppm/satara_night_hdr.ppm.zip")
+	if err != nil {
+		panic(fmt.Sprintf("loading tokyo ppm to canvas: %s", err.Error()))
+	}
+	m.Pattern = patterns.NewTextureMapPattern(patterns.NewUVImage(canvas), patterns.SphericalMap)
+	m.Ambient = 1
+	m.Specular = 0
+	m.Diffuse = 0
+	skybox.SetMaterial(m)
 
-	// walls as another cube
-	var walls = sizedCubeAt(0, 0, 0, 25, 100, 25)
-	m = walls.GetMaterial()
-	m.Reflective = 0
-	m.Transparency = 0
-	m.Color = colors.Blue()
-	walls.SetMaterial(m)
-
-	// todo unit test that output png from this is same as output png from collapse(g1, g2)
-
+	// prismatic cube
+	w.AddObject(pc)
+	// texture mapped sphere
+	w.AddObject(sc)
 	// light above
-	w.AddLight(shapes.NewPointLight(geom.NewPoint(5, 10, -3), colors.NewColor(1.9, 1.4, 1.4)))
+	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(0, 10, 0), geom.NewVector(15, 0, 0), 4, geom.NewVector(0, 0, 15), 2, colors.NewColorFromHex("ffffd7").MulBy(1), nil))
+	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(7, 10, 0), geom.NewVector(8, 0, 0), 4, geom.NewVector(0, 15, 15), 2, colors.NewColorFromHex("ffffd7").MulBy(1), nil))
+	//w.AddPointLight(shapes.NewPointLight(geom.NewPoint(5, 10, -3), colors.NewColor(1.9, 1.4, 1.4)))
 	w.AddObject(g1)
 	w.AddObject(g2)
-	w.AddObject(floorAndCeiling)
-	w.AddObject(walls)
+	w.AddObject(skybox)
 
-	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
+	return w, []CameraLocation{CameraLocation{cameraPos, cameraLookingAt}}
 }

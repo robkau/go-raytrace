@@ -3,12 +3,21 @@ package shapes
 import (
 	"github.com/robkau/go-raytrace/lib/geom"
 	"github.com/stretchr/testify/assert"
+	"math"
 	"testing"
 )
 
+func Test_NewPlane_BoundsOf(t *testing.T) {
+	s := NewPlane()
+	s.SetTransform(geom.Translate(0, 1, 0)) // no effect
+
+	assert.Equal(t, geom.NewPoint(math.Inf(-1), 0, math.Inf(-1)), s.BoundsOf().Min)
+	assert.Equal(t, geom.NewPoint(math.Inf(1), 0, math.Inf(1)), s.BoundsOf().Max)
+}
+
 func Test_PlaneNormal_Constant(t *testing.T) {
 	p := NewPlane()
-	n1 := p.LocalNormalAt(geom.NewPoint(0, 0, 0), Intersection{})
+	n1 := p.LocalNormalAt(geom.ZeroPoint(), Intersection{})
 	n2 := p.LocalNormalAt(geom.NewPoint(10, 0, -10), Intersection{})
 	n3 := p.LocalNormalAt(geom.NewPoint(-5, 10, 150), Intersection{})
 
@@ -28,7 +37,7 @@ func Test_Plane_Intersect_Parallel_Ray(t *testing.T) {
 
 func Test_Plane_Intersect_Coplanar_Ray(t *testing.T) {
 	p := NewPlane()
-	r := geom.RayWith(geom.NewPoint(0, 0, 0), geom.NewVector(0, 0, 1))
+	r := geom.RayWith(geom.ZeroPoint(), geom.NewVector(0, 0, 1))
 
 	xs := p.LocalIntersect(r)
 

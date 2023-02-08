@@ -2,7 +2,7 @@ package geom
 
 import "math"
 
-func Translate(x, y, z float64) X4Matrix {
+func Translate(x, y, z float64) *X4Matrix {
 	m := NewIdentityMatrixX4()
 	m = m.Set(0, 3, x)
 	m = m.Set(1, 3, y)
@@ -10,7 +10,7 @@ func Translate(x, y, z float64) X4Matrix {
 	return m
 }
 
-func Scale(x, y, z float64) X4Matrix {
+func Scale(x, y, z float64) *X4Matrix {
 	m := NewIdentityMatrixX4()
 	m = m.Set(0, 0, x)
 	m = m.Set(1, 1, y)
@@ -18,7 +18,7 @@ func Scale(x, y, z float64) X4Matrix {
 	return m
 }
 
-func RotateX(rad float64) X4Matrix {
+func RotateX(rad float64) *X4Matrix {
 	m := NewIdentityMatrixX4()
 	m = m.Set(1, 1, math.Cos(rad))
 	m = m.Set(1, 2, -math.Sin(rad))
@@ -27,7 +27,7 @@ func RotateX(rad float64) X4Matrix {
 	return m
 }
 
-func RotateY(rad float64) X4Matrix {
+func RotateY(rad float64) *X4Matrix {
 	m := NewIdentityMatrixX4()
 	m = m.Set(0, 0, math.Cos(rad))
 	m = m.Set(0, 2, math.Sin(rad))
@@ -36,7 +36,7 @@ func RotateY(rad float64) X4Matrix {
 	return m
 }
 
-func RotateZ(rad float64) X4Matrix {
+func RotateZ(rad float64) *X4Matrix {
 	m := NewIdentityMatrixX4()
 	m = m.Set(0, 0, math.Cos(rad))
 	m = m.Set(0, 1, -math.Sin(rad))
@@ -45,7 +45,7 @@ func RotateZ(rad float64) X4Matrix {
 	return m
 }
 
-func shear(xy, xz, yx, yz, zx, zy float64) X4Matrix {
+func shear(xy, xz, yx, yz, zx, zy float64) *X4Matrix {
 	m := NewIdentityMatrixX4()
 	m = m.Set(0, 1, xy)
 	m = m.Set(0, 2, xz)

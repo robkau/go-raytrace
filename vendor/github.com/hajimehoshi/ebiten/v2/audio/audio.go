@@ -15,9 +15,10 @@
 // Package audio provides audio players.
 //
 // The stream format must be 16-bit little endian and 2 channels. The format is as follows:
-//   [data]      = [sample 1] [sample 2] [sample 3] ...
-//   [sample *]  = [channel 1] ...
-//   [channel *] = [byte 1] [byte 2] ...
+//
+//	[data]      = [sample 1] [sample 2] [sample 3] ...
+//	[sample *]  = [channel 1] ...
+//	[channel *] = [byte 1] [byte 2] ...
 //
 // An audio context (audio.Context object) has a sample rate you can specify and all streams you want to play must have the same
 // sample rate. However, decoders in e.g. audio/mp3 package adjust sample rate automatically,
@@ -40,19 +41,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hajimehoshi/ebiten/v2/audio/internal/readerdriver"
+	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 )
 
 const (
-	channelNum      = 2
+	channelCount    = 2
 	bitDepthInBytes = 2
-	bytesPerSample  = bitDepthInBytes * channelNum
+	bytesPerSample  = bitDepthInBytes * channelCount
 )
-
-type newPlayerImpler interface {
-	newPlayerImpl(context *Context, src io.Reader) (playerImpl, error)
-}
 
 // A Context represents a current state of audio.
 //
@@ -61,7 +58,7 @@ type newPlayerImpler interface {
 //
 // For a typical usage example, see examples/wav/main.go.
 type Context struct {
-	np newPlayerImpler
+	playerFactory *playerFactory
 
 	// inited represents whether the audio device is initialized and available or not.
 	// On Android, audio loop cannot be started unless JVM is accessible. After updating one frame, JVM should exist.
@@ -71,8 +68,9 @@ type Context struct {
 	sampleRate int
 	err        error
 	ready      bool
+	readyOnce  sync.Once
 
-	players map[playerImpl]struct{}
+	players map[*playerImpl]struct{}
 
 	m         sync.Mutex
 	semaphore chan struct{}
@@ -101,41 +99,25 @@ func NewContext(sampleRate int) *Context {
 		panic("audio: context is already created")
 	}
 
-	var np newPlayerImpler
-	if readerdriver.IsAvailable() {
-		// 'Reader players' are players that implement io.Reader. This is the new way and
-		// not all the environments support reader players. Reader players can have enough
-		// buffers so that clicking noises can be avoided compared to writer players.
-		// Reder players will replace writer players in any platforms in the future.
-		np = newReaderPlayerFactory(sampleRate)
-	} else {
-		// 'Writer players' are players that implement io.Writer. This is the old way but
-		// all the environments support writer players. Writer players cannot have enough
-		// buffers and clicking noises are sometimes problematic (#1356, #1458).
-		np = newWriterPlayerFactory(sampleRate)
-	}
-
 	c := &Context{
-		sampleRate: sampleRate,
-		np:         np,
-		players:    map[playerImpl]struct{}{},
-		inited:     make(chan struct{}),
-		semaphore:  make(chan struct{}, 1),
+		sampleRate:    sampleRate,
+		playerFactory: newPlayerFactory(sampleRate),
+		players:       map[*playerImpl]struct{}{},
+		inited:        make(chan struct{}),
+		semaphore:     make(chan struct{}, 1),
 	}
 	theContext = c
 
 	h := getHook()
-	h.OnSuspendAudio(func() {
+	h.OnSuspendAudio(func() error {
 		c.semaphore <- struct{}{}
-		if s, ok := np.(interface{ suspend() }); ok {
-			s.suspend()
-		}
+		c.playerFactory.suspend()
+		return nil
 	})
-	h.OnResumeAudio(func() {
+	h.OnResumeAudio(func() error {
 		<-c.semaphore
-		if s, ok := np.(interface{ resume() }); ok {
-			s.resume()
-		}
+		c.playerFactory.resume()
+		return nil
 	})
 
 	h.AppendHookOnBeforeUpdate(func() error {
@@ -146,9 +128,7 @@ func NewContext(sampleRate int) *Context {
 		var err error
 		theContextLock.Lock()
 		if theContext != nil {
-			theContext.m.Lock()
-			err = theContext.err
-			theContext.m.Unlock()
+			err = theContext.error()
 		}
 		theContextLock.Unlock()
 		if err != nil {
@@ -172,18 +152,20 @@ func CurrentContext() *Context {
 	return c
 }
 
-func (c *Context) hasError() bool {
-	c.m.Lock()
-	r := c.err != nil
-	c.m.Unlock()
-	return r
-}
-
 func (c *Context) setError(err error) {
 	// TODO: What if c.err already exists?
 	c.m.Lock()
 	c.err = err
 	c.m.Unlock()
+}
+
+func (c *Context) error() error {
+	c.m.Lock()
+	defer c.m.Unlock()
+	if c.err != nil {
+		return c.err
+	}
+	return c.playerFactory.error()
 }
 
 func (c *Context) setReady() {
@@ -192,7 +174,7 @@ func (c *Context) setReady() {
 	c.m.Unlock()
 }
 
-func (c *Context) addPlayer(p playerImpl) {
+func (c *Context) addPlayer(p *playerImpl) {
 	c.m.Lock()
 	defer c.m.Unlock()
 	c.players[p] = struct{}{}
@@ -208,7 +190,7 @@ func (c *Context) addPlayer(p playerImpl) {
 	}
 }
 
-func (c *Context) removePlayer(p playerImpl) {
+func (c *Context) removePlayer(p *playerImpl) {
 	c.m.Lock()
 	delete(c.players, p)
 	c.m.Unlock()
@@ -220,17 +202,13 @@ func (c *Context) gcPlayers() error {
 
 	// Now reader players cannot call removePlayers from themselves in the current implementation.
 	// Underlying playering can be the pause state after fishing its playing,
-	// but there is no way to notify this to readerPlayers so far.
+	// but there is no way to notify this to players so far.
 	// Instead, let's check the states proactively every frame.
 	for p := range c.players {
-		rp, ok := p.(*readerPlayer)
-		if !ok {
-			return nil
-		}
-		if err := rp.Err(); err != nil {
+		if err := p.Err(); err != nil {
 			return err
 		}
-		if !rp.IsPlaying() {
+		if !p.IsPlaying() {
 			delete(c.players, p)
 		}
 	}
@@ -253,15 +231,18 @@ func (c *Context) IsReady() bool {
 		return r
 	}
 
-	// Create another goroutine since (*Player).Play can lock the context's mutex.
-	go func() {
-		// The audio context is never ready unless there is a player. This is
-		// problematic when a user tries to play audio after the context is ready.
-		// Play a dummy player to avoid the blocking (#969).
-		// Use a long enough buffer so that writing doesn't finish immediately (#970).
-		p := NewPlayerFromBytes(c, make([]byte, bufferSize()*2))
-		p.Play()
-	}()
+	c.readyOnce.Do(func() {
+		// Create another goroutine since (*Player).Play can lock the context's mutex.
+		// TODO: Is this needed for reader players?
+		go func() {
+			// The audio context is never ready unless there is a player. This is
+			// problematic when a user tries to play audio after the context is ready.
+			// Play a dummy player to avoid the blocking (#969).
+			// Use a long enough buffer so that writing doesn't finish immediately (#970).
+			p := NewPlayerFromBytes(c, make([]byte, bufferSize()*2))
+			p.Play()
+		}()
+	})
 
 	return r
 }
@@ -290,27 +271,12 @@ func (c *Context) waitUntilInited() {
 // This means that if a Player plays an infinite stream,
 // the object is never GCed unless Close is called.
 type Player struct {
-	p playerImpl
-}
-
-type playerImpl interface {
-	io.Closer
-
-	Play()
-	IsPlaying() bool
-	Pause()
-	Volume() float64
-	SetVolume(volume float64)
-	Current() time.Duration
-	Rewind() error
-	Seek(offset time.Duration) error
-
-	source() io.Reader
+	p *playerImpl
 }
 
 // NewPlayer creates a new player with the given stream.
 //
-// src's format must be linear PCM (16bits little endian, 2 channel stereo)
+// src's format must be linear PCM (signed 16bits little endian, 2 channel stereo)
 // without a header (e.g. RIFF header).
 // The sample rate must be same as that of the audio context.
 //
@@ -324,8 +290,8 @@ type playerImpl interface {
 //
 // A Player doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
-func NewPlayer(context *Context, src io.Reader) (*Player, error) {
-	pi, err := context.np.newPlayerImpl(context, src)
+func (c *Context) NewPlayer(src io.Reader) (*Player, error) {
+	pi, err := c.playerFactory.newPlayer(c, src)
 	if err != nil {
 		return nil, err
 	}
@@ -337,20 +303,33 @@ func NewPlayer(context *Context, src io.Reader) (*Player, error) {
 	return p, nil
 }
 
+// NewPlayer creates a new player with the given stream.
+//
+// Deprecated: as of v2.2. Use (*Context).NewPlayer instead.
+func NewPlayer(context *Context, src io.Reader) (*Player, error) {
+	return context.NewPlayer(src)
+}
+
 // NewPlayerFromBytes creates a new player with the given bytes.
 //
 // As opposed to NewPlayer, you don't have to care if src is already used by another player or not.
 // src can be shared by multiple players.
 //
 // The format of src should be same as noted at NewPlayer.
-func NewPlayerFromBytes(context *Context, src []byte) *Player {
-	b := bytes.NewReader(src)
-	p, err := NewPlayer(context, b)
+func (c *Context) NewPlayerFromBytes(src []byte) *Player {
+	p, err := c.NewPlayer(bytes.NewReader(src))
 	if err != nil {
 		// Errors should never happen.
 		panic(fmt.Sprintf("audio: %v at NewPlayerFromBytes", err))
 	}
 	return p
+}
+
+// NewPlayerFromBytes creates a new player with the given bytes.
+//
+// Deprecated: as of v2.2. Use (*Context).NewPlayerFromBytes instead.
+func NewPlayerFromBytes(context *Context, src []byte) *Player {
+	return context.NewPlayerFromBytes(src)
 }
 
 func (p *Player) finalize() {
@@ -422,9 +401,17 @@ func (p *Player) SetVolume(volume float64) {
 	p.p.SetVolume(volume)
 }
 
+// SetBufferSize adjusts the buffer size of the player.
+// If 0 is specified, the default buffer size is used.
+// A small buffer size is useful if you want to play a real-time PCM for example.
+// Note that the audio quality might be affected if you modify the buffer size.
+func (p *Player) SetBufferSize(bufferSize time.Duration) {
+	p.p.SetBufferSize(bufferSize)
+}
+
 type hook interface {
-	OnSuspendAudio(f func())
-	OnResumeAudio(f func())
+	OnSuspendAudio(f func() error)
+	OnResumeAudio(f func() error)
 	AppendHookOnBeforeUpdate(f func() error)
 }
 
@@ -439,14 +426,27 @@ func getHook() hook {
 
 type hookImpl struct{}
 
-func (h *hookImpl) OnSuspendAudio(f func()) {
+func (h *hookImpl) OnSuspendAudio(f func() error) {
 	hooks.OnSuspendAudio(f)
 }
 
-func (h *hookImpl) OnResumeAudio(f func()) {
+func (h *hookImpl) OnResumeAudio(f func() error) {
 	hooks.OnResumeAudio(f)
 }
 
 func (h *hookImpl) AppendHookOnBeforeUpdate(f func() error) {
 	hooks.AppendHookOnBeforeUpdate(f)
+}
+
+// Resample converts the sample rate of the given stream.
+// size is the length of the source stream in bytes.
+// from is the original sample rate.
+// to is the target sample rate.
+//
+// If the original sample rate equals to the new one, Resample returns source as it is.
+func Resample(source io.ReadSeeker, size int64, from, to int) io.ReadSeeker {
+	if from == to {
+		return source
+	}
+	return convert.NewResampling(source, size, from, to)
 }

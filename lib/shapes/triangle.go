@@ -29,6 +29,13 @@ func NewTriangle(p1, p2, p3 geom.Tuple) *Triangle {
 	return t
 }
 
+// BoundsOf is for untransformed shape
+func (t *Triangle) BoundsOf() *BoundingBox {
+	b := NewEmptyBoundingBox()
+	b.Add(t.p1, t.p2, t.p3)
+	return b
+}
+
 func (t *Triangle) Intersect(ray geom.Ray) *Intersections {
 	return Intersect(ray, t.t, t.LocalIntersect)
 }
@@ -73,10 +80,6 @@ func (t *Triangle) NormalAt(p geom.Tuple, i Intersection) geom.Tuple {
 
 func (t *Triangle) LocalNormalAt(p geom.Tuple, _ Intersection) geom.Tuple {
 	return t.normal
-}
-
-func (t *Triangle) Bounds() Bounds {
-	return newBounds(t.p1, t.p2, t.p3)
 }
 
 func (t *Triangle) Vertices() []geom.Tuple {

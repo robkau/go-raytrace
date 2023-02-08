@@ -1,6 +1,7 @@
 package view
 
 import (
+	"context"
 	"fmt"
 	"github.com/robkau/coordinate_supplier"
 	"github.com/robkau/go-raytrace/lib/colors"
@@ -11,14 +12,16 @@ import (
 )
 
 type World struct {
-	objects      []shapes.Shape
-	lightSources []shapes.PointLight
+	objects     []shapes.Shape
+	pointLights []shapes.PointLight
+	areaLights  []shapes.AreaLight
 }
 
 func NewWorld() *World {
 	return &World{
-		objects:      []shapes.Shape{},
-		lightSources: []shapes.PointLight{},
+		objects:     []shapes.Shape{},
+		pointLights: []shapes.PointLight{},
+		areaLights:  []shapes.AreaLight{},
 	}
 }
 
@@ -38,7 +41,7 @@ func defaultWorld() *World {
 	w.AddObject(s)
 
 	l := shapes.NewPointLight(geom.NewPoint(-10, 10, -10), colors.White())
-	w.AddLight(l)
+	w.AddPointLight(l)
 
 	return w
 }
@@ -47,8 +50,12 @@ func (w *World) AddObject(s shapes.Shape) {
 	w.objects = append(w.objects, s)
 }
 
-func (w *World) AddLight(l shapes.PointLight) {
-	w.lightSources = append(w.lightSources, l)
+func (w *World) AddPointLight(l shapes.PointLight) {
+	w.pointLights = append(w.pointLights, l)
+}
+
+func (w *World) AddAreaLight(l shapes.AreaLight) {
+	w.areaLights = append(w.areaLights, l)
 }
 
 func (w *World) Intersect(r geom.Ray) *shapes.Intersections {
@@ -63,8 +70,12 @@ func (w *World) Intersect(r geom.Ray) *shapes.Intersections {
 func (w *World) ShadeHit(c shapes.IntersectionComputed, remaining int) colors.Color {
 	col := colors.NewColor(0, 0, 0)
 
-	for _, l := range w.lightSources {
-		col = col.Add(shapes.Lighting(c.Object.GetMaterial(), c.Object, l, c.OverPoint, c.Eyev, c.Normalv, w.IsShadowed(c.OverPoint)))
+	for _, l := range w.pointLights {
+		col = col.Add(shapes.Lighting(c.Object.GetMaterial(), c.Object, l, c.OverPoint, c.Eyev, c.Normalv, IntensityAt(l, c.OverPoint, w)))
+	}
+
+	for _, l := range w.areaLights {
+		col = col.Add(shapes.Lighting(c.Object.GetMaterial(), c.Object, l, c.OverPoint, c.Eyev, c.Normalv, IntensityAtAreaLight(l, c.OverPoint, w)))
 	}
 
 	reflected := w.ReflectedColor(c, remaining)
@@ -121,9 +132,22 @@ func (w *World) RefractedColor(c shapes.IntersectionComputed, remaining int) col
 	return col
 }
 
+func (w *World) Divide(threshold int) {
+	for _, c := range w.objects {
+		c.Divide(threshold)
+	}
+}
+
+func (w *World) BoundsOf() *shapes.BoundingBox {
+	b := shapes.NewEmptyBoundingBox()
+	for _, c := range w.objects {
+		b.AddBoundingBoxes(c.BoundsOf())
+	}
+	return b
+}
+
 func (w *World) ColorAt(r geom.Ray, remaining int) colors.Color {
 	is := w.Intersect(r)
-	defer is.Release()
 	i, ok := is.Hit()
 	if !ok {
 		return colors.Black()
@@ -133,34 +157,53 @@ func (w *World) ColorAt(r geom.Ray, remaining int) colors.Color {
 	return w.ShadeHit(cs, remaining)
 }
 
-func (w *World) IsShadowed(p geom.Tuple) bool {
-	for _, l := range w.lightSources {
-		v := l.Position.Sub(p)
-		distance := v.Mag()
-		direction := v.Normalize()
+func (w *World) IsShadowed(lightPosition geom.Tuple, p geom.Tuple) bool {
+	v := lightPosition.Sub(p)
+	distance := v.Mag()
+	direction := v.Normalize()
 
-		r := geom.RayWith(p, direction)
-		intersections := w.Intersect(r)
-		h, ok := intersections.Hit()
-		// shadowless object does not cast shadows onto other objects
-		if ok && h.T < distance && !h.O.GetShadowless() {
-			return true
-		} else {
-			continue
-		}
+	r := geom.RayWith(p, direction)
+	intersections := w.Intersect(r)
+	h, ok := intersections.Hit()
+	// shadowless object does not cast shadows onto other objects
+	if ok && h.T < distance && !h.O.GetShadowless() {
+		return true
 	}
 	return false
+}
+
+func IntensityAt(p shapes.PointLight, pt geom.Tuple, w *World) float64 {
+	v := w.IsShadowed(p.Position, pt)
+	if v {
+		return 0.0
+	}
+	return 1.0
+}
+
+func IntensityAtAreaLight(l shapes.AreaLight, pt geom.Tuple, w *World) float64 {
+	total := 0.0
+
+	for v := 0; v < l.VSteps; v++ {
+		for u := 0; u < l.USteps; u++ {
+			lightPosition := l.PointOnLight(u, v)
+			if !w.IsShadowed(lightPosition, pt) {
+				total += 1.0
+			}
+		}
+	}
+	return total / float64(l.Samples)
 }
 
 // todo replace c.rencder?
 // or wrap this with an option to consume all and then return the image and delete c.render
 
-func Render(w *World, c Camera, rayBounces int, numGoRoutines int, renderMode coordinate_supplier.Order) (<-chan PixelInfo, error) {
+func Render(ctx context.Context, w *World, c Camera, rayBounces int, numGoRoutines int, renderMode coordinate_supplier.Order) (<-chan PixelInfo, error) {
 	pi := make(chan PixelInfo, numGoRoutines*2)
 
 	cs, err := coordinate_supplier.NewCoordinateSupplierAtomic(coordinate_supplier.CoordinateSupplierOptions{
 		Width:  c.HSize,
 		Height: c.VSize,
+		Depth:  1,
 		Order:  renderMode,
 		Repeat: false,
 	})
@@ -174,7 +217,15 @@ func Render(w *World, c Camera, rayBounces int, numGoRoutines int, renderMode co
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				for x, y, done := cs.Next(); !done; x, y, done = cs.Next() {
+				for x, y, _, done := cs.Next(); !done; x, y, _, done = cs.Next() {
+					select {
+					case <-ctx.Done():
+						// cancel render goroutine
+						return
+					default:
+						// noop
+					}
+
 					r := c.rayForPixel(x, y)
 					c := w.ColorAt(r, rayBounces)
 

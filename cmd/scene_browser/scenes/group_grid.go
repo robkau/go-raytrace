@@ -7,7 +7,7 @@ import (
 	"github.com/robkau/go-raytrace/lib/view"
 )
 
-func NewGroupGridScene() *Scene {
+func NewGroupGridScene() (*view.World, []CameraLocation) {
 	w := view.NewWorld()
 	cameraPos := geom.NewPoint(0.01, 3, 0.01)
 	cameraLookingAt := geom.NewPoint(10, 0, 0)
@@ -25,9 +25,10 @@ func NewGroupGridScene() *Scene {
 	floor.SetTransform(geom.Translate(0, -2, 0))
 
 	// light above
-	w.AddLight(shapes.NewPointLight(geom.NewPoint(5, 10, -3), colors.NewColor(1.9, 1.4, 1.4)))
+	w.AddPointLight(shapes.NewPointLight(geom.NewPoint(5, 10, -3), colors.NewColor(1.9, 1.4, 1.4)))
 	w.AddObject(g)
 	w.AddObject(floor)
 
-	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
+	w.Divide(8)
+	return w, []CameraLocation{CameraLocation{cameraPos, cameraLookingAt}}
 }

@@ -13,6 +13,25 @@ func Test_NewSphere_DefaultTransform(t *testing.T) {
 
 	assert.Equal(t, geom.NewIdentityMatrixX4(), s.t)
 }
+
+func Test_NewSphere_BoundsOf(t *testing.T) {
+	s := NewSphere()
+	s.SetTransform(geom.Translate(0, 1, 0)) // no effect
+
+	assert.Equal(t, geom.NewPoint(-1, -1, -1), s.BoundsOf().Min)
+	assert.Equal(t, geom.NewPoint(1, 1, 1), s.BoundsOf().Max)
+}
+
+func Test_NewSphere_ParentSpaceBoundsOf(t *testing.T) {
+	s := NewSphere()
+	s.SetTransform(geom.Translate(1, -3, 5).MulX4Matrix(geom.Scale(0.5, 2, 4))) // has effect
+
+	box := ParentSpaceBoundsOf(s)
+
+	assert.Equal(t, geom.NewPoint(0.5, -5, 1), box.Min)
+	assert.Equal(t, geom.NewPoint(1.5, -1, 9), box.Max)
+}
+
 func Test_NewSphere_HasDefaultMaterial(t *testing.T) {
 	s := NewSphere()
 
@@ -80,7 +99,7 @@ func Test_RayIntersectSphere_Miss(t *testing.T) {
 
 func Test_RayIntersectSphere_FromInside(t *testing.T) {
 	s := NewSphere()
-	r := geom.RayWith(geom.NewPoint(0, 0, 0), geom.NewVector(0, 0, 1))
+	r := geom.RayWith(geom.ZeroPoint(), geom.NewVector(0, 0, 1))
 
 	xs := s.Intersect(r)
 

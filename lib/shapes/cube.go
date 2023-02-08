@@ -15,8 +15,9 @@ func NewCube() *Cube {
 	}
 }
 
-func (c *Cube) Bounds() Bounds {
-	return newBounds(geom.NewPoint(-1, -1, -1), geom.NewPoint(1, 1, 1)).TransformTo(c.t)
+// BoundsOf is for untransformed shape
+func (c *Cube) BoundsOf() *BoundingBox {
+	return NewBoundingBox(geom.NewPoint(-1, -1, -1), geom.NewPoint(1, 1, 1))
 }
 
 func (c *Cube) NormalAt(p geom.Tuple, _ Intersection) geom.Tuple {
@@ -41,7 +42,7 @@ func (c *Cube) Intersect(r geom.Ray) *Intersections {
 
 func (c *Cube) LocalIntersect(r geom.Ray) *Intersections {
 	// bounds for a unit cube because we are in local space
-	tMin, tMax := intersectsCube(r, newBounds(geom.NewPoint(-1, -1, -1), geom.NewPoint(1, 1, 1)))
+	tMin, tMax := intersectsCube(r, c.BoundsOf())
 	if tMin > tMax {
 		return NewIntersections()
 	}
@@ -57,7 +58,7 @@ func (c *Cube) LocalIntersect(r geom.Ray) *Intersections {
 	)
 }
 
-func intersectsCube(r geom.Ray, b Bounds) (tMin float64, tMax float64) {
+func intersectsCube(r geom.Ray, b *BoundingBox) (tMin float64, tMax float64) {
 	xtMin, xtMax := checkAxis(r.Origin.X, r.Direction.X, b.Min.X, b.Max.X)
 	ytMin, ytMax := checkAxis(r.Origin.Y, r.Direction.Y, b.Min.Y, b.Max.Y)
 	ztMin, ztMax := checkAxis(r.Origin.Z, r.Direction.Z, b.Min.Z, b.Max.Z)

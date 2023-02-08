@@ -12,7 +12,7 @@ import (
 	"math"
 )
 
-func NewTeapotScene() *Scene {
+func NewTeapotScene() (*view.World, []CameraLocation) {
 	w := view.NewWorld()
 	cameraPos := geom.NewPoint(85, 10, -10)
 	cameraLookingAt := geom.NewPoint(0, 5, -10)
@@ -22,7 +22,6 @@ func NewTeapotScene() *Scene {
 		log.Fatalf("failed parsing obj file: %s", err.Error())
 	}
 	g.SetTransform(g.GetTransform().MulX4Matrix(geom.Translate(0, 0, -20)).MulX4Matrix(geom.RotateX(-math.Pi / 2)))
-	g = parse.CollapseGroups(2, g)
 	m := materials.NewMaterial()
 	m.Pattern = patterns.NewSolidColorPattern(colors.Green())
 	m.Ambient = 0.3
@@ -36,7 +35,6 @@ func NewTeapotScene() *Scene {
 		log.Fatalf("failed parsing obj file: %s", err.Error())
 	}
 	g2.SetTransform(g2.GetTransform().MulX4Matrix(geom.Translate(0, 0, 0)).MulX4Matrix(geom.RotateX(-math.Pi / 2)))
-	//g2 = obj_parse.CollapseGroups(5, g2)
 	m = materials.NewMaterial()
 	m.Pattern = patterns.NewSolidColorPattern(colors.Green())
 	m.Ambient = 0.3
@@ -67,7 +65,9 @@ func NewTeapotScene() *Scene {
 	w.AddObject(floorAndCeiling)
 	//w.AddObject(walls)
 
-	w.AddLight(shapes.NewPointLight(cameraPos, colors.NewColor(1.9, 1.4, 1.4)))
+	w.Divide(16)
 
-	return NewScene(w, CameraLocation{cameraPos, cameraLookingAt})
+	w.AddPointLight(shapes.NewPointLight(cameraPos, colors.NewColor(1.9, 1.4, 1.4)))
+
+	return w, []CameraLocation{CameraLocation{cameraPos, cameraLookingAt}}
 }

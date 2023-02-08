@@ -7,7 +7,11 @@ const (
 )
 
 func AlmostEqual(a float64, b float64) bool {
-	return math.Abs(a-b) < FloatComparisonEpsilon
+	return AlmostEqualWithPrecision(a, b, FloatComparisonEpsilon)
+}
+
+func AlmostEqualWithPrecision(a float64, b float64, precision float64) bool {
+	return math.Abs(a-b) < precision
 }
 
 func RoundTo(n float64, places int) float64 {

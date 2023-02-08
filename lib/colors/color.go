@@ -1,6 +1,7 @@
 package colors
 
 import (
+	"fmt"
 	"github.com/robkau/go-raytrace/lib/geom"
 	"image/color"
 	"math"
@@ -83,7 +84,15 @@ func Blue() Color {
 }
 
 func Brown() Color {
-	return Color{R: 0.40, G: 0.26, B: 0.13}
+	return Color{R: 1, G: 0.5, B: 0}
+}
+
+func Cyan() Color {
+	return Color{R: 0, G: 1, B: 1}
+}
+
+func Purple() Color {
+	return Color{R: 1, G: 0, B: 1}
 }
 
 func Green() Color {
@@ -92,6 +101,10 @@ func Green() Color {
 
 func Red() Color {
 	return Color{R: 1, G: 0, B: 0}
+}
+
+func Yellow() Color {
+	return Color{R: 1, G: 1, B: 0}
 }
 
 func White() Color {
@@ -139,9 +152,9 @@ func (c Color) MulBy(x float64) Color {
 }
 
 func (c Color) Equal(other Color) bool {
-	return geom.AlmostEqual(c.R, other.R) &&
-		geom.AlmostEqual(c.G, other.G) &&
-		geom.AlmostEqual(c.B, other.B)
+	return geom.AlmostEqualWithPrecision(c.R, other.R, 1e-3) &&
+		geom.AlmostEqualWithPrecision(c.G, other.G, 1e-3) &&
+		geom.AlmostEqualWithPrecision(c.B, other.B, 1e-3)
 }
 
 func (c Color) RoundTo(places int) Color {
@@ -151,4 +164,8 @@ func (c Color) RoundTo(places int) Color {
 		G: math.Round(c.G*scale) / scale,
 		B: math.Round(c.B*scale) / scale,
 	}
+}
+
+func (c Color) String() string {
+	return fmt.Sprintf("%f:%f:%f", c.R, c.G, c.B)
 }
