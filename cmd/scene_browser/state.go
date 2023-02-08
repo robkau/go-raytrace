@@ -18,13 +18,14 @@ import (
 
 // state struct implements ebiten.Game interface
 type state struct {
-	frameCount    int
-	currentScene  int
-	currentCamera int
-	rayBounces    int32
-	loc           *scenes.CameraLocation
-	scenes        []*scenes.Scene
-	canvas        *canvas.Canvas
+	frameCount       int
+	currentScene     int
+	currentCamera    int
+	rayBounces       int32
+	renderGoroutines int32
+	loc              *scenes.CameraLocation
+	scenes           []*scenes.Scene
+	canvas           *canvas.Canvas
 
 	cancel context.CancelFunc
 }
@@ -48,11 +49,12 @@ func start() *state {
 			At:        geom.NewPoint(2, 2, 2),
 			LookingAt: geom.ZeroPoint(),
 		},
-		rayBounces: 3,
+		rayBounces:       3,
+		renderGoroutines: int32(runtime.NumCPU() / 3),
 	}
 
 	var rendered uint32 = 0
-	var pixelsPerRenderStat uint32 = 3000
+	var pixelsPerRenderStat uint32 = 15000
 
 	// render
 	go func() {
@@ -69,8 +71,16 @@ func start() *state {
 			bounces := atomic.LoadInt32(&s.rayBounces)
 			if bounces < 0 {
 				bounces = 0
+				atomic.StoreInt32(&s.rayBounces, 0)
 			}
-			pc, err := view.Render(ctx, s.scenes[s.currentScene].W, view.NewCameraAt(width, width, fov, s.loc.At, s.loc.LookingAt), int(bounces), int(float64(runtime.NumCPU())/4), coordinate_supplier.Random)
+			renderGoroutines := atomic.LoadInt32(&s.renderGoroutines)
+			if renderGoroutines < 0 {
+				renderGoroutines = 0
+				atomic.StoreInt32(&s.renderGoroutines, 0)
+
+			}
+			log.Println("camera at", s.loc.At, "pointed to", s.loc.LookingAt)
+			pc, err := view.Render(ctx, s.scenes[s.currentScene].W, view.NewCameraAt(width, width, fov, s.loc.At, s.loc.LookingAt), int(bounces), int(renderGoroutines), coordinate_supplier.Random)
 			if err != nil {
 				fmt.Println("failed create render")
 				log.Fatalf(err.Error())
@@ -97,17 +107,16 @@ func start() *state {
 func (s *state) Update() error {
 	s.frameCount++
 
-	if inpututil.IsKeyJustPressed(ebiten.KeyW) {
-		s.loc.At = s.loc.At.Sub(s.loc.At.Sub(s.loc.LookingAt).Normalize())
-		s.cancel()
-		s.canvas = canvas.NewCanvas(width, width)
-
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
-		s.loc.At = s.loc.At.Add(s.loc.At.Sub(s.loc.LookingAt).Normalize())
-		s.cancel()
-		s.canvas = canvas.NewCanvas(width, width)
-	}
+	//if inpututil.IsKeyJustPressed(ebiten.KeyW) {
+	//	s.loc.At = s.loc.At.Sub(s.loc.At.Sub(s.loc.LookingAt).Normalize())
+	//	s.cancel()
+	//	s.canvas = canvas.NewCanvas(width, width)
+	//}
+	//if inpututil.IsKeyJustPressed(ebiten.KeyS) {
+	//	s.loc.At = s.loc.At.Add(s.loc.At.Sub(s.loc.LookingAt).Normalize())
+	//	s.cancel()
+	//	s.canvas = canvas.NewCanvas(width, width)
+	//}
 
 	// increase/decrease ray bounces
 	if inpututil.IsKeyJustPressed(ebiten.KeyNumpadAdd) {
@@ -119,6 +128,20 @@ func (s *state) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyNumpadSubtract) {
 		b := atomic.AddInt32(&s.rayBounces, -1)
 		log.Println(b, "ray bounces")
+		s.cancel()
+		s.canvas = canvas.NewCanvas(width, width)
+	}
+
+	// increase/decrease render goroutines
+	if inpututil.IsKeyJustPressed(ebiten.KeyNumpadMultiply) {
+		b := atomic.AddInt32(&s.renderGoroutines, 1)
+		log.Println(b, "render goroutines")
+		s.cancel()
+		s.canvas = canvas.NewCanvas(width, width)
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyNumpadDivide) {
+		b := atomic.AddInt32(&s.renderGoroutines, -1)
+		log.Println(b, "render goroutines")
 		s.cancel()
 		s.canvas = canvas.NewCanvas(width, width)
 	}

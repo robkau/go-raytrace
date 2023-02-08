@@ -1,6 +1,7 @@
 package scenes
 
 import (
+	"fmt"
 	"github.com/robkau/coordinate_supplier"
 	"github.com/robkau/go-raytrace/lib/colors"
 	"github.com/robkau/go-raytrace/lib/geom"
@@ -9,7 +10,7 @@ import (
 	"github.com/robkau/go-raytrace/lib/patterns"
 	"github.com/robkau/go-raytrace/lib/shapes"
 	"github.com/robkau/go-raytrace/lib/view"
-	"math"
+	canvas2 "github.com/robkau/go-raytrace/lib/view/canvas"
 	"strings"
 )
 
@@ -48,20 +49,29 @@ func NewToriReplayScene() (*view.World, []CameraLocation) {
 		}
 		ball.SetMaterial(materials.NewGlassMaterial())
 		m := ball.GetMaterial()
-		m.Specular = 0.2
-		m.Transparency = 0.9875
+		//m.Specular = 0.2
+		//m.Transparency = 0.9875
 		ball.SetTransform(geom.Translate(0, 2+float64(y)*sceneSpacing, float64(z)*sceneSpacing).MulX4Matrix(geom.Scale(outerShellRadius, outerShellRadius, outerShellRadius)))
+		ball.SetShadowless(true)
 
 		hollowCenter := shapes.NewSphere()
 		hollowCenter.SetMaterial(materials.NewGlassMaterial())
 		hollowCenter.SetTransform(geom.Translate(0, 2+float64(y)*sceneSpacing, float64(z)*sceneSpacing).MulX4Matrix(geom.Scale(innerShellRadius, innerShellRadius, innerShellRadius)))
+		hollowCenter.SetShadowless(true)
 		m = hollowCenter.GetMaterial()
-		m.Color = colors.NewColor(1, 1, 1)
+		//m.Color = colors.NewColor(1, 1, 1)
+		//m.Diffuse = 0
+		//m.Ambient = 0
+		//m.Specular = 0.4
+		//m.Shininess = 300
+		//m.Transparency = 0.9875
+		//m.Reflective = 0.9
+		//m.RefractiveIndex = 1.0000034
 		m.Diffuse = 0
 		m.Ambient = 0
-		m.Specular = 0.4
+		m.Specular = 0.9
 		m.Shininess = 300
-		m.Transparency = 0.9875
+		m.Transparency = 0.9
 		m.Reflective = 0.9
 		m.RefractiveIndex = 1.0000034
 		hollowCenter.SetMaterial(m)
@@ -76,28 +86,21 @@ func NewToriReplayScene() (*view.World, []CameraLocation) {
 	// camera points to center of displayed tori frames
 	c := g.BoundsOf().Center()
 
-	// floor and ceiling as one cube
-	var floorAndCeiling = sizedCubeAt(0, 0, 0, wallDistance, wallDistance-1, wallDistance)
-	m := floorAndCeiling.GetMaterial()
-	m.Pattern = patterns.NewSolidColorPattern(colors.NewColorFromHex("af005f"))
-	m.Ambient = 0.25
-	m.Diffuse = 0.35
-	m.Specular = 0.25
-	m.Reflective = 0
-	floorAndCeiling.SetMaterial(m)
+	// skybox sphere
+	var skybox = shapes.NewSphere()
+	skybox.SetTransform(geom.Scale(wallDistance, wallDistance, wallDistance))
+	m := skybox.GetMaterial()
+	canvas, err := canvas2.CanvasFromPPMZipFile("data/ppm/satara_night_hdr.ppm.zip")
+	if err != nil {
+		panic(fmt.Sprintf("loading tokyo ppm to canvas: %s", err.Error()))
+	}
+	m.Pattern = patterns.NewTextureMapPattern(patterns.NewUVImage(canvas), patterns.SphericalMap)
+	m.Ambient = 1
+	m.Specular = 0
+	m.Diffuse = 0
+	skybox.SetMaterial(m)
 
-	// walls as another cube
-	var walls = sizedCubeAt(0, 0, 0, wallDistance-1, wallDistance, wallDistance-1)
-	m = walls.GetMaterial()
-	m.Pattern = patterns.NewSolidColorPattern(colors.NewColorFromHex("0087ff"))
-	m.Ambient = 0.17
-	m.Diffuse = 0.25
-	m.Specular = 0.12
-	m.Reflective = 0
-	walls.SetMaterial(m)
-
-	w.AddObject(floorAndCeiling)
-	w.AddObject(walls)
+	w.AddObject(skybox)
 
 	//lizard, err := parse.ParseObjFile("data/obj/LizardFolkOBJ.obj")
 	//if err != nil {
@@ -127,33 +130,12 @@ func NewToriReplayScene() (*view.World, []CameraLocation) {
 	//newLizard.SetMaterial(lizard.GetMaterial())
 	//w.AddObject(newLizard)
 
-	ic := shapes.NewInfiniteCylinder()
-	m = materials.NewMaterial()
-	m.Color = colors.NewColorFromHex("FC3339")
-	m.Ambient = 0.56
-	m.Specular = 0.76
-	m.Diffuse = 0.56
-	m.Reflective = 0
-	ic.SetMaterial(m)
-	ic.SetTransform(geom.Translate(cameraDistance/1.2, 9, -7).MulX4Matrix(geom.RotateX(math.Pi / 4)).MulX4Matrix(geom.Scale(1, 1, 4)))
-	w.AddObject(ic)
-
-	ic = shapes.NewInfiniteCylinder()
-	m = materials.NewMaterial()
-	m.Color = colors.NewColorFromHex("028300")
-	m.Ambient = 0.56
-	m.Specular = 0.76
-	m.Diffuse = 0.76
-	m.Reflective = 0
-	ic.SetMaterial(m)
-	ic.SetTransform(geom.Translate(cameraDistance/1.2, 9, 19).MulX4Matrix(geom.RotateX(-math.Pi / 4)).MulX4Matrix(geom.Scale(1, 1, 4)))
-	w.AddObject(ic)
-
 	//w.AddPointLight(shapes.NewPointLight(geom.NewPoint(sceneSpacing*4, wallDistance*0.8, -wallDistance/2), colors.NewColorFromHex("ffffd7").MulBy(2)))
 	//w.AddPointLight(shapes.NewPointLight(geom.NewPoint(sceneSpacing*2, sceneSpacing*3, sceneSpacing*3), colors.NewColorFromHex("af005f").MulBy(3)))
-	//w.AddPointLight(shapes.NewPointLight(geom.NewPoint(sceneSpacing*4, -sceneSpacing*5, -sceneSpacing*5), colors.NewColorFromHex("00afaf").MulBy(3)))
-	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(0, -wallDistance*0.8, 0), geom.NewVector(wallDistance/2, 0, 0), 3, geom.NewVector(0, 0, wallDistance/2), 3, colors.NewColorFromHex("00afaf").MulBy(6), nil))
-	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(0, 0, -wallDistance*0.8), geom.NewVector(wallDistance/2, 0, 0), 3, geom.NewVector(0, wallDistance/2, 0), 3, colors.NewColorFromHex("af005f").MulBy(3), nil))
+	w.AddPointLight(shapes.NewPointLight(geom.NewPoint(wallDistance*0.4, wallDistance*0.4, wallDistance*0.4), colors.NewColorFromHex("f06553").MulBy(0.15)))
+	w.AddPointLight(shapes.NewPointLight(geom.NewPoint(wallDistance*0.4, wallDistance*0.4, -wallDistance*0.4), colors.NewColorFromHex("7f00ff").MulBy(0.15)))
+	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(0, wallDistance*0.8, 0), geom.NewVector(wallDistance/2, 0, 0), 9, geom.NewVector(0, 0, wallDistance/2), 9, colors.NewColorFromHex("00afaf").MulBy(6), nil))
+	w.AddAreaLight(shapes.NewAreaLight(geom.NewPoint(0, 0, wallDistance*0.8), geom.NewVector(wallDistance/2, 0, 0), 9, geom.NewVector(0, wallDistance/2, 0), 9, colors.NewColorFromHex("af005f").MulBy(3), nil))
 
 	//w.AddPointLight(shapes.NewPointLight(geom.NewPoint(cameraDistance/2, sceneSpacing * 6, 0), colors.NewColorFromHex("af005f").MulBy(2)))
 

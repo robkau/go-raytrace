@@ -5,9 +5,29 @@ This repository implements a ray tracer in Go by following [The Ray Tracer Chall
 * Window rendering and input handling provided by Go library [ebiten](https://github.com/hajimehoshi/ebiten)
 * I highly recommend the book. 5 stars!
 
+## Controls
+```
+W: Zoom in
+S: Zoom out
+A/D/Q/E/Z/C: Move camera position (wip)
+LeftArrow/UpArrow/RightArrow/DownArrow: Move camera focal point (wip)
+N: next scene
+M: next camera position
+Numpad plus: Increase ray bounces
+Numpad minus: Decrease ray bounces
+Numpad multiply (*): Increase rendering goroutines
+Numpad divide (/): Decrease rendering goroutines
+```
+
 ---
 
 ## Examples
+*Bonus online chapters: Soft shadows, Bounding Volume Hierarchies, UV texture mapping, Skyboxes*
+![Example 1](renders/tori_marbles_skybox.png?raw=true "bonus chapter example 1")
+![Example 2](renders/groups_skybox.png?raw=true "bonus chapter example 2")
+http://www.raytracerchallenge.com/bonus/area-light.html  
+http://raytracerchallenge.com/bonus/bounding-boxes.html  
+http://www.raytracerchallenge.com/bonus/texture-mapping.html  
 
 *Chapter 15: Triangles & Meshes & Parse .obj files. Bonus feature: parse .rpl Toribash replay files*  
 ![Chapter 15 example](renders/file_parsing.png?raw=true "chapter 15 example")

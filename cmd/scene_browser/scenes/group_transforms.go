@@ -45,11 +45,11 @@ func makeObjectGroup() shapes.Group {
 	g.AddChild(tt)
 
 	// a few cubes on table
-	cl := sizedCubeAt(1.75, 4.64, 1.5, 0.4, 0.4, 0.4)
+	cl := sizedCubeAt(-2.75, 4.64, 1.5, 0.4, 0.4, 0.4)
 	m.Color = colors.Blue()
 	cl.SetMaterial(m)
 	g.AddChild(cl)
-	cr := sizedCubeAt(1, 4.83, -0.75, 0.6, 0.6, 0.6)
+	cr := sizedCubeAt(-2, 4.83, -0.75, 0.6, 0.6, 0.6)
 	m.Color = colors.Red()
 	cr.SetMaterial(m)
 	g.AddChild(cr)

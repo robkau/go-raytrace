@@ -123,10 +123,15 @@ func (pr *ParsedReplay) AllScenes(stepsPerLine int, stepWidth float64) shapes.Gr
 		// translated position according to replay frame index
 		pg0.SetTransform(geom.Translate(0, ToriSphereWidth+stepWidth*float64(y), 0+stepWidth*float64(z)).MulX4Matrix(geom.Scale(1.2, 1.2, 1.2)).MulX4Matrix(pg0.GetTransform()))
 		m := materials.NewMaterial()
-		m.Specular = 1
-		m.Reflective = 0.14
+		m.Diffuse = 0.25
+		m.Specular = 0.25
+		m.Shininess = 150
+		m.Reflective = 0.15
+		m.Transparency = 0
+		m.Ambient = 0.09
 		m.Pattern = patterns.NewSolidColorPattern(colors.Green())
 		for _, c := range pg0.GetChildren() {
+			// todo index 0 for head (and maybe other for hand feet) should be special colors.
 			c.SetMaterial(m)
 		}
 		g.AddChild(pg0)
@@ -135,9 +140,6 @@ func (pr *ParsedReplay) AllScenes(stepsPerLine int, stepWidth float64) shapes.Gr
 		pg1.SetTransform(geom.Translate(-bc.X, 0, -bc.Z).MulX4Matrix(pg1.GetTransform()))
 		// translated position according to replay frame index
 		pg1.SetTransform(geom.Translate(0, ToriSphereWidth+stepWidth*float64(y), 0+stepWidth*float64(z)).MulX4Matrix(geom.Scale(1.2, 1.2, 1.2)).MulX4Matrix(pg1.GetTransform()))
-		m = materials.NewMaterial()
-		m.Specular = 1
-		m.Reflective = 0
 		m.Pattern = patterns.NewSolidColorPattern(colors.Red())
 		for _, c := range pg1.GetChildren() {
 			c.SetMaterial(m)
