@@ -57,13 +57,16 @@ func (c *Canvas) GetSize() (width, height int) {
 func (c *Canvas) GetPixel(x int, y int) colors.Color {
 	c.rw.RLock()
 	defer c.rw.RUnlock()
+	return c._getPixel(x, y)
+}
+
+func (c *Canvas) _getPixel(x int, y int) colors.Color {
 	return c.pixels[y*c.width+x]
 }
 
 func (c *Canvas) SetPixel(x int, y int, col colors.Color) {
 	c.rw.Lock()
 	defer c.rw.Unlock()
-	// todo atomic pixels instead. ???
 	c.pixels[y*c.width+x] = col
 }
 
@@ -72,10 +75,17 @@ func (c *Canvas) ToImage() image.Image {
 	lowRight := image.Point{c.width, c.height}
 
 	img := image.NewRGBA(image.Rectangle{upLeft, lowRight})
+	c.fillImage(img)
+	return img
+}
+
+func (c *Canvas) fillImage(img *image.RGBA) {
+	c.rw.RLock()
+	defer c.rw.RUnlock()
 
 	for x := 0; x < c.width; x++ {
 		for y := 0; y < c.height; y++ {
-			p := c.GetPixel(x, y)
+			p := c._getPixel(x, y)
 			img.Set(x, y, gocolor.RGBA{
 				R: uint8(clamp(p.R*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue)),
 				G: uint8(clamp(p.G*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue)),
@@ -83,7 +93,6 @@ func (c *Canvas) ToImage() image.Image {
 				A: 0xff})
 		}
 	}
-	return img
 }
 
 func (c *Canvas) toPPM() string {
