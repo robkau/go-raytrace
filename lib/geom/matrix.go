@@ -309,7 +309,7 @@ func (m *X4Matrix) Invert() *X4Matrix {
 		m.inverted.CompareAndSwap(nil, n)
 		return n.Copy()
 	}
-	return loaded
+	return loaded // todo copy?
 }
 
 func (m *X4Matrix) doInvert() *X4Matrix {

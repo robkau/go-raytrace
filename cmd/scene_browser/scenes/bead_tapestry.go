@@ -38,8 +38,8 @@ func NewBeadTapestry() (*view.World, []CameraLocation) {
 
 	g := shapes.NewGroupWithCapacity(objectCount)
 
-	cameraDistance := float64(2 * xSpan) // todo what is the math for this with camera fov
-	cameraPos := geom.NewPoint(0, -cameraDistance, cameraDistance)
+	cameraDistance := 4.5 * float64(xSpan)
+	cameraPos := geom.NewPoint(0, -cameraDistance/4, cameraDistance)
 	cameraLookingAt := geom.NewPoint(0, 0, 0)
 
 	tStart := time.Now()
@@ -52,7 +52,7 @@ func NewBeadTapestry() (*view.World, []CameraLocation) {
 			m.Color = colors.NewColorFromStdlibColor(p.At(i, j))
 			s.SetMaterial(m)
 
-			s.SetTransform(geom.Translate(float64(xSpan/2-i)*2, float64(ySpan/2-j)*2, float64(stride)*(m.Color.R)).MulX4Matrix(geom.Scale(float64(stride), float64(stride), float64(stride)*(1+m.Color.R*2))))
+			s.SetTransform(geom.Translate(float64(xSpan/2-i)*2, float64(ySpan/2-j)*2, float64(stride)*3*(m.Color.R)).MulX4Matrix(geom.Scale(float64(stride), float64(stride), float64(stride)*(1+m.Color.R*4))))
 
 			g.AddChild(s)
 			count++
