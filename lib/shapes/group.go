@@ -24,9 +24,13 @@ type group struct {
 }
 
 func NewGroup() Group {
+	return NewGroupWithCapacity(0)
+}
+
+func NewGroupWithCapacity(capacity int) Group {
 	return &group{
 		t:        geom.NewIdentityMatrixX4(),
-		children: make([]Shape, 0),
+		children: make([]Shape, 0, capacity),
 		bounds:   nil,
 	}
 }

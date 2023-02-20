@@ -23,6 +23,12 @@ func NewColor(r, g, b float64) Color {
 	return Color{R: r, G: g, B: b}
 }
 
+func NewColorFromStdlibColor(c color.Color) Color {
+	r, g, b, a := c.RGBA()
+	// stdlib returns in format 0xffff (65535) so convert to 0xff (255)
+	return NewColorFromRGBA(uint8(r>>8), uint8(g>>8), uint8(b>>8), uint8(a>>8))
+}
+
 func NewColorFromRGBA(r, g, b, a uint8) Color {
 	return NewColor(
 		(float64(a)/255*float64(r))/255,
@@ -149,6 +155,10 @@ func (c Color) MulBy(x float64) Color {
 		c.G * x,
 		c.B * x,
 	}
+}
+
+func (c Color) Mag() float64 {
+	return c.R + c.B + c.G
 }
 
 func (c Color) Equal(other Color) bool {

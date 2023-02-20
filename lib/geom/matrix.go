@@ -314,7 +314,7 @@ func (m *X4Matrix) Invert() *X4Matrix {
 
 func (m *X4Matrix) doInvert() *X4Matrix {
 	if !m.Invertable() {
-		log.Fatalf("not invertable")
+		log.Fatalf("not invertable: %+v", m.b)
 	}
 	invert := NewX4Matrix()
 	d := m.Determinant()
