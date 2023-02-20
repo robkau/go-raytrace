@@ -10,7 +10,10 @@ import (
 	"github.com/robkau/go-raytrace/lib/geom"
 	"github.com/robkau/go-raytrace/lib/view"
 	"github.com/robkau/go-raytrace/lib/view/canvas"
+	"image/gif"
 	"log"
+	"math"
+	"os"
 	"runtime"
 	"sync/atomic"
 	"time"
@@ -27,6 +30,10 @@ type state struct {
 	scenes           []*scenes.Scene
 	canvas           *canvas.Canvas
 
+	recordingGif uint32
+	gifFrame     int
+	gifData      gif.GIF
+
 	cancel context.CancelFunc
 }
 
@@ -34,6 +41,7 @@ func start() *state {
 	s := &state{
 		scenes: scenes.LoadScenes(
 			scenes.NewGroupTransformsScene,
+			scenes.NewBeadTapestry,
 			scenes.NewToriReplayScene,
 			scenes.NewStoneGolemScene,
 			scenes.NewWavyCarpetSpheres,
@@ -94,9 +102,30 @@ func start() *state {
 				s.canvas.SetPixel(p.X, p.Y, p.C)
 			}
 
-			select {
-			case <-ctx.Done():
-				// wait until this render is done. (don't repeat drawing something already finished)
+			if s.recordingGif == 1 {
+				s.gifFrame++
+				// save gif frame from canvas
+				s.gifData.Image = append(s.gifData.Image, s.canvas.ToImagePaletted())
+				s.gifData.Delay = append(s.gifData.Delay, 0)
+
+				// go next frame
+				s.canvas = canvas.NewCanvas(width, width)
+				s.scenes[s.currentScene].Cs[s.currentCamera].RotateAroundY(1 * math.Pi / 180)
+
+				if s.gifFrame == 360 { // todo off by one?
+					// all done!
+					// todo handle errs
+					f, _ := os.OpenFile("rgb.gif", os.O_WRONLY|os.O_CREATE, 0600)
+					gif.EncodeAll(f, &s.gifData)
+					f.Close()
+					atomic.StoreUint32(&s.recordingGif, 0)
+				}
+
+			} else {
+				select {
+				case <-ctx.Done():
+					// wait after this render is done. (don't repeat drawing something already finished)
+				}
 			}
 		}
 	}()
@@ -117,6 +146,11 @@ func (s *state) Update() error {
 	//	s.cancel()
 	//	s.canvas = canvas.NewCanvas(width, width)
 	//}
+
+	if atomic.LoadUint32(&s.recordingGif) == 1 {
+		// disable input during gif save.
+		return nil
+	}
 
 	// increase/decrease ray bounces
 	if inpututil.IsKeyJustPressed(ebiten.KeyNumpadAdd) {
@@ -235,6 +269,13 @@ func (s *state) Update() error {
 		if s.currentCamera >= len(s.scenes[s.currentScene].Cs) {
 			s.currentCamera = 0
 		}
+		s.cancel()
+		s.canvas = canvas.NewCanvas(width, width)
+	}
+
+	// spin around and record a gif!
+	if inpututil.IsKeyJustPressed(ebiten.KeyG) {
+		atomic.StoreUint32(&s.recordingGif, 1)
 		s.cancel()
 		s.canvas = canvas.NewCanvas(width, width)
 	}

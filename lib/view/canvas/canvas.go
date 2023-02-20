@@ -86,6 +86,34 @@ func (c *Canvas) ToImage() image.Image {
 	return img
 }
 
+func (c *Canvas) ToImagePaletted() *image.Paletted {
+	palette := []gocolor.Color{
+		gocolor.RGBA{0x00, 0x00, 0x00, 0xff},
+		gocolor.RGBA{0x00, 0x00, 0xff, 0xff},
+		gocolor.RGBA{0x00, 0xff, 0x00, 0xff},
+		gocolor.RGBA{0x00, 0xff, 0xff, 0xff},
+		gocolor.RGBA{0xff, 0x00, 0x00, 0xff},
+		gocolor.RGBA{0xff, 0x00, 0xff, 0xff},
+		gocolor.RGBA{0xff, 0xff, 0x00, 0xff},
+		gocolor.RGBA{0xff, 0xff, 0xff, 0xff},
+	}
+
+	img := image.NewPaletted(image.Rect(0, 0, c.width, c.height), palette)
+
+	for x := 0; x < c.width; x++ {
+		for y := 0; y < c.height; y++ {
+			p := c.GetPixel(x, y)
+			img.Set(x, y, gocolor.RGBA{
+				R: uint8(clamp(p.R*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue)),
+				G: uint8(clamp(p.G*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue)),
+				B: uint8(clamp(p.B*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue)),
+				A: 0xff})
+		}
+	}
+
+	return img
+}
+
 func (c *Canvas) toPPM() string {
 
 	b := strings.Builder{}
