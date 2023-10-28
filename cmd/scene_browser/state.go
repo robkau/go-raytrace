@@ -34,10 +34,14 @@ type state struct {
 	gifFrame     int
 	gifData      gif.GIF
 
+	lastImage *ebiten.Image
+
 	cancel context.CancelFunc
 }
 
 func start() *state {
+	rp := view.NewRayPool()
+
 	s := &state{
 		scenes: scenes.LoadScenes(
 			scenes.NewGroupTransformsScene,
@@ -57,8 +61,8 @@ func start() *state {
 			At:        geom.NewPoint(2, 2, 2),
 			LookingAt: geom.ZeroPoint(),
 		},
-		rayBounces:       3,
-		renderGoroutines: int32(runtime.NumCPU() / 3),
+		rayBounces:       2,
+		renderGoroutines: int32(runtime.NumCPU() / 2),
 	}
 
 	var rendered uint32 = 0
@@ -88,7 +92,7 @@ func start() *state {
 
 			}
 			log.Println("camera at", s.loc.At, "pointed to", s.loc.LookingAt)
-			pc, err := view.Render(ctx, s.scenes[s.currentScene].W, view.NewCameraAt(width, width, fov, s.loc.At, s.loc.LookingAt), int(bounces), int(renderGoroutines), coordinate_supplier.Random)
+			pc, err := view.Render(ctx, s.scenes[s.currentScene].W, view.NewCameraAt(width, width, fov, s.loc.At, s.loc.LookingAt), int(bounces), int(renderGoroutines), coordinate_supplier.Random, rp)
 			if err != nil {
 				fmt.Println("failed create render")
 				log.Fatalf(err.Error())
@@ -194,62 +198,123 @@ func (s *state) Update() error {
 	}
 	// translate left
 	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
-		s.loc.At.X++
+		if ebiten.IsKeyPressed(ebiten.KeyShift) {
+			// big move
+			s.loc.At.X += 25
+		} else {
+			// normal move
+			s.loc.At.X++
+		}
 		s.cancel()
 		s.canvas = canvas.NewCanvas(width, width)
 	}
 	// translate right
 	if inpututil.IsKeyJustPressed(ebiten.KeyD) {
-		s.loc.At.X--
+		if ebiten.IsKeyPressed(ebiten.KeyShift) {
+			// big move
+			s.loc.At.X -= 25
+		} else {
+			// normal move
+			s.loc.At.X--
+		}
 		s.cancel()
 		s.canvas = canvas.NewCanvas(width, width)
 	}
 	// translate z left
 	if inpututil.IsKeyJustPressed(ebiten.KeyQ) {
-		s.loc.At.Z++
+		if ebiten.IsKeyPressed(ebiten.KeyShift) {
+			// big move
+			s.loc.At.Z += 25
+		} else {
+			// normal move
+			s.loc.At.Z++
+		}
 		s.cancel()
 		s.canvas = canvas.NewCanvas(width, width)
 	}
 	// translate z right
 	if inpututil.IsKeyJustPressed(ebiten.KeyE) {
-		s.loc.At.Z--
+		if ebiten.IsKeyPressed(ebiten.KeyShift) {
+			// big move
+			s.loc.At.Z -= 25
+		} else {
+			// normal move
+			s.loc.At.Z--
+		}
 		s.cancel()
 		s.canvas = canvas.NewCanvas(width, width)
 	}
 	// translate up
 	if inpututil.IsKeyJustPressed(ebiten.KeyC) {
-		s.loc.At.Y++
+		if ebiten.IsKeyPressed(ebiten.KeyShift) {
+			// big move
+			s.loc.At.Y += 25
+		} else {
+			// normal move
+			s.loc.At.Y++
+		}
 		s.cancel()
 		s.canvas = canvas.NewCanvas(width, width)
 	}
 	// translate down
 	if inpututil.IsKeyJustPressed(ebiten.KeyZ) {
-		s.loc.At.Y--
+		if ebiten.IsKeyPressed(ebiten.KeyShift) {
+			// big move
+			s.loc.At.Y -= 25
+		} else {
+			// normal move
+			s.loc.At.X--
+		}
 		s.cancel()
 		s.canvas = canvas.NewCanvas(width, width)
 	}
 
 	// look left
 	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
-		s.loc.LookingAt.X += 0.25
+		if ebiten.IsKeyPressed(ebiten.KeyShift) {
+			// big move
+			s.loc.LookingAt.X += 25
+		} else {
+			// normal move
+			s.loc.LookingAt.X += 0.25
+		}
+
 		s.cancel()
 		s.canvas = canvas.NewCanvas(width, width)
 	}
 	// look right
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
-		s.loc.LookingAt.X -= 0.25
+		if ebiten.IsKeyPressed(ebiten.KeyShift) {
+			// big move
+			s.loc.LookingAt.X -= 25
+		} else {
+			// normal move
+			s.loc.LookingAt.X -= 0.25
+		}
 		s.cancel()
-		s.canvas = canvas.NewCanvas(width, width)
+		s.canvas.Reset()
 	}
 	// look up
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowUp) {
-		s.loc.LookingAt.Y += 0.25
+		if ebiten.IsKeyPressed(ebiten.KeyShift) {
+			// big move
+			s.loc.LookingAt.Y += 25
+		} else {
+			// normal move
+			s.loc.LookingAt.Y += 0.25
+		}
 		s.cancel()
 		s.canvas = canvas.NewCanvas(width, width)
 	}
 	// look down
 	if inpututil.IsKeyJustPressed(ebiten.KeyArrowDown) {
-		s.loc.LookingAt.Y -= 0.25
+		if ebiten.IsKeyPressed(ebiten.KeyShift) {
+			// big move
+			s.loc.LookingAt.Y -= 25
+		} else {
+			// normal move
+			s.loc.LookingAt.Y -= 0.25
+		}
 		s.cancel()
 		s.canvas = canvas.NewCanvas(width, width)
 	}
@@ -287,7 +352,9 @@ func (s *state) Update() error {
 func (s *state) Draw(screen *ebiten.Image) {
 	// render current frame progress
 	op := &ebiten.DrawImageOptions{}
-	screen.DrawImage(ebiten.NewImageFromImage(s.canvas.ToImage()), op)
+
+	s.lastImage = s.canvas.ToEbitenImage(s.lastImage)
+	screen.DrawImage(ebiten.NewImageFromImage(s.lastImage), op)
 }
 
 func (s *state) Layout(outsideWidth, outsideHeight int) (int, int) {

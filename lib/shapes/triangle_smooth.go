@@ -21,17 +21,17 @@ func NewSmoothTriangle(p1, p2, p3, n1, n2, n3 geom.Tuple) *SmoothTriangle {
 	return t
 }
 
-func (t *SmoothTriangle) Intersect(ray geom.Ray) *Intersections {
-	return Intersect(ray, t.t, t.LocalIntersect)
+func (t *SmoothTriangle) Intersect(ray geom.Ray, i *Intersections) {
+	Intersect(ray, i, t.t, t.LocalIntersect)
 }
 
-func (t *SmoothTriangle) LocalIntersect(r geom.Ray) *Intersections {
+func (t *SmoothTriangle) LocalIntersect(r geom.Ray, i *Intersections) {
 	tHit, u, v, ok := t.localIntersectHits(r)
 	if !ok {
-		return NewIntersections()
+		return
 	}
 
-	return NewIntersections(NewIntersectionWithUV(tHit, t, u, v))
+	i.Add(NewIntersectionWithUV(tHit, t, u, v))
 }
 
 func (t *SmoothTriangle) NormalAt(p geom.Tuple, i Intersection) geom.Tuple {

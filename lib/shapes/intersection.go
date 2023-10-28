@@ -40,17 +40,17 @@ type IntersectionComputed struct {
 	N2         float64
 }
 
-func (i Intersection) Compute(r geom.Ray, xs *Intersections) IntersectionComputed {
+func (i Intersection) ComputeWrappedRay(wr WrappedRay) IntersectionComputed {
 	c := IntersectionComputed{}
 	c.t = i.T
 	c.Object = i.O
-	c.point = r.Position(c.t)
-	c.Eyev = r.Direction.Neg()
+	c.point = wr.Position(c.t)
+	c.Eyev = wr.Direction.Neg()
 
-	if len(xs.I) == 0 {
+	if len(wr.Is.I) == 0 {
 		c.Normalv = c.Object.NormalAt(c.point, Intersection{})
 	} else {
-		for _, x := range xs.I {
+		for _, x := range wr.Is.I {
 			if geom.AlmostEqual(i.T, x.T) && i.O.Id() == x.O.Id() {
 				c.Normalv = c.Object.NormalAt(c.point, x)
 			}
@@ -63,13 +63,13 @@ func (i Intersection) Compute(r geom.Ray, xs *Intersections) IntersectionCompute
 	}
 
 	// reflection
-	c.Reflectv = r.Direction.Reflect(c.Normalv)
+	c.Reflectv = wr.Direction.Reflect(c.Normalv)
 	c.OverPoint = c.point.Add(c.Normalv.Mul(geom.FloatComparisonEpsilon))
 	c.UnderPoint = c.point.Sub(c.Normalv.Mul(geom.FloatComparisonEpsilon))
 
 	// refraction
 	containers := []Shape{}
-	for _, x := range xs.I {
+	for _, x := range wr.Is.I {
 		if geom.AlmostEqual(i.T, x.T) && i.O.Id() == x.O.Id() {
 			if len(containers) == 0 {
 				c.N1 = 1
@@ -158,8 +158,9 @@ func (is *Intersections) Add(s ...Intersection) {
 	sort.Sort(is.I)
 }
 
-func (is *Intersections) AddFrom(s *Intersections) {
-	is.Add(s.I...)
+func (is *Intersections) Reset() {
+	// todo need to clear the items or not.
+	is.I = is.I[:0]
 }
 
 func removeIndex(s []Shape, index int) []Shape {

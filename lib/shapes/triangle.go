@@ -36,17 +36,17 @@ func (t *Triangle) BoundsOf() *BoundingBox {
 	return b
 }
 
-func (t *Triangle) Intersect(ray geom.Ray) *Intersections {
-	return Intersect(ray, t.t, t.LocalIntersect)
+func (t *Triangle) Intersect(ray geom.Ray, i *Intersections) {
+	Intersect(ray, i, t.t, t.LocalIntersect)
 }
 
-func (t *Triangle) LocalIntersect(r geom.Ray) *Intersections {
+func (t *Triangle) LocalIntersect(r geom.Ray, i *Intersections) {
 	tHit, _, _, ok := t.localIntersectHits(r)
 	if !ok {
-		return NewIntersections()
+		return
 	}
 
-	return NewIntersections(NewIntersection(tHit, t))
+	i.Add(NewIntersection(tHit, t))
 }
 
 func (t *Triangle) localIntersectHits(r geom.Ray) (tHit, u, v float64, createIntersections bool) {

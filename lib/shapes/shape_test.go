@@ -139,14 +139,14 @@ func (t *testShape) Invalidate() {
 
 }
 
-func (t *testShape) Intersect(r geom.Ray) *Intersections {
+func (t *testShape) Intersect(r geom.Ray, i *Intersections) {
 	lr := r.Transform(t.t.Invert())
 	t.savedRay = lr
 	return &Intersections{}
 }
 
-func (t *testShape) LocalIntersect(r geom.Ray) *Intersections {
-	return NewIntersections()
+func (t *testShape) LocalIntersect(r geom.Ray, i *Intersections) {
+	return
 }
 
 func (t *testShape) WorldToObject(p geom.Tuple) geom.Tuple {

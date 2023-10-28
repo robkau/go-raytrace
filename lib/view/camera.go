@@ -16,6 +16,7 @@ type Camera struct {
 	halfHeight float64
 	pixelSize  float64
 	Transform  *geom.X4Matrix
+	rp         RayPool
 }
 
 func NewCamera(hs int, vs int, fov float64) Camera {
@@ -24,6 +25,7 @@ func NewCamera(hs int, vs int, fov float64) Camera {
 		VSize:     vs,
 		Fov:       fov,
 		Transform: geom.NewIdentityMatrixX4(),
+		rp:        NewRayPool(),
 	}
 
 	halfView := math.Tan(c.Fov / 2)
@@ -75,8 +77,10 @@ func (c Camera) Render(w *World, rayBounces int, numGoRoutines int) *canvas.Canv
 				x := j % c.VSize
 				y := j / c.VSize
 
-				r := c.rayForPixel(x, y)
-				c := w.ColorAt(r, rayBounces)
+				wr := c.rp.Get()
+				defer c.rp.Put(wr)
+				wr.Ray = c.rayForPixel(x, y)
+				c := w.ColorAt(wr, rayBounces)
 				image.SetPixel(x, y, c)
 			}
 		}(i)

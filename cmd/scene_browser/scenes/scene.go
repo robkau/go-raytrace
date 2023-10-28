@@ -7,6 +7,11 @@ import (
 	"sync/atomic"
 )
 
+// todo interface
+// pre()
+// status()string?
+// post()
+
 type Scene struct {
 	W      *view.World
 	Cs     []CameraLocation

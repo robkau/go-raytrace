@@ -9,24 +9,49 @@ import (
 	"io"
 	"log"
 	"math/rand"
+	"os"
 	"path"
 	"time"
 
-	//_ "net/http/pprof"
-	"os"
+	"github.com/grafana/pyroscope-go"
 )
 
 const (
-	width = 1000
+	width = 1200
 	fov   = 0.45
 )
 
 func main() {
-	//defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
+	p, err := pyroscope.Start(pyroscope.Config{
+		ApplicationName: "raytracer",
 
-	//go func() {
-	//	log.Println(http.ListenAndServe("localhost:6060", nil))
-	//}()
+		// replace this with the address of pyroscope server
+		ServerAddress: "http://localhost:4040",
+
+		// you can disable logging by setting this to nil
+		Logger: pyroscope.StandardLogger,
+
+		// Optional HTTP Basic authentication (Grafana Cloud)
+		///BasicAuthUser:     "<User>",
+		//BasicAuthPassword: "<Password>",
+		// Optional Pyroscope tenant ID (only needed if using multi-tenancy). Not needed for Grafana Cloud.
+		// TenantID:          "<TenantID>",
+
+		// by default all profilers are enabled,
+		// but you can select the ones you want to use:
+		//ProfileTypes: []pyroscope.ProfileType{
+		//	pyroscope.ProfileCPU,
+		//	pyroscope.ProfileAllocObjects,
+		//	pyroscope.ProfileAllocSpace,
+		//	pyroscope.ProfileInuseObjects,
+		//	pyroscope.ProfileInuseSpace,
+		//},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer p.Stop()
 
 	sb := start()
 

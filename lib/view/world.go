@@ -15,6 +15,7 @@ type World struct {
 	objects     []shapes.Shape
 	pointLights []shapes.PointLight
 	areaLights  []shapes.AreaLight
+	rp          RayPool
 }
 
 func NewWorld() *World {
@@ -22,6 +23,7 @@ func NewWorld() *World {
 		objects:     []shapes.Shape{},
 		pointLights: []shapes.PointLight{},
 		areaLights:  []shapes.AreaLight{},
+		rp:          NewRayPool(),
 	}
 }
 
@@ -58,13 +60,20 @@ func (w *World) AddAreaLight(l shapes.AreaLight) {
 	w.areaLights = append(w.areaLights, l)
 }
 
-func (w *World) Intersect(r geom.Ray) *shapes.Intersections {
-	is := shapes.NewIntersections()
+// note: call IntersectWrappedBy to reuse intersections for performance.
+//func (w *World) Intersect(r geom.Ray) *shapes.Intersections {
+//	Is := shapes.NewIntersections()
+//	for _, s := range w.objects {
+//		s.Intersect(r, is)
+//	}
+//	return is
+//}
+
+func (w *World) IntersectWrappedRay(r shapes.WrappedRay) {
+	r.Is.Reset()
 	for _, s := range w.objects {
-		xs := s.Intersect(r)
-		is.AddFrom(xs)
+		s.Intersect(r.Ray, r.Is)
 	}
-	return is
 }
 
 func (w *World) ShadeHit(c shapes.IntersectionComputed, remaining int) colors.Color {
@@ -102,8 +111,11 @@ func (w *World) ReflectedColor(c shapes.IntersectionComputed, remaining int) col
 		return col
 	}
 
-	reflectRay := geom.RayWith(c.OverPoint, c.Reflectv)
-	col = w.ColorAt(reflectRay, remaining-1)
+	wr := w.rp.Get()
+	defer w.rp.Put(wr)
+	wr.Ray = geom.RayWith(c.OverPoint, c.Reflectv)
+	// todo pass in a ray from where.
+	col = w.ColorAt(wr, remaining-1)
 
 	return col.MulBy(c.Object.GetMaterial().Reflective)
 }
@@ -126,9 +138,10 @@ func (w *World) RefractedColor(c shapes.IntersectionComputed, remaining int) col
 	cosT := math.Sqrt(1.0 - sin2T)
 
 	direction := c.Normalv.Mul(nRatio*cosI - cosT).Sub(c.Eyev.Mul(nRatio))
-	refractedRay := geom.RayWith(c.UnderPoint, direction)
-
-	col = w.ColorAt(refractedRay, remaining-1).MulBy(c.Object.GetMaterial().Transparency)
+	wr := w.rp.Get()
+	defer w.rp.Put(wr)
+	wr.Ray = geom.RayWith(c.UnderPoint, direction)
+	col = w.ColorAt(wr, remaining-1).MulBy(c.Object.GetMaterial().Transparency)
 	return col
 }
 
@@ -146,14 +159,15 @@ func (w *World) BoundsOf() *shapes.BoundingBox {
 	return b
 }
 
-func (w *World) ColorAt(r geom.Ray, remaining int) colors.Color {
-	is := w.Intersect(r)
-	i, ok := is.Hit()
+func (w *World) ColorAt(wr shapes.WrappedRay, remaining int) colors.Color {
+	w.IntersectWrappedRay(wr)
+	i, ok := wr.Is.Hit()
 	if !ok {
 		return colors.Black()
 	}
 
-	cs := i.Compute(r, is)
+	cs := i.ComputeWrappedRay(wr)
+	// todo release to pool. and other intersect calls.
 	return w.ShadeHit(cs, remaining)
 }
 
@@ -162,9 +176,12 @@ func (w *World) IsShadowed(lightPosition geom.Tuple, p geom.Tuple) bool {
 	distance := v.Mag()
 	direction := v.Normalize()
 
-	r := geom.RayWith(p, direction)
-	intersections := w.Intersect(r)
-	h, ok := intersections.Hit()
+	// todo pass in ray from where.
+	wr := w.rp.Get()
+	defer w.rp.Put(wr)
+	wr.Ray = geom.RayWith(p, direction)
+	w.IntersectWrappedRay(wr)
+	h, ok := wr.Is.Hit()
 	// shadowless object does not cast shadows onto other objects
 	if ok && h.T < distance && !h.O.GetShadowless() {
 		return true
@@ -194,10 +211,35 @@ func IntensityAtAreaLight(l shapes.AreaLight, pt geom.Tuple, w *World) float64 {
 	return total / float64(l.Samples)
 }
 
+type RayPool struct {
+	p *sync.Pool
+}
+
+func (r *RayPool) Get() shapes.WrappedRay {
+	i := r.p.Get()
+	if i == nil {
+		return shapes.WrappedRay{
+			Ray: geom.Ray{},
+			Is:  shapes.NewIntersections(),
+		}
+	}
+
+	return i.(shapes.WrappedRay)
+}
+
+func (r *RayPool) Put(wr shapes.WrappedRay) {
+	wr.Reset()
+	r.p.Put(wr)
+}
+
+func NewRayPool() RayPool {
+	return RayPool{p: &sync.Pool{}}
+}
+
 // todo replace c.rencder?
 // or wrap this with an option to consume all and then return the image and delete c.render
 
-func Render(ctx context.Context, w *World, c Camera, rayBounces int, numGoRoutines int, renderMode coordinate_supplier.Order) (<-chan PixelInfo, error) {
+func Render(ctx context.Context, w *World, c Camera, rayBounces int, numGoRoutines int, renderMode coordinate_supplier.Order, rp RayPool) (<-chan PixelInfo, error) {
 	pi := make(chan PixelInfo, numGoRoutines*2)
 
 	cs, err := coordinate_supplier.NewCoordinateSupplierAtomic(coordinate_supplier.CoordinateSupplierOptions{
@@ -225,15 +267,18 @@ func Render(ctx context.Context, w *World, c Camera, rayBounces int, numGoRoutin
 					default:
 						// noop
 					}
+					func() {
+						wr := rp.Get()
+						defer rp.Put(wr)
+						wr.Ray = c.rayForPixel(x, y)
+						c := w.ColorAt(wr, rayBounces)
 
-					r := c.rayForPixel(x, y)
-					c := w.ColorAt(r, rayBounces)
-
-					pi <- PixelInfo{
-						X: x,
-						Y: y,
-						C: c,
-					}
+						pi <- PixelInfo{
+							X: x,
+							Y: y,
+							C: c,
+						}
+					}()
 				}
 			}()
 		}

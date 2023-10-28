@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/pkg/errors"
 	"github.com/robkau/go-raytrace/lib/colors"
 	"image"
@@ -84,6 +85,33 @@ func (c *Canvas) ToImage() image.Image {
 		}
 	}
 	return img
+}
+
+func (c *Canvas) ToEbitenImage(previous *ebiten.Image) *ebiten.Image {
+	if previous == nil {
+		return ebiten.NewImageFromImage(c.ToImage())
+	}
+
+	previous.Clear()
+
+	for x := 0; x < c.width; x++ {
+		for y := 0; y < c.height; y++ {
+			p := c.GetPixel(x, y)
+			previous.Set(x, y, gocolor.RGBA{
+				R: uint8(clamp(p.R*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue)),
+				G: uint8(clamp(p.G*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue)),
+				B: uint8(clamp(p.B*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue)),
+				A: 0xff})
+		}
+	}
+	return previous
+}
+
+func (c *Canvas) Reset() {
+	c.rw.Lock()
+	defer c.rw.Unlock()
+	c.pixels = c.pixels[:0]
+
 }
 
 func (c *Canvas) ToImagePaletted() *image.Paletted {

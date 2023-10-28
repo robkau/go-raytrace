@@ -7,8 +7,8 @@ import (
 )
 
 type Shape interface {
-	Intersect(geom.Ray) *Intersections
-	LocalIntersect(r geom.Ray) *Intersections
+	Intersect(r geom.Ray, i *Intersections)
+	LocalIntersect(r geom.Ray, i *Intersections)
 	NormalAt(at geom.Tuple, i Intersection) geom.Tuple
 	WorldToObject(p geom.Tuple) geom.Tuple
 	NormalToWorld(normal geom.Tuple) geom.Tuple
@@ -139,9 +139,9 @@ func NormalAt(s Shape, p geom.Tuple, lnaf func(p geom.Tuple, in Intersection) ge
 }
 
 // invert ray from object's transformation matrix then call shape-specific intersection logic
-func Intersect(r geom.Ray, t *geom.X4Matrix, lif func(geom.Ray) *Intersections) *Intersections {
+func Intersect(r geom.Ray, i *Intersections, t *geom.X4Matrix, lif func(geom.Ray, *Intersections)) {
 	lr := r.Transform(t.Invert())
-	return lif(lr)
+	lif(lr, i)
 }
 
 // ParentSpaceBoundsOf is for transformed shape

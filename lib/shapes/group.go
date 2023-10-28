@@ -35,12 +35,11 @@ func NewGroupWithCapacity(capacity int) Group {
 	}
 }
 
-func (g *group) Intersect(ray geom.Ray) *Intersections {
-	return Intersect(ray, g.t, g.LocalIntersect)
+func (g *group) Intersect(ray geom.Ray, i *Intersections) {
+	Intersect(ray, i, g.t, g.LocalIntersect)
 }
 
-func (g *group) LocalIntersect(r geom.Ray) *Intersections {
-	xs := NewIntersections()
+func (g *group) LocalIntersect(r geom.Ray, i *Intersections) {
 
 	// todo race
 	bounds := g.bounds
@@ -52,11 +51,11 @@ func (g *group) LocalIntersect(r geom.Ray) *Intersections {
 		// add the intersection for each child in the group
 		// should return sorted by t
 		for _, s := range g.children {
-			xs.AddFrom(s.Intersect(r))
+			s.Intersect(r, i)
 		}
 	}
 
-	return xs
+	return
 }
 
 func (g *group) BoundsOf() *BoundingBox {

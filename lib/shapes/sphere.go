@@ -28,11 +28,11 @@ func (s *Sphere) LocalNormalAt(p geom.Tuple, _ Intersection) geom.Tuple {
 	return p.Sub(geom.ZeroPoint())
 }
 
-func (s *Sphere) Intersect(r geom.Ray) *Intersections {
-	return Intersect(r, s.t, s.LocalIntersect)
+func (s *Sphere) Intersect(r geom.Ray, i *Intersections) {
+	Intersect(r, i, s.t, s.LocalIntersect)
 }
 
-func (s *Sphere) LocalIntersect(r geom.Ray) *Intersections {
+func (s *Sphere) LocalIntersect(r geom.Ray, i *Intersections) {
 	sr := r.Origin.Sub(geom.ZeroPoint())
 	a := r.Direction.Dot(r.Direction)
 	b := 2 * r.Direction.Dot(sr)
@@ -41,10 +41,10 @@ func (s *Sphere) LocalIntersect(r geom.Ray) *Intersections {
 	d := b*b - 4*a*c
 
 	if d < 0 {
-		return NewIntersections()
+		return
 	}
 
-	return NewIntersections(
+	i.Add(
 		Intersection{
 			T: (-b - math.Sqrt(d)) / (2 * a),
 			O: s,

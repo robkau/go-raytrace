@@ -34,12 +34,12 @@ func NewBeadTapestry() (*view.World, []CameraLocation) {
 	xSpan := b.Max.X - b.Min.X
 	ySpan := b.Max.Y - b.Min.Y
 	stride := 10
-	objectCount := (xSpan / stride * ySpan / stride)
+	objectCount := (xSpan / stride) * (ySpan / stride)
 
 	g := shapes.NewGroupWithCapacity(objectCount)
 
 	cameraDistance := 4.5 * float64(xSpan)
-	cameraPos := geom.NewPoint(0, -cameraDistance/4, cameraDistance)
+	cameraPos := geom.NewPoint(0, -cameraDistance/3, cameraDistance)
 	cameraLookingAt := geom.NewPoint(0, 0, 0)
 
 	tStart := time.Now()
@@ -52,7 +52,9 @@ func NewBeadTapestry() (*view.World, []CameraLocation) {
 			m.Color = colors.NewColorFromStdlibColor(p.At(i, j))
 			s.SetMaterial(m)
 
-			s.SetTransform(geom.Translate(float64(xSpan/2-i)*2, float64(ySpan/2-j)*2, float64(stride)*3*(m.Color.R)).MulX4Matrix(geom.Scale(float64(stride), float64(stride), float64(stride)*(1+m.Color.R*4))))
+			height := float64(ySpan/100) * (m.Color.Mag())
+
+			s.SetTransform(geom.Translate(float64(xSpan/2-i)*2, float64(ySpan/2-j)*2, height).MulX4Matrix(geom.Scale(float64(stride), float64(stride), float64(stride)+height)))
 
 			g.AddChild(s)
 			count++
@@ -62,11 +64,11 @@ func NewBeadTapestry() (*view.World, []CameraLocation) {
 	fmt.Println("it took to build", time.Since(tStart))
 
 	// light above
-	w.AddPointLight(shapes.NewPointLight(geom.NewPoint(0, 0, cameraDistance), colors.NewColor(1.9, 1.4, 1.4)))
+	w.AddAreaLight(shapes.NewAreaLight(cameraPos, geom.NewVector(float64(xSpan*2), 0, 0), 6, geom.NewVector(0, float64(ySpan*2), 0), 6, colors.NewColor(1.9, 1.4, 1.4), nil))
 	w.AddObject(g)
 
 	tStart = time.Now()
-	divideFactor := 32
+	divideFactor := 128
 	w.Divide(objectCount / divideFactor)
 	fmt.Println("it took to divide", time.Since(tStart))
 	return w, []CameraLocation{CameraLocation{cameraPos, cameraLookingAt}}

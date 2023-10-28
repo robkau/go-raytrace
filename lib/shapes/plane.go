@@ -28,14 +28,14 @@ func (p *Plane) LocalNormalAt(pt geom.Tuple, _ Intersection) geom.Tuple {
 	return geom.NewVector(0, 1, 0)
 }
 
-func (p *Plane) Intersect(r geom.Ray) *Intersections {
-	return Intersect(r, p.t, p.LocalIntersect)
+func (p *Plane) Intersect(r geom.Ray, i *Intersections) {
+	Intersect(r, i, p.t, p.LocalIntersect)
 }
 
-func (p *Plane) LocalIntersect(r geom.Ray) *Intersections {
+func (p *Plane) LocalIntersect(r geom.Ray, i *Intersections) {
 	if math.Abs(r.Direction.Y) < geom.FloatComparisonEpsilon {
-		return NewIntersections()
+		return
 	}
 	t := -r.Origin.Y / r.Direction.Y
-	return NewIntersections(NewIntersection(t, p))
+	i.Add(NewIntersection(t, p))
 }

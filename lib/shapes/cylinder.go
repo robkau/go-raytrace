@@ -49,12 +49,11 @@ func (c *Cylinder) LocalNormalAt(p geom.Tuple, _ Intersection) geom.Tuple {
 	return geom.NewVector(p.X, 0, p.Z)
 }
 
-func (c *Cylinder) Intersect(r geom.Ray) *Intersections {
-	return Intersect(r, c.t, c.LocalIntersect)
+func (c *Cylinder) Intersect(r geom.Ray, i *Intersections) {
+	Intersect(r, i, c.t, c.LocalIntersect)
 }
 
-func (c *Cylinder) LocalIntersect(r geom.Ray) *Intersections {
-	xs := NewIntersections()
+func (c *Cylinder) LocalIntersect(r geom.Ray, i *Intersections) {
 
 	// check intersection with cylinder walls, if needed
 	a := r.Direction.X*r.Direction.X + r.Direction.Z*r.Direction.Z
@@ -66,7 +65,7 @@ func (c *Cylinder) LocalIntersect(r geom.Ray) *Intersections {
 		disc := b*b - 4*a*cc
 
 		if disc < 0 {
-			return NewIntersections()
+			return
 		}
 
 		t0 := (-b - math.Sqrt(disc)) / (2 * a)
@@ -78,39 +77,37 @@ func (c *Cylinder) LocalIntersect(r geom.Ray) *Intersections {
 
 		y0 := r.Origin.Y + t0*r.Direction.Y
 		if c.minimum < y0 && y0 < c.maximum {
-			xs.Add(NewIntersection(t0, c))
+			i.Add(NewIntersection(t0, c))
 		}
 
 		y1 := r.Origin.Y + t1*r.Direction.Y
 		if c.minimum < y1 && y1 < c.maximum {
-			xs.Add(NewIntersection(t1, c))
+			i.Add(NewIntersection(t1, c))
 		}
 	}
 
 	// check intersection with caps
-	xs = c.intersectCaps(r, xs)
-
-	return xs
+	c.intersectCaps(r, i)
 }
 
-func (c *Cylinder) intersectCaps(r geom.Ray, xs *Intersections) *Intersections {
+func (c *Cylinder) intersectCaps(r geom.Ray, i *Intersections) {
 	if !c.capped || geom.AlmostEqual(r.Direction.Y, 0) {
-		return xs
+		return
 	}
 
 	// check lower cap
 	t := (c.minimum - r.Origin.Y) / r.Direction.Y
 	if checkCylinderCap(r, t) {
-		xs.Add(NewIntersection(t, c))
+		i.Add(NewIntersection(t, c))
 	}
 
 	// check upper cap
 	t = (c.maximum - r.Origin.Y) / r.Direction.Y
 	if checkCylinderCap(r, t) {
-		xs.Add(NewIntersection(t, c))
+		i.Add(NewIntersection(t, c))
 	}
 
-	return xs
+	return
 }
 
 func checkCylinderCap(r geom.Ray, t float64) bool {
