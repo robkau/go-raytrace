@@ -16,8 +16,8 @@ type Color struct {
 	B float64
 }
 
-const maxColorValue = 255
-const minColorValue = 255
+const maxColorValue = 65535
+const minColorValue = 0
 
 func (c Color) RGBA() (r, g, b, a uint32) {
 	return uint32(util.Clamp(c.R*float64(maxColorValue), minColorValue, maxColorValue)),
