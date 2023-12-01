@@ -159,7 +159,6 @@ func (is *Intersections) Add(s ...Intersection) {
 }
 
 func (is *Intersections) Reset() {
-	// todo need to clear the items or not.
 	is.I = is.I[:0]
 }
 

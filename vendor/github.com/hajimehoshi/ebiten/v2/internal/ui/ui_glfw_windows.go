@@ -13,7 +13,6 @@
 // limitations under the License.
 
 //go:build !nintendosdk
-// +build !nintendosdk
 
 package ui
 
@@ -21,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"syscall"
 
 	"golang.org/x/sys/windows"
 
@@ -29,6 +29,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/directx"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
+	"github.com/hajimehoshi/ebiten/v2/internal/winver"
 )
 
 type graphicsDriverCreatorImpl struct {
@@ -36,15 +37,38 @@ type graphicsDriverCreatorImpl struct {
 }
 
 func (g *graphicsDriverCreatorImpl) newAuto() (graphicsdriver.Graphics, GraphicsLibrary, error) {
-	d, err1 := g.newDirectX()
-	if err1 == nil {
-		return d, GraphicsLibraryDirectX, nil
+	var dxErr error
+	var glErr error
+	if winver.IsWindows10OrGreater() {
+		d, err := g.newDirectX()
+		if err == nil {
+			return d, GraphicsLibraryDirectX, nil
+		}
+		dxErr = err
+
+		o, err := g.newOpenGL()
+		if err == nil {
+			return o, GraphicsLibraryOpenGL, nil
+		}
+		glErr = err
+	} else {
+		// Creating a swap chain on an older machine than Windows 10 might fail (#2613).
+		// Prefer OpenGL to DirectX.
+		o, err := g.newOpenGL()
+		if err == nil {
+			return o, GraphicsLibraryOpenGL, nil
+		}
+		glErr = err
+
+		// Initializing OpenGL can fail, though this is pretty rare.
+		d, err := g.newDirectX()
+		if err == nil {
+			return d, GraphicsLibraryDirectX, nil
+		}
+		dxErr = err
 	}
-	o, err2 := g.newOpenGL()
-	if err2 == nil {
-		return o, GraphicsLibraryOpenGL, nil
-	}
-	return nil, GraphicsLibraryUnknown, fmt.Errorf("ui: failed to choose graphics drivers: DirectX: %v, OpenGL: %v", err1, err2)
+
+	return nil, GraphicsLibraryUnknown, fmt.Errorf("ui: failed to choose graphics drivers: DirectX: %v, OpenGL: %v", dxErr, glErr)
 }
 
 func (*graphicsDriverCreatorImpl) newOpenGL() (graphicsdriver.Graphics, error) {
@@ -60,13 +84,6 @@ func (g *graphicsDriverCreatorImpl) newDirectX() (graphicsdriver.Graphics, error
 
 func (*graphicsDriverCreatorImpl) newMetal() (graphicsdriver.Graphics, error) {
 	return nil, nil
-}
-
-type userInterfaceImplNative struct {
-	origWindowPosX        int
-	origWindowPosY        int
-	origWindowWidthInDIP  int
-	origWindowHeightInDIP int
 }
 
 // clearVideoModeScaleCache must be called from the main thread.
@@ -123,7 +140,7 @@ func initialMonitorByOS() (*glfw.Monitor, error) {
 	x, y := int(px), int(py)
 
 	// Find the monitor including the cursor.
-	for _, m := range ensureMonitors() {
+	for _, m := range theMonitors.append(nil) {
 		w, h := m.vm.Width, m.vm.Height
 		if x >= m.x && x < m.x+w && y >= m.y && y < m.y+h {
 			return m.m, nil
@@ -142,7 +159,7 @@ func monitorFromWindowByOS(w *glfw.Window) *glfw.Monitor {
 
 func monitorFromWin32Window(w windows.HWND) *glfw.Monitor {
 	// Get the current monitor by the window handle instead of the window position. It is because the window
-	// position is not relaiable in some cases e.g. when the window is put across multiple monitors.
+	// position is not reliable in some cases e.g. when the window is put across multiple monitors.
 
 	m := _MonitorFromWindow(w, _MONITOR_DEFAULTTONEAREST)
 	if m == 0 {
@@ -156,7 +173,7 @@ func monitorFromWin32Window(w windows.HWND) *glfw.Monitor {
 	}
 
 	x, y := int(mi.rcMonitor.left), int(mi.rcMonitor.top)
-	for _, m := range ensureMonitors() {
+	for _, m := range theMonitors.append(nil) {
 		if m.x == x && m.y == y {
 			return m.m
 		}
@@ -172,11 +189,6 @@ func (u *userInterfaceImpl) isNativeFullscreen() bool {
 	return false
 }
 
-func (u *userInterfaceImpl) setNativeCursor(shape CursorShape) {
-	// TODO: Use native API in the future (#1571)
-	u.window.SetCursor(glfwSystemCursors[shape])
-}
-
 func (u *userInterfaceImpl) isNativeFullscreenAvailable() bool {
 	return false
 }
@@ -185,7 +197,7 @@ func (u *userInterfaceImpl) setNativeFullscreen(fullscreen bool) {
 	panic(fmt.Sprintf("ui: setNativeFullscreen is not implemented in this environment: %s", runtime.GOOS))
 }
 
-func (u *userInterfaceImpl) adjustViewSize() {
+func (u *userInterfaceImpl) adjustViewSizeAfterFullscreen() {
 }
 
 func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) {
@@ -194,25 +206,25 @@ func (u *userInterfaceImpl) setWindowResizingModeForOS(mode WindowResizingMode) 
 func initializeWindowAfterCreation(w *glfw.Window) {
 }
 
-func (u *userInterfaceImpl) origWindowPos() (int, int) {
-	return u.native.origWindowPosX, u.native.origWindowPosY
-}
+func (u *userInterfaceImpl) skipTaskbar() error {
+	// S_FALSE is returned when CoInitializeEx is nested. This is a successful case.
+	if err := windows.CoInitializeEx(0, windows.COINIT_MULTITHREADED); err != nil && !errors.Is(err, syscall.Errno(windows.S_FALSE)) {
+		return err
+	}
+	// CoUninitialize should be called even when CoInitializeEx returns S_FALSE.
+	defer windows.CoUninitialize()
 
-func (u *userInterfaceImpl) setOrigWindowPos(x, y int) {
-	u.native.origWindowPosX = x
-	u.native.origWindowPosY = y
-}
+	ptr, err := _CoCreateInstance(&_CLSID_TaskbarList, nil, _CLSCTX_SERVER, &_IID_ITaskbarList)
+	if err != nil {
+		return err
+	}
 
-func (u *userInterfaceImpl) origWindowSizeInDIP() (int, int) {
-	return u.native.origWindowWidthInDIP, u.native.origWindowHeightInDIP
-}
+	t := (*_ITaskbarList)(ptr)
+	defer t.Release()
 
-func (u *userInterfaceImpl) setOrigWindowSizeInDIP(width, height int) {
-	u.native.origWindowWidthInDIP = width
-	u.native.origWindowHeightInDIP = height
-}
+	if err := t.DeleteTab(windows.HWND(u.window.GetWin32Window())); err != nil {
+		return err
+	}
 
-func (u *userInterfaceImplNative) initialize() {
-	u.origWindowPosX = invalidPos
-	u.origWindowPosY = invalidPos
+	return nil
 }

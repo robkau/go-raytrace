@@ -24,8 +24,9 @@ import (
 )
 
 type shaderRpsKey struct {
-	compositeMode graphicsdriver.CompositeMode
-	stencilMode   stencilMode
+	blend       graphicsdriver.Blend
+	stencilMode stencilMode
+	screen      bool
 }
 
 type Shader struct {
@@ -85,11 +86,13 @@ func (s *Shader) init(device mtl.Device) error {
 	return nil
 }
 
-func (s *Shader) RenderPipelineState(device mtl.Device, compositeMode graphicsdriver.CompositeMode, stencilMode stencilMode) (mtl.RenderPipelineState, error) {
-	if rps, ok := s.rpss[shaderRpsKey{
-		compositeMode: compositeMode,
-		stencilMode:   stencilMode,
-	}]; ok {
+func (s *Shader) RenderPipelineState(view *view, blend graphicsdriver.Blend, stencilMode stencilMode, screen bool) (mtl.RenderPipelineState, error) {
+	key := shaderRpsKey{
+		blend:       blend,
+		stencilMode: stencilMode,
+		screen:      screen,
+	}
+	if rps, ok := s.rpss[key]; ok {
 		return rps, nil
 	}
 
@@ -102,28 +105,31 @@ func (s *Shader) RenderPipelineState(device mtl.Device, compositeMode graphicsdr
 	}
 
 	// TODO: For the precise pixel format, whether the render target is the screen or not must be considered.
-	rpld.ColorAttachments[0].PixelFormat = mtl.PixelFormatRGBA8UNorm
+	pix := mtl.PixelFormatRGBA8UNorm
+	if screen {
+		pix = view.colorPixelFormat()
+	}
+	rpld.ColorAttachments[0].PixelFormat = pix
 	rpld.ColorAttachments[0].BlendingEnabled = true
 
-	src, dst := compositeMode.Operations()
-	rpld.ColorAttachments[0].DestinationAlphaBlendFactor = operationToBlendFactor(dst)
-	rpld.ColorAttachments[0].DestinationRGBBlendFactor = operationToBlendFactor(dst)
-	rpld.ColorAttachments[0].SourceAlphaBlendFactor = operationToBlendFactor(src)
-	rpld.ColorAttachments[0].SourceRGBBlendFactor = operationToBlendFactor(src)
+	rpld.ColorAttachments[0].DestinationAlphaBlendFactor = blendFactorToMetalBlendFactor(blend.BlendFactorDestinationAlpha)
+	rpld.ColorAttachments[0].DestinationRGBBlendFactor = blendFactorToMetalBlendFactor(blend.BlendFactorDestinationRGB)
+	rpld.ColorAttachments[0].SourceAlphaBlendFactor = blendFactorToMetalBlendFactor(blend.BlendFactorSourceAlpha)
+	rpld.ColorAttachments[0].SourceRGBBlendFactor = blendFactorToMetalBlendFactor(blend.BlendFactorSourceRGB)
+	rpld.ColorAttachments[0].AlphaBlendOperation = blendOperationToMetalBlendOperation(blend.BlendOperationAlpha)
+	rpld.ColorAttachments[0].RGBBlendOperation = blendOperationToMetalBlendOperation(blend.BlendOperationRGB)
+
 	if stencilMode == prepareStencil {
 		rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskNone
 	} else {
 		rpld.ColorAttachments[0].WriteMask = mtl.ColorWriteMaskAll
 	}
 
-	rps, err := device.MakeRenderPipelineState(rpld)
+	rps, err := view.getMTLDevice().MakeRenderPipelineState(rpld)
 	if err != nil {
 		return mtl.RenderPipelineState{}, err
 	}
 
-	s.rpss[shaderRpsKey{
-		compositeMode: compositeMode,
-		stencilMode:   stencilMode,
-	}] = rps
+	s.rpss[key] = rps
 	return rps, nil
 }

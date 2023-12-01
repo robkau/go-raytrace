@@ -13,16 +13,25 @@
 // limitations under the License.
 
 //go:build nintendosdk
-// +build nintendosdk
 
 package ui
 
-import (
-	"runtime"
+// #include "init_nintendosdk.h"
+// #include "input_nintendosdk.h"
+import "C"
 
+import (
+	stdcontext "context"
+	"image"
+	"runtime"
+	"sync"
+
+	"golang.org/x/sync/errgroup"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
-	"github.com/hajimehoshi/ebiten/v2/internal/nintendosdk"
+	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 type graphicsDriverCreatorImpl struct{}
@@ -53,29 +62,74 @@ func init() {
 type userInterfaceImpl struct {
 	graphicsDriver graphicsdriver.Graphics
 
-	context *context
-	input   Input
+	context       *context
+	inputState    InputState
+	nativeTouches []C.struct_Touch
+
+	egl egl
+
+	mainThread   *thread.OSThread
+	renderThread *thread.OSThread
+
+	m sync.Mutex
 }
 
-func (u *userInterfaceImpl) Run(game Game) error {
+func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 	u.context = newContext(game)
-	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{})
+	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{}, options.GraphicsLibrary)
 	if err != nil {
 		return err
 	}
 	u.graphicsDriver = g
-	nintendosdk.InitializeGame()
-	for {
-		nintendosdk.BeginFrame()
-		u.input.update(u.context)
 
-		w, h := nintendosdk.ScreenSize()
-		if err := u.context.updateFrame(u.graphicsDriver, float64(w), float64(h), deviceScaleFactor); err != nil {
-			return err
-		}
-
-		nintendosdk.EndFrame()
+	n := C.ebitengine_Initialize()
+	if err := u.egl.init(n); err != nil {
+		return err
 	}
+
+	initializeProfiler()
+
+	u.mainThread = thread.NewOSThread()
+	u.renderThread = thread.NewOSThread()
+	graphicscommand.SetRenderThread(u.renderThread)
+
+	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
+	defer cancel()
+
+	var wg errgroup.Group
+
+	// Run the render thread.
+	wg.Go(func() error {
+		defer cancel()
+		_ = u.renderThread.Loop(ctx)
+		return nil
+	})
+
+	// Run the game thread.
+	wg.Go(func() error {
+		defer cancel()
+
+		u.renderThread.Call(func() {
+			u.egl.makeContextCurrent()
+		})
+
+		for {
+			recordProfilerHeartbeat()
+
+			if err := u.context.updateFrame(u.graphicsDriver, float64(C.kScreenWidth), float64(C.kScreenHeight), deviceScaleFactor, u, func() {
+				u.egl.swapBuffers()
+			}); err != nil {
+				return err
+			}
+		}
+	})
+
+	// Run the main thread.
+	_ = u.mainThread.Loop(ctx)
+	if err := wg.Wait(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (*userInterfaceImpl) DeviceScaleFactor() float64 {
@@ -90,7 +144,10 @@ func (*userInterfaceImpl) ScreenSizeInFullscreen() (int, int) {
 	return 0, 0
 }
 
-func (*userInterfaceImpl) resetForTick() {
+func (u *userInterfaceImpl) readInputState(inputState *InputState) {
+	u.m.Lock()
+	defer u.m.Unlock()
+	u.inputState.copyAndReset(inputState)
 }
 
 func (*userInterfaceImpl) CursorMode() CursorMode {
@@ -127,20 +184,41 @@ func (*userInterfaceImpl) SetFPSMode(mode FPSModeType) {
 func (*userInterfaceImpl) ScheduleFrame() {
 }
 
-func (*userInterfaceImpl) IsScreenTransparent() bool {
-	return false
-}
-
-func (*userInterfaceImpl) SetScreenTransparent(transparent bool) {
-}
-
-func (*userInterfaceImpl) SetInitFocused(focused bool) {
-}
-
-func (*userInterfaceImpl) Input() *Input {
-	return &theUI.input
-}
-
 func (*userInterfaceImpl) Window() Window {
 	return &nullWindow{}
+}
+
+type Monitor struct{}
+
+var theMonitor = &Monitor{}
+
+func (m *Monitor) Bounds() image.Rectangle {
+	// TODO: This should return the available viewport dimensions.
+	return image.Rectangle{}
+}
+
+func (m *Monitor) Name() string {
+	return ""
+}
+
+func (u *userInterfaceImpl) AppendMonitors(mons []*Monitor) []*Monitor {
+	return append(mons, theMonitor)
+}
+
+func (u *userInterfaceImpl) Monitor() *Monitor {
+	return theMonitor
+}
+
+func (u *userInterfaceImpl) beginFrame() {
+}
+
+func (u *userInterfaceImpl) endFrame() {
+}
+
+func (u *userInterfaceImpl) updateIconIfNeeded() error {
+	return nil
+}
+
+func IsScreenTransparentAvailable() bool {
+	return false
 }

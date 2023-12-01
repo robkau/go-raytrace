@@ -16,20 +16,11 @@ package ui
 
 import (
 	"errors"
+	"image"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 )
-
-type MouseButton int
-
-const (
-	MouseButtonLeft MouseButton = iota
-	MouseButtonRight
-	MouseButtonMiddle
-)
-
-type TouchID int
 
 // RegularTermination represents a regular termination.
 // Run can return this error, and if this error is received,
@@ -61,6 +52,10 @@ const (
 	CursorShapePointer
 	CursorShapeEWResize
 	CursorShapeNSResize
+	CursorShapeNESWResize
+	CursorShapeNWSEResize
+	CursorShapeMove
+	CursorShapeNotAllowed
 )
 
 type WindowResizingMode int
@@ -69,15 +64,6 @@ const (
 	WindowResizingModeDisabled WindowResizingMode = iota
 	WindowResizingModeOnlyFullscreenEnabled
 	WindowResizingModeEnabled
-)
-
-type GraphicsLibrary int
-
-const (
-	GraphicsLibraryUnknown GraphicsLibrary = iota
-	GraphicsLibraryOpenGL
-	GraphicsLibraryDirectX
-	GraphicsLibraryMetal
 )
 
 type UserInterface struct {
@@ -91,14 +77,26 @@ func Get() *UserInterface {
 	return theUI
 }
 
-func (u *UserInterface) readPixels(mipmap *mipmap.Mipmap, pixels []byte, x, y, width, height int) error {
-	return mipmap.ReadPixels(u.graphicsDriver, pixels, x, y, width, height)
+func (u *UserInterface) readPixels(mipmap *mipmap.Mipmap, pixels []byte, region image.Rectangle) error {
+	return mipmap.ReadPixels(u.graphicsDriver, pixels, region)
 }
 
-func (u *UserInterface) dumpScreenshot(mipmap *mipmap.Mipmap, name string, blackbg bool) error {
+func (u *UserInterface) dumpScreenshot(mipmap *mipmap.Mipmap, name string, blackbg bool) (string, error) {
 	return mipmap.DumpScreenshot(u.graphicsDriver, name, blackbg)
 }
 
-func (u *UserInterface) dumpImages(dir string) error {
+func (u *UserInterface) dumpImages(dir string) (string, error) {
 	return atlas.DumpImages(u.graphicsDriver, dir)
+}
+
+type RunOptions struct {
+	GraphicsLibrary   GraphicsLibrary
+	InitUnfocused     bool
+	ScreenTransparent bool
+	SkipTaskbar       bool
+}
+
+// InitialWindowPosition returns the position for centering the given second width/height pair within the first width/height pair.
+func InitialWindowPosition(mw, mh, ww, wh int) (x, y int) {
+	return (mw - ww) / 2, (mh - wh) / 3
 }

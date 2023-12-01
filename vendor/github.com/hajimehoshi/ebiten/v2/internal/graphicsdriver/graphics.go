@@ -15,7 +15,7 @@
 package graphicsdriver
 
 import (
-	"errors"
+	"image"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -28,16 +28,15 @@ type Region struct {
 	Height float32
 }
 
+type DstRegion struct {
+	Region     Region
+	IndexCount int
+}
+
 const (
 	InvalidImageID  = 0
 	InvalidShaderID = 0
 )
-
-type ColorM interface {
-	IsIdentity() bool
-	At(i, j int) float32
-	Elements(body *[16]float32, translate *[4]float32)
-}
 
 type Graphics interface {
 	Initialize() error
@@ -48,8 +47,6 @@ type Graphics interface {
 	NewImage(width, height int) (Image, error)
 	NewScreenFramebufferImage(width, height int) (Image, error)
 	SetVsyncEnabled(enabled bool)
-	SetFullscreen(fullscreen bool)
-	FramebufferYDirection() YDirection
 	NeedsRestoring() bool
 	NeedsClearingScreen() bool
 	IsGL() bool
@@ -59,36 +56,27 @@ type Graphics interface {
 	NewShader(program *shaderir.Program) (Shader, error)
 
 	// DrawTriangles draws an image onto another image with the given parameters.
-	DrawTriangles(dst ImageID, srcs [graphics.ShaderImageCount]ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shader ShaderID, indexLen int, indexOffset int, mode CompositeMode, colorM ColorM, filter Filter, address Address, dstRegion, srcRegion Region, uniforms [][]float32, evenOdd bool) error
+	DrawTriangles(dst ImageID, srcs [graphics.ShaderImageCount]ImageID, shader ShaderID, dstRegions []DstRegion, indexOffset int, blend Blend, uniforms []uint32, evenOdd bool) error
 }
 
-// GraphicsNotReady represents that the graphics driver is not ready for recovering from the context lost.
-var GraphicsNotReady = errors.New("graphics not ready")
+type Resetter interface {
+	Reset() error
+}
 
 type Image interface {
 	ID() ImageID
 	Dispose()
 	IsInvalidated() bool
-	ReadPixels(buf []byte) error
-	WritePixels(args []*WritePixelsArgs) error
+	ReadPixels(args []PixelsArgs) error
+	WritePixels(args []PixelsArgs) error
 }
 
 type ImageID int
 
-type WritePixelsArgs struct {
+type PixelsArgs struct {
 	Pixels []byte
-	X      int
-	Y      int
-	Width  int
-	Height int
+	Region image.Rectangle
 }
-
-type YDirection int
-
-const (
-	Upward YDirection = iota
-	Downward
-)
 
 type Shader interface {
 	ID() ShaderID

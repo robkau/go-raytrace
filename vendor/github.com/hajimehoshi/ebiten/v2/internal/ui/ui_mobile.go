@@ -13,13 +13,13 @@
 // limitations under the License.
 
 //go:build (android || ios) && !nintendosdk
-// +build android ios
-// +build !nintendosdk
 
 package ui
 
 import (
+	stdcontext "context"
 	"fmt"
+	"image"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
@@ -37,7 +37,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/v2/internal/hooks"
 	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
@@ -55,14 +54,14 @@ var (
 
 func init() {
 	theUI.userInterfaceImpl = userInterfaceImpl{
-		foreground: 1,
-		errCh:      make(chan error),
+		foreground:           1,
+		graphicsDriverInitCh: make(chan struct{}),
+		errCh:                make(chan error),
 
 		// Give a default outside size so that the game can start without initializing them.
 		outsideWidth:  640,
 		outsideHeight: 480,
 	}
-	theUI.input.ui = &theUI.userInterfaceImpl
 }
 
 // Update is called from mobile/ebitenmobileview.
@@ -83,17 +82,22 @@ func (u *userInterfaceImpl) Update() error {
 		return err
 	}
 
+	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
+	defer cancel()
+
 	renderCh <- struct{}{}
 	go func() {
 		<-renderEndCh
-		u.t.Stop()
+		cancel()
 	}()
-	u.t.Loop()
+
+	_ = u.renderThread.Loop(ctx)
 	return nil
 }
 
 type userInterfaceImpl struct {
-	graphicsDriver graphicsdriver.Graphics
+	graphicsDriver       graphicsdriver.Graphics
+	graphicsDriverInitCh chan struct{}
 
 	outsideWidth  float64
 	outsideHeight float64
@@ -109,12 +113,13 @@ type userInterfaceImpl struct {
 
 	context *context
 
-	input Input
+	inputState InputState
+	touches    []TouchForInput
 
 	fpsMode         FPSModeType
 	renderRequester RenderRequester
 
-	t *thread.OSThread
+	renderThread *thread.OSThread
 
 	m sync.RWMutex
 }
@@ -128,7 +133,7 @@ func (u *userInterfaceImpl) appMain(a app.App) {
 	var glctx gl.Context
 	var sizeInited bool
 
-	touches := map[touch.Sequence]Touch{}
+	touches := map[touch.Sequence]TouchForInput{}
 	keys := map[Key]struct{}{}
 
 	for e := range a.Events() {
@@ -181,12 +186,10 @@ func (u *userInterfaceImpl) appMain(a app.App) {
 			switch e.Type {
 			case touch.TypeBegin, touch.TypeMove:
 				s := deviceScale()
-				x, y := float64(e.X)/s, float64(e.Y)/s
-				// TODO: Is it ok to cast from int64 to int here?
-				touches[e.Sequence] = Touch{
+				touches[e.Sequence] = TouchForInput{
 					ID: TouchID(e.Sequence),
-					X:  int(x),
-					Y:  int(y),
+					X:  float64(e.X) / s,
+					Y:  float64(e.Y) / s,
 				}
 			case touch.TypeEnd:
 				delete(touches, e.Sequence)
@@ -213,11 +216,11 @@ func (u *userInterfaceImpl) appMain(a app.App) {
 		}
 
 		if updateInput {
-			var ts []Touch
+			var ts []TouchForInput
 			for _, t := range touches {
 				ts = append(ts, t)
 			}
-			u.input.update(keys, runes, ts)
+			u.updateInputStateFromOutside(keys, runes, ts)
 		}
 	}
 }
@@ -236,10 +239,10 @@ func (u *userInterfaceImpl) SetForeground(foreground bool) error {
 	}
 }
 
-func (u *userInterfaceImpl) Run(game Game) error {
+func (u *userInterfaceImpl) Run(game Game, options *RunOptions) error {
 	u.setGBuildSizeCh = make(chan struct{})
 	go func() {
-		if err := u.run(game, true); err != nil {
+		if err := u.run(game, true, options); err != nil {
 			// As mobile apps never ends, Loop can't return. Just panic here.
 			panic(err)
 		}
@@ -248,19 +251,19 @@ func (u *userInterfaceImpl) Run(game Game) error {
 	return nil
 }
 
-func RunWithoutMainLoop(game Game) {
-	theUI.runWithoutMainLoop(game)
+func RunWithoutMainLoop(game Game, options *RunOptions) {
+	theUI.runWithoutMainLoop(game, options)
 }
 
-func (u *userInterfaceImpl) runWithoutMainLoop(game Game) {
+func (u *userInterfaceImpl) runWithoutMainLoop(game Game, options *RunOptions) {
 	go func() {
-		if err := u.run(game, false); err != nil {
+		if err := u.run(game, false, options); err != nil {
 			u.errCh <- err
 		}
 	}()
 }
 
-func (u *userInterfaceImpl) run(game Game, mainloop bool) (err error) {
+func (u *userInterfaceImpl) run(game Game, mainloop bool, options *RunOptions) (err error) {
 	// Convert the panic to a regular error so that Java/Objective-C layer can treat this easily e.g., for
 	// Crashlytics. A panic is treated as SIGABRT, and there is no way to handle this on Java/Objective-C layer
 	// unfortunately.
@@ -272,23 +275,25 @@ func (u *userInterfaceImpl) run(game Game, mainloop bool) (err error) {
 	}()
 
 	u.context = newContext(game)
+
+	var mgl gl.Context
+	if mainloop {
+		// When gomobile-build is used, GL functions must be called via
+		// gl.Context so that they are called on the appropriate thread.
+		mgl = <-glContextCh
+	} else {
+		u.renderThread = thread.NewOSThread()
+		graphicscommand.SetRenderThread(u.renderThread)
+	}
+
 	g, err := newGraphicsDriver(&graphicsDriverCreatorImpl{
-		gomobileBuild: mainloop,
-	})
+		gomobileContext: mgl,
+	}, options.GraphicsLibrary)
 	if err != nil {
 		return err
 	}
 	u.graphicsDriver = g
-
-	if mainloop {
-		// When gomobile-build is used, GL functions must be called via
-		// gl.Context so that they are called on the appropriate thread.
-		ctx := <-glContextCh
-		g.(*opengl.Graphics).SetGomobileGLContext(ctx)
-	} else {
-		u.t = thread.NewOSThread()
-		graphicscommand.SetRenderingThread(u.t)
-	}
+	close(u.graphicsDriverInitCh)
 
 	// If gomobile-build is used, wait for the outside size fixed.
 	if u.setGBuildSizeCh != nil {
@@ -328,7 +333,7 @@ func (u *userInterfaceImpl) update() error {
 	}()
 
 	w, h := u.outsideSize()
-	if err := u.context.updateFrame(u.graphicsDriver, w, h, deviceScale()); err != nil {
+	if err := u.context.updateFrame(u.graphicsDriver, w, h, deviceScale(), u, nil); err != nil {
 		return err
 	}
 	return nil
@@ -361,11 +366,6 @@ func (u *userInterfaceImpl) setGBuildSize(widthPx, heightPx int) {
 	u.once.Do(func() {
 		close(u.setGBuildSizeCh)
 	})
-}
-
-func (u *userInterfaceImpl) adjustPosition(x, y int) (int, int) {
-	xf, yf := u.context.adjustPosition(float64(x), float64(y), deviceScale())
-	return int(xf), int(yf)
 }
 
 func (u *userInterfaceImpl) CursorMode() CursorMode {
@@ -420,38 +420,39 @@ func (u *userInterfaceImpl) DeviceScaleFactor() float64 {
 	return deviceScale()
 }
 
-func (u *userInterfaceImpl) SetScreenTransparent(transparent bool) {
-	// Do nothing
-}
-
-func (u *userInterfaceImpl) IsScreenTransparent() bool {
-	return false
-}
-
-func (u *userInterfaceImpl) resetForTick() {
-	u.input.resetForTick()
-}
-
-func (u *userInterfaceImpl) SetInitFocused(focused bool) {
-	// Do nothing
-}
-
-func (u *userInterfaceImpl) Input() *Input {
-	return &u.input
+func (u *userInterfaceImpl) readInputState(inputState *InputState) {
+	u.m.Lock()
+	defer u.m.Unlock()
+	u.inputState.copyAndReset(inputState)
 }
 
 func (u *userInterfaceImpl) Window() Window {
 	return &nullWindow{}
 }
 
-type Touch struct {
-	ID TouchID
-	X  int
-	Y  int
+type Monitor struct{}
+
+var theMonitor = &Monitor{}
+
+func (m *Monitor) Bounds() image.Rectangle {
+	// TODO: This should return the available viewport dimensions.
+	return image.Rectangle{}
 }
 
-func (u *userInterfaceImpl) UpdateInput(keys map[Key]struct{}, runes []rune, touches []Touch) {
-	u.input.update(keys, runes, touches)
+func (m *Monitor) Name() string {
+	return ""
+}
+
+func (u *userInterfaceImpl) AppendMonitors(mons []*Monitor) []*Monitor {
+	return append(mons, theMonitor)
+}
+
+func (u *userInterfaceImpl) Monitor() *Monitor {
+	return theMonitor
+}
+
+func (u *userInterfaceImpl) UpdateInput(keys map[Key]struct{}, runes []rune, touches []TouchForInput) {
+	u.updateInputStateFromOutside(keys, runes, touches)
 	if u.fpsMode == FPSModeVsyncOffMinimum {
 		u.renderRequester.RequestRenderIfNeeded()
 	}
@@ -471,4 +472,18 @@ func (u *userInterfaceImpl) ScheduleFrame() {
 	if u.renderRequester != nil && u.fpsMode == FPSModeVsyncOffMinimum {
 		u.renderRequester.RequestRenderIfNeeded()
 	}
+}
+
+func (u *userInterfaceImpl) beginFrame() {
+}
+
+func (u *userInterfaceImpl) endFrame() {
+}
+
+func (u *userInterfaceImpl) updateIconIfNeeded() error {
+	return nil
+}
+
+func IsScreenTransparentAvailable() bool {
+	return false
 }

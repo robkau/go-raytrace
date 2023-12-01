@@ -18,10 +18,10 @@ import (
 	"fmt"
 	"image"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/affine"
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/restorable"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
@@ -30,6 +30,7 @@ type Image struct {
 	width  int
 	height int
 
+	// pixels is valid only when restorable.AlwaysReadPixelsFromGPU() returns true.
 	pixels []byte
 }
 
@@ -41,8 +42,8 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 	return nil
 }
 
-func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
-	return atlas.EndFrame(graphicsDriver)
+func EndFrame(graphicsDriver graphicsdriver.Graphics, swapBuffersForGL func()) error {
+	return atlas.EndFrame(graphicsDriver, swapBuffersForGL)
 }
 
 func NewImage(width, height int, imageType atlas.ImageType) *Image {
@@ -57,11 +58,15 @@ func NewImage(width, height int, imageType atlas.ImageType) *Image {
 func (i *Image) initialize(imageType atlas.ImageType) {
 	if maybeCanAddDelayedCommand() {
 		if tryAddDelayedCommand(func() {
-			i.initialize(imageType)
+			i.initializeImpl(imageType)
 		}) {
 			return
 		}
 	}
+	i.initializeImpl(imageType)
+}
+
+func (i *Image) initializeImpl(imageType atlas.ImageType) {
 	i.img = atlas.NewImage(i.width, i.height, imageType)
 }
 
@@ -72,55 +77,55 @@ func (i *Image) invalidatePixels() {
 func (i *Image) MarkDisposed() {
 	if maybeCanAddDelayedCommand() {
 		if tryAddDelayedCommand(func() {
-			i.MarkDisposed()
+			i.markDisposedImpl()
 		}) {
 			return
 		}
 	}
+	i.markDisposedImpl()
+}
+
+func (i *Image) markDisposedImpl() {
 	i.invalidatePixels()
 	i.img.MarkDisposed()
 }
 
-func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, x, y, width, height int) error {
+func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) error {
 	checkDelayedCommandsFlushed("ReadPixels")
 
-	r := image.Rect(x, y, x+width, y+height).Intersect(image.Rect(0, 0, i.width, i.height))
-	if r.Empty() {
-		for i := range pixels {
-			pixels[i] = 0
+	// If restorable.AlwaysReadPixelsFromGPU() returns false, the pixel data is cached in the restorable package.
+	if !restorable.AlwaysReadPixelsFromGPU() {
+		if err := i.img.ReadPixels(graphicsDriver, pixels, region); err != nil {
+			return err
 		}
 		return nil
 	}
 
 	if i.pixels == nil {
 		pix := make([]byte, 4*i.width*i.height)
-		if err := i.img.ReadPixels(graphicsDriver, pix); err != nil {
+		if err := i.img.ReadPixels(graphicsDriver, pix, image.Rect(0, 0, i.width, i.height)); err != nil {
 			return err
 		}
 		i.pixels = pix
 	}
 
-	dstBaseX := r.Min.X - x
-	dstBaseY := r.Min.Y - y
-	srcBaseX := r.Min.X
-	srcBaseY := r.Min.Y
-	lineWidth := 4 * r.Dx()
-	for j := 0; j < r.Dy(); j++ {
-		dstX := 4 * ((dstBaseY+j)*width + dstBaseX)
-		srcX := 4 * ((srcBaseY+j)*i.width + srcBaseX)
+	lineWidth := 4 * region.Dx()
+	for j := 0; j < region.Dy(); j++ {
+		dstX := 4 * j * region.Dx()
+		srcX := 4 * ((region.Min.Y+j)*i.width + region.Min.X)
 		copy(pixels[dstX:dstX+lineWidth], i.pixels[srcX:srcX+lineWidth])
 	}
 	return nil
 }
 
-func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name string, blackbg bool) error {
+func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name string, blackbg bool) (string, error) {
 	checkDelayedCommandsFlushed("Dump")
 	return i.img.DumpScreenshot(graphicsDriver, name, blackbg)
 }
 
 // WritePixels replaces the pixels at the specified region.
-func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
-	if l := 4 * width * height; len(pix) != l {
+func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
+	if l := 4 * region.Dx() * region.Dy(); len(pix) != l {
 		panic(fmt.Sprintf("buffered: len(pix) was %d but must be %d", len(pix), l))
 	}
 
@@ -128,20 +133,23 @@ func (i *Image) WritePixels(pix []byte, x, y, width, height int) {
 		copied := make([]byte, len(pix))
 		copy(copied, pix)
 		if tryAddDelayedCommand(func() {
-			i.WritePixels(copied, x, y, width, height)
+			i.writePixelsImpl(copied, region)
 		}) {
 			return
 		}
 	}
+	i.writePixelsImpl(pix, region)
+}
 
+func (i *Image) writePixelsImpl(pix []byte, region image.Rectangle) {
 	i.invalidatePixels()
-	i.img.WritePixels(pix, x, y, width, height)
+	i.img.WritePixels(pix, region)
 }
 
 // DrawTriangles draws the src image with the given vertices.
 //
 // Copying vertices and indices is the caller's responsibility.
-func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, colorm affine.ColorM, mode graphicsdriver.CompositeMode, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, subimageOffsets [graphics.ShaderImageCount - 1][2]float32, shader *Shader, uniforms [][]float32, evenOdd bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion graphicsdriver.Region, srcRegions [graphics.ShaderImageCount]graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool) {
 	for _, src := range srcs {
 		if i == src {
 			panic("buffered: Image.DrawTriangles: source images must be different from the receiver")
@@ -149,32 +157,32 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderImageCount]*Image, vertices [
 	}
 
 	if maybeCanAddDelayedCommand() {
+		vs := make([]float32, len(vertices))
+		copy(vs, vertices)
+		is := make([]uint16, len(indices))
+		copy(is, indices)
+		us := make([]uint32, len(uniforms))
+		copy(us, uniforms)
 		if tryAddDelayedCommand(func() {
-			// Arguments are not copied. Copying is the caller's responsibility.
-			i.DrawTriangles(srcs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, shader, uniforms, evenOdd)
+			i.drawTrianglesImpl(srcs, vs, is, blend, dstRegion, srcRegions, shader, us, evenOdd)
 		}) {
 			return
 		}
 	}
+	i.drawTrianglesImpl(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, evenOdd)
+}
 
-	var s *atlas.Shader
+func (i *Image) drawTrianglesImpl(srcs [graphics.ShaderImageCount]*Image, vertices []float32, indices []uint16, blend graphicsdriver.Blend, dstRegion graphicsdriver.Region, srcRegions [graphics.ShaderImageCount]graphicsdriver.Region, shader *Shader, uniforms []uint32, evenOdd bool) {
 	var imgs [graphics.ShaderImageCount]*atlas.Image
-	if shader == nil {
-		// Fast path for rendering without a shader (#1355).
-		img := srcs[0]
-		imgs[0] = img.img
-	} else {
-		for i, img := range srcs {
-			if img == nil {
-				continue
-			}
-			imgs[i] = img.img
+	for i, img := range srcs {
+		if img == nil {
+			continue
 		}
-		s = shader.shader
+		imgs[i] = img.img
 	}
 
 	i.invalidatePixels()
-	i.img.DrawTriangles(imgs, vertices, indices, colorm, mode, filter, address, dstRegion, srcRegion, subimageOffsets, s, uniforms, evenOdd)
+	i.img.DrawTriangles(imgs, vertices, indices, blend, dstRegion, srcRegions, shader.shader, uniforms, evenOdd)
 }
 
 type Shader struct {
@@ -190,22 +198,35 @@ func NewShader(ir *shaderir.Program) *Shader {
 func (s *Shader) initialize(ir *shaderir.Program) {
 	if maybeCanAddDelayedCommand() {
 		if tryAddDelayedCommand(func() {
-			s.initialize(ir)
+			s.initializeImpl(ir)
 		}) {
 			return
 		}
 	}
+	s.initializeImpl(ir)
+}
+
+func (s *Shader) initializeImpl(ir *shaderir.Program) {
 	s.shader = atlas.NewShader(ir)
 }
 
 func (s *Shader) MarkDisposed() {
 	if maybeCanAddDelayedCommand() {
 		if tryAddDelayedCommand(func() {
-			s.MarkDisposed()
+			s.markDisposedImpl()
 		}) {
 			return
 		}
 	}
+	s.markDisposedImpl()
+}
+
+func (s *Shader) markDisposedImpl() {
 	s.shader.MarkDisposed()
 	s.shader = nil
 }
+
+var (
+	NearestFilterShader = &Shader{shader: atlas.NearestFilterShader}
+	LinearFilterShader  = &Shader{shader: atlas.LinearFilterShader}
+)

@@ -15,6 +15,7 @@
 package ui
 
 import (
+	"math"
 	"syscall/js"
 	"unicode"
 )
@@ -31,249 +32,122 @@ var (
 	stringTouchmove  = js.ValueOf("touchmove")
 )
 
-var jsKeys []js.Value
-
-func init() {
-	for _, k := range uiKeyToJSKey {
-		jsKeys = append(jsKeys, k)
-	}
+type touchInClient struct {
+	id TouchID
+	x  float64
+	y  float64
 }
 
-func jsKeyToID(key js.Value) int {
+func jsKeyToID(key js.Value) Key {
 	// js.Value cannot be used as a map key.
 	// As the number of keys is around 100, just a dumb loop should work.
-	for i, k := range jsKeys {
-		if k.Equal(key) {
-			return i
+	for uiKey, jsKey := range uiKeyToJSKey {
+		if jsKey.Equal(key) {
+			return uiKey
 		}
 	}
 	return -1
 }
 
-type pos struct {
-	X int
-	Y int
-}
-
-type Input struct {
-	keyPressed         map[int]bool
-	keyPressedEdge     map[int]bool
-	mouseButtonPressed map[int]bool
-	cursorX            int
-	cursorY            int
-	origCursorX        int
-	origCursorY        int
-	wheelX             float64
-	wheelY             float64
-	touches            map[TouchID]pos
-	runeBuffer         []rune
-	ui                 *userInterfaceImpl
-}
-
-func (i *Input) CursorPosition() (x, y int) {
-	if i.ui.context == nil {
-		return 0, 0
-	}
-	xf, yf := i.ui.context.adjustPosition(float64(i.cursorX), float64(i.cursorY), i.ui.DeviceScaleFactor())
-	return int(xf), int(yf)
-}
-
-func (i *Input) AppendTouchIDs(touchIDs []TouchID) []TouchID {
-	for id := range i.touches {
-		touchIDs = append(touchIDs, id)
-	}
-	return touchIDs
-}
-
-func (i *Input) TouchPosition(id TouchID) (x, y int) {
-	d := i.ui.DeviceScaleFactor()
-	for tid, pos := range i.touches {
-		if id == tid {
-			x, y := i.ui.context.adjustPosition(float64(pos.X), float64(pos.Y), d)
-			return int(x), int(y)
-		}
-	}
-	return 0, 0
-}
-
-func (i *Input) AppendInputChars(runes []rune) []rune {
-	return append(runes, i.runeBuffer...)
-}
-
-func (i *Input) resetForTick() {
-	i.runeBuffer = nil
-	i.wheelX = 0
-	i.wheelY = 0
-}
-
-func (i *Input) IsKeyPressed(key Key) bool {
-	if i.keyPressed != nil {
-		if i.keyPressed[jsKeyToID(uiKeyToJSKey[key])] {
-			return true
-		}
-	}
-	if i.keyPressedEdge != nil {
-		for c, k := range edgeKeyCodeToUIKey {
-			if k != key {
-				continue
-			}
-			if i.keyPressedEdge[c] {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 var codeToMouseButton = map[int]MouseButton{
-	0: MouseButtonLeft,
-	1: MouseButtonMiddle,
-	2: MouseButtonRight,
+	0: MouseButton0, // Left
+	1: MouseButton1, // Middle
+	2: MouseButton2, // Right
+	3: MouseButton3,
+	4: MouseButton4,
 }
 
-func (i *Input) IsMouseButtonPressed(button MouseButton) bool {
-	if i.mouseButtonPressed == nil {
-		i.mouseButtonPressed = map[int]bool{}
+func (u *userInterfaceImpl) keyDown(code js.Value) {
+	id := jsKeyToID(code)
+	if id < 0 {
+		return
 	}
-	for c, b := range codeToMouseButton {
-		if b != button {
-			continue
-		}
-		if i.mouseButtonPressed[c] {
-			return true
-		}
+	u.inputState.KeyPressed[id] = true
+}
+
+func (u *userInterfaceImpl) keyUp(code js.Value) {
+	id := jsKeyToID(code)
+	if id < 0 {
+		return
 	}
-	return false
+	u.inputState.KeyPressed[id] = false
 }
 
-func (i *Input) Wheel() (xoff, yoff float64) {
-	return i.wheelX, i.wheelY
+func (u *userInterfaceImpl) mouseDown(code int) {
+	u.inputState.MouseButtonPressed[codeToMouseButton[code]] = true
 }
 
-func (i *Input) keyDown(code js.Value) {
-	if i.keyPressed == nil {
-		i.keyPressed = map[int]bool{}
-	}
-	i.keyPressed[jsKeyToID(code)] = true
+func (u *userInterfaceImpl) mouseUp(code int) {
+	u.inputState.MouseButtonPressed[codeToMouseButton[code]] = false
 }
 
-func (i *Input) keyUp(code js.Value) {
-	if i.keyPressed == nil {
-		i.keyPressed = map[int]bool{}
-	}
-	i.keyPressed[jsKeyToID(code)] = false
-}
-
-func (i *Input) keyDownEdge(code int) {
-	if i.keyPressedEdge == nil {
-		i.keyPressedEdge = map[int]bool{}
-	}
-	i.keyPressedEdge[code] = true
-}
-
-func (i *Input) keyUpEdge(code int) {
-	if i.keyPressedEdge == nil {
-		i.keyPressedEdge = map[int]bool{}
-	}
-	i.keyPressedEdge[code] = false
-}
-
-func (i *Input) mouseDown(code int) {
-	if i.mouseButtonPressed == nil {
-		i.mouseButtonPressed = map[int]bool{}
-	}
-	i.mouseButtonPressed[code] = true
-}
-
-func (i *Input) mouseUp(code int) {
-	if i.mouseButtonPressed == nil {
-		i.mouseButtonPressed = map[int]bool{}
-	}
-	i.mouseButtonPressed[code] = false
-}
-
-func (i *Input) updateFromEvent(e js.Value) {
+func (u *userInterfaceImpl) updateInputFromEvent(e js.Value) error {
 	// Avoid using js.Value.String() as String creates a Uint8Array via a TextEncoder and causes a heavy
 	// overhead (#1437).
 	switch t := e.Get("type"); {
 	case t.Equal(stringKeydown):
 		if str := e.Get("key").String(); isKeyString(str) {
 			for _, r := range str {
-				if unicode.IsPrint(r) {
-					i.runeBuffer = append(i.runeBuffer, r)
-				}
+				u.inputState.appendRune(r)
 			}
 		}
-
-		c := e.Get("code")
-		if c.Type() != js.TypeString {
-			i.keyDownEdge(e.Get("keyCode").Int())
-			return
-		}
-		i.keyDown(c)
+		u.keyDown(e.Get("code"))
 	case t.Equal(stringKeyup):
-		c := e.Get("code")
-		if c.Type() != js.TypeString {
-			// Assume that UA is Edge.
-			i.keyUpEdge(e.Get("keyCode").Int())
-			return
-		}
-		i.keyUp(c)
+		u.keyUp(e.Get("code"))
 	case t.Equal(stringMousedown):
-		button := e.Get("button").Int()
-		i.mouseDown(button)
-		i.setMouseCursorFromEvent(e)
+		u.mouseDown(e.Get("button").Int())
+		u.setMouseCursorFromEvent(e)
 	case t.Equal(stringMouseup):
-		button := e.Get("button").Int()
-		i.mouseUp(button)
-		i.setMouseCursorFromEvent(e)
+		u.mouseUp(e.Get("button").Int())
+		u.setMouseCursorFromEvent(e)
 	case t.Equal(stringMousemove):
-		i.setMouseCursorFromEvent(e)
+		u.setMouseCursorFromEvent(e)
 	case t.Equal(stringWheel):
 		// TODO: What if e.deltaMode is not DOM_DELTA_PIXEL?
-		i.wheelX = -e.Get("deltaX").Float()
-		i.wheelY = -e.Get("deltaY").Float()
+		u.inputState.WheelX = -e.Get("deltaX").Float()
+		u.inputState.WheelY = -e.Get("deltaY").Float()
 	case t.Equal(stringTouchstart) || t.Equal(stringTouchend) || t.Equal(stringTouchmove):
-		i.updateTouchesFromEvent(e)
+		u.updateTouchesFromEvent(e)
 	}
 
-	i.ui.forceUpdateOnMinimumFPSMode()
+	u.forceUpdateOnMinimumFPSMode()
+	return nil
 }
 
-func (i *Input) setMouseCursorFromEvent(e js.Value) {
-	if i.ui.cursorMode == CursorModeCaptured {
-		x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
-		i.origCursorX, i.origCursorY = x, y
-		dx, dy := e.Get("movementX").Int(), e.Get("movementY").Int()
-		i.cursorX += dx
-		i.cursorY += dy
+func (u *userInterfaceImpl) setMouseCursorFromEvent(e js.Value) {
+	if u.context == nil {
 		return
 	}
 
-	x, y := e.Get("clientX").Int(), e.Get("clientY").Int()
-	i.cursorX, i.cursorY = x, y
-	i.origCursorX, i.origCursorY = x, y
-}
+	u.origCursorXInClient = e.Get("clientX").Float()
+	u.origCursorYInClient = e.Get("clientY").Float()
 
-func (i *Input) recoverCursorPosition() {
-	i.cursorX, i.cursorY = i.origCursorX, i.origCursorY
-}
-
-func (in *Input) updateTouchesFromEvent(e js.Value) {
-	j := e.Get("targetTouches")
-	for k := range in.touches {
-		delete(in.touches, k)
+	if u.cursorMode == CursorModeCaptured {
+		u.cursorXInClient += e.Get("movementX").Float()
+		u.cursorYInClient += e.Get("movementY").Float()
+		return
 	}
-	for i := 0; i < j.Length(); i++ {
-		jj := j.Call("item", i)
-		id := TouchID(jj.Get("identifier").Int())
-		if in.touches == nil {
-			in.touches = map[TouchID]pos{}
-		}
-		in.touches[id] = pos{
-			X: jj.Get("clientX").Int(),
-			Y: jj.Get("clientY").Int(),
-		}
+
+	u.cursorXInClient = u.origCursorXInClient
+	u.cursorYInClient = u.origCursorYInClient
+}
+
+func (u *userInterfaceImpl) recoverCursorPosition() {
+	u.cursorXInClient = u.origCursorXInClient
+	u.cursorYInClient = u.origCursorYInClient
+}
+
+func (u *userInterfaceImpl) updateTouchesFromEvent(e js.Value) {
+	u.touchesInClient = u.touchesInClient[:0]
+
+	touches := e.Get("targetTouches")
+	for i := 0; i < touches.Length(); i++ {
+		t := touches.Call("item", i)
+		u.touchesInClient = append(u.touchesInClient, touchInClient{
+			id: TouchID(t.Get("identifier").Int()),
+			x:  t.Get("clientX").Float(),
+			y:  t.Get("clientY").Float(),
+		})
 	}
 }
 
@@ -303,4 +177,114 @@ func isKeyString(str string) bool {
 		}
 	}
 	return true
+}
+
+var (
+	jsKeyboard                     = js.Global().Get("navigator").Get("keyboard")
+	jsKeyboardGetLayoutMap         js.Value
+	jsKeyboardGetLayoutMapCh       chan js.Value
+	jsKeyboardGetLayoutMapCallback js.Func
+)
+
+func init() {
+	if !jsKeyboard.Truthy() {
+		return
+	}
+
+	jsKeyboardGetLayoutMap = jsKeyboard.Get("getLayoutMap").Call("bind", jsKeyboard)
+	jsKeyboardGetLayoutMapCh = make(chan js.Value, 1)
+	jsKeyboardGetLayoutMapCallback = js.FuncOf(func(this js.Value, args []js.Value) any {
+		jsKeyboardGetLayoutMapCh <- args[0]
+		return nil
+	})
+}
+
+func KeyName(key Key) string {
+	return theUI.keyName(key)
+}
+
+func (u *userInterfaceImpl) keyName(key Key) string {
+	if !u.running {
+		return ""
+	}
+
+	// keyboardLayoutMap is reset every tick.
+	if u.keyboardLayoutMap.IsUndefined() {
+		if !jsKeyboard.Truthy() {
+			return ""
+		}
+
+		// Invoke getLayoutMap every tick to detect the keyboard change.
+		// TODO: Calling this every tick might be inefficient. Is there a way to detect a keyboard change?
+		jsKeyboardGetLayoutMap.Invoke().Call("then", jsKeyboardGetLayoutMapCallback)
+		u.keyboardLayoutMap = <-jsKeyboardGetLayoutMapCh
+	}
+
+	n := u.keyboardLayoutMap.Call("get", uiKeyToJSKey[key])
+	if n.IsUndefined() {
+		return ""
+	}
+	return n.String()
+}
+
+func UpdateInputFromEvent(e js.Value) {
+	theUI.updateInputFromEvent(e)
+}
+
+func (u *userInterfaceImpl) saveCursorPosition() {
+	u.savedCursorX = u.inputState.CursorX
+	u.savedCursorY = u.inputState.CursorY
+	w, h := u.outsideSize()
+	u.savedOutsideWidth = w
+	u.savedOutsideHeight = h
+}
+
+func (u *userInterfaceImpl) updateInputState() error {
+	s := u.DeviceScaleFactor()
+
+	if !math.IsNaN(u.savedCursorX) && !math.IsNaN(u.savedCursorY) {
+		// If savedCursorX and savedCursorY are valid values, the cursor is saved just before entering or exiting from fullscreen.
+		// Even after entering or exiting from fullscreening, the outside (body) size is not updated for a while.
+		// Wait for the outside size updated.
+		if w, h := u.outsideSize(); u.savedOutsideWidth != w || u.savedOutsideHeight != h {
+			u.inputState.CursorX = u.savedCursorX
+			u.inputState.CursorY = u.savedCursorY
+			cx, cy := u.context.logicalPositionToClientPosition(u.inputState.CursorX, u.inputState.CursorY, s)
+			u.cursorXInClient = cx
+			u.cursorYInClient = cy
+			u.savedCursorX = math.NaN()
+			u.savedCursorY = math.NaN()
+			u.savedOutsideWidth = 0
+			u.savedOutsideHeight = 0
+			u.outsideSizeUnchangedCount = 0
+		} else {
+			u.outsideSizeUnchangedCount++
+
+			// If the outside size is not changed for a while, probably the screen size is not actually changed.
+			// Reset the state.
+			if u.outsideSizeUnchangedCount > 60 {
+				u.savedCursorX = math.NaN()
+				u.savedCursorY = math.NaN()
+				u.savedOutsideWidth = 0
+				u.savedOutsideHeight = 0
+				u.outsideSizeUnchangedCount = 0
+			}
+		}
+	} else {
+		cx, cy := u.context.clientPositionToLogicalPosition(u.cursorXInClient, u.cursorYInClient, s)
+		u.inputState.CursorX = cx
+		u.inputState.CursorY = cy
+	}
+
+	u.inputState.Touches = u.inputState.Touches[:0]
+	for _, t := range u.touchesInClient {
+		x, y := u.context.clientPositionToLogicalPosition(t.x, t.y, s)
+		u.inputState.Touches = append(u.inputState.Touches, Touch{
+			ID: t.id,
+			X:  int(x),
+			Y:  int(y),
+		})
+	}
+
+	return nil
 }

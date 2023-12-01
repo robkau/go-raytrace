@@ -46,9 +46,9 @@ import (
 )
 
 const (
-	channelCount    = 2
-	bitDepthInBytes = 2
-	bytesPerSample  = bitDepthInBytes * channelCount
+	channelCount         = 2
+	bitDepthInBytesInt16 = 2
+	bytesPerSampleInt16  = bitDepthInBytesInt16 * channelCount
 )
 
 // A Context represents a current state of audio.
@@ -83,12 +83,9 @@ var (
 
 // NewContext creates a new audio context with the given sample rate.
 //
-// The sample rate is also used for decoding MP3 with audio/mp3 package
-// or other formats as the target sample rate.
-//
-// sampleRate should be 44100 or 48000.
-// Other values might not work.
-// For example, 22050 causes error on Safari when decoding MP3.
+// sampleRate specifies the number of samples that should be played during one second.
+// Usual numbers are 44100 or 48000. One context has only one sample rate. You cannot play multiple audio
+// sources with different sample rates at the same time.
 //
 // NewContext panics when an audio context is already created.
 func NewContext(sampleRate int) *Context {
@@ -111,12 +108,16 @@ func NewContext(sampleRate int) *Context {
 	h := getHook()
 	h.OnSuspendAudio(func() error {
 		c.semaphore <- struct{}{}
-		c.playerFactory.suspend()
+		if err := c.playerFactory.suspend(); err != nil {
+			return err
+		}
 		return nil
 	})
 	h.OnResumeAudio(func() error {
 		<-c.semaphore
-		c.playerFactory.resume()
+		if err := c.playerFactory.resume(); err != nil {
+			return err
+		}
 		return nil
 	})
 
@@ -197,21 +198,36 @@ func (c *Context) removePlayer(p *playerImpl) {
 }
 
 func (c *Context) gcPlayers() error {
+	// A Context must not call playerImpl's functions with a lock, or this causes a deadlock (#2737).
+	// Copy the playerImpls and iterate them without a lock.
+	var players []*playerImpl
 	c.m.Lock()
-	defer c.m.Unlock()
+	players = make([]*playerImpl, 0, len(c.players))
+	for p := range c.players {
+		players = append(players, p)
+	}
+	c.m.Unlock()
+
+	var playersToRemove []*playerImpl
 
 	// Now reader players cannot call removePlayers from themselves in the current implementation.
 	// Underlying playering can be the pause state after fishing its playing,
 	// but there is no way to notify this to players so far.
 	// Instead, let's check the states proactively every frame.
-	for p := range c.players {
+	for _, p := range players {
 		if err := p.Err(); err != nil {
 			return err
 		}
 		if !p.IsPlaying() {
-			delete(c.players, p)
+			playersToRemove = append(playersToRemove, p)
 		}
 	}
+
+	c.m.Lock()
+	for _, p := range playersToRemove {
+		delete(c.players, p)
+	}
+	c.m.Unlock()
 
 	return nil
 }
@@ -223,12 +239,11 @@ func (c *Context) IsReady() bool {
 	c.m.Lock()
 	defer c.m.Unlock()
 
-	r := c.ready
-	if r {
-		return r
+	if c.ready {
+		return true
 	}
 	if len(c.players) != 0 {
-		return r
+		return false
 	}
 
 	c.readyOnce.Do(func() {
@@ -239,12 +254,12 @@ func (c *Context) IsReady() bool {
 			// problematic when a user tries to play audio after the context is ready.
 			// Play a dummy player to avoid the blocking (#969).
 			// Use a long enough buffer so that writing doesn't finish immediately (#970).
-			p := NewPlayerFromBytes(c, make([]byte, bufferSize()*2))
+			p := NewPlayerFromBytes(c, make([]byte, 16384))
 			p.Play()
 		}()
 	})
 
-	return r
+	return false
 }
 
 // SampleRate returns the sample rate.
@@ -335,7 +350,7 @@ func NewPlayerFromBytes(context *Context, src []byte) *Player {
 func (p *Player) finalize() {
 	runtime.SetFinalizer(p, nil)
 	if !p.IsPlaying() {
-		p.Close()
+		_ = p.Close()
 	}
 }
 
@@ -368,13 +383,20 @@ func (p *Player) Rewind() error {
 	return p.p.Rewind()
 }
 
+// SetPosition sets the position with the given offset.
+//
+// The passed source to NewPlayer must be io.Seeker, or SetPosition panics.
+//
+// SetPosition returns error when seeking the source stream returns an error.
+func (p *Player) SetPosition(offset time.Duration) error {
+	return p.p.SetPosition(offset)
+}
+
 // Seek seeks the position with the given offset.
 //
-// The passed source to NewPlayer must be io.Seeker, or Seek panics.
-//
-// Seek returns error when seeking the source stream returns error.
+// Deprecated: as of v2.6. Use SetPosition instead.
 func (p *Player) Seek(offset time.Duration) error {
-	return p.p.Seek(offset)
+	return p.SetPosition(offset)
 }
 
 // Pause pauses the playing.
@@ -382,12 +404,19 @@ func (p *Player) Pause() {
 	p.p.Pause()
 }
 
+// Position returns the current position in time.
+//
+// As long as the player continues to play, Position's returning value is increased monotonically,
+// even though the source stream loops and its position goes back.
+func (p *Player) Position() time.Duration {
+	return p.p.Position()
+}
+
 // Current returns the current position in time.
 //
-// As long as the player continues to play, Current's returning value is increased monotonically,
-// even though the source stream loops and its position goes back.
+// Deprecated: as of v2.6. Use Position instead.
 func (p *Player) Current() time.Duration {
-	return p.p.Current()
+	return p.Position()
 }
 
 // Volume returns the current volume of this player [0-1].

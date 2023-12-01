@@ -21,15 +21,18 @@ import (
 
 type Shader struct {
 	shader graphicsdriver.Shader
+	ir     *shaderir.Program
 }
 
 func NewShader(ir *shaderir.Program) *Shader {
-	s := &Shader{}
+	s := &Shader{
+		ir: ir,
+	}
 	c := &newShaderCommand{
 		result: s,
 		ir:     ir,
 	}
-	theCommandQueue.Enqueue(c)
+	currentCommandQueue().Enqueue(c)
 	return s
 }
 
@@ -37,5 +40,9 @@ func (s *Shader) Dispose() {
 	c := &disposeShaderCommand{
 		target: s,
 	}
-	theCommandQueue.Enqueue(c)
+	currentCommandQueue().Enqueue(c)
+}
+
+func (s *Shader) unit() shaderir.Unit {
+	return s.ir.Unit
 }

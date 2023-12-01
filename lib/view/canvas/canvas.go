@@ -8,6 +8,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/pkg/errors"
 	"github.com/robkau/go-raytrace/lib/colors"
+	"github.com/robkau/go-raytrace/lib/util"
 	"image"
 	gocolor "image/color"
 	"io"
@@ -18,7 +19,7 @@ import (
 )
 
 type Canvas struct {
-	pixels []colors.Color
+	pixels *image.RGBA
 	width  int
 	height int
 	rw     sync.RWMutex
@@ -33,7 +34,7 @@ const (
 
 func NewCanvas(width, height int) *Canvas {
 	return &Canvas{
-		pixels: make([]colors.Color, width*height),
+		pixels: image.NewRGBA(image.Rect(0, 0, width, height)),
 		width:  width,
 		height: height,
 	}
@@ -41,12 +42,14 @@ func NewCanvas(width, height int) *Canvas {
 
 func newCanvasWith(width int, height int, p colors.Color) *Canvas {
 	c := &Canvas{
-		pixels: make([]colors.Color, width*height),
+		pixels: image.NewRGBA(image.Rect(0, 0, width, height)),
 		width:  width,
 		height: height,
 	}
-	for i := range c.pixels {
-		c.pixels[i] = p
+	for x := 0; x < width; x++ {
+		for y := 0; y < height; y++ {
+			c.pixels.Set(x, y, p)
+		}
 	}
 	return c
 }
@@ -58,14 +61,15 @@ func (c *Canvas) GetSize() (width, height int) {
 func (c *Canvas) GetPixel(x int, y int) colors.Color {
 	c.rw.RLock()
 	defer c.rw.RUnlock()
-	return c.pixels[y*c.width+x]
+	return colors.NewColorFromStdlibColor(c.pixels.At(x, y))
 }
 
 func (c *Canvas) SetPixel(x int, y int, col colors.Color) {
 	c.rw.Lock()
 	defer c.rw.Unlock()
 	// todo atomic pixels instead. ???
-	c.pixels[y*c.width+x] = col
+
+	c.pixels.Set(x, y, col)
 }
 
 func (c *Canvas) ToImage() image.Image {
@@ -77,11 +81,12 @@ func (c *Canvas) ToImage() image.Image {
 	for x := 0; x < c.width; x++ {
 		for y := 0; y < c.height; y++ {
 			p := c.GetPixel(x, y)
+			r, g, b, a := p.RGBA()
 			img.Set(x, y, gocolor.RGBA{
-				R: uint8(clamp(p.R*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue)),
-				G: uint8(clamp(p.G*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue)),
-				B: uint8(clamp(p.B*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue)),
-				A: 0xff})
+				R: uint8(r),
+				G: uint8(g),
+				B: uint8(b),
+				A: uint8(a)})
 		}
 	}
 	return img
@@ -94,23 +99,21 @@ func (c *Canvas) ToEbitenImage(previous *ebiten.Image) *ebiten.Image {
 
 	previous.Clear()
 
-	for x := 0; x < c.width; x++ {
-		for y := 0; y < c.height; y++ {
-			p := c.GetPixel(x, y)
-			previous.Set(x, y, gocolor.RGBA{
-				R: uint8(clamp(p.R*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue)),
-				G: uint8(clamp(p.G*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue)),
-				B: uint8(clamp(p.B*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue)),
-				A: 0xff})
-		}
-	}
+	// protecting c.pixels
+	c.rw.RLock()
+	defer c.rw.RUnlock()
+
+	previous.WritePixels(c.pixels.Pix)
 	return previous
 }
 
 func (c *Canvas) Reset() {
 	c.rw.Lock()
 	defer c.rw.Unlock()
-	c.pixels = c.pixels[:0]
+	//c.pixels.Pix = c.pixels.Pix[:0]
+	for i, _ := range c.pixels.Pix {
+		c.pixels.Pix[i] = 0
+	}
 
 }
 
@@ -131,11 +134,12 @@ func (c *Canvas) ToImagePaletted() *image.Paletted {
 	for x := 0; x < c.width; x++ {
 		for y := 0; y < c.height; y++ {
 			p := c.GetPixel(x, y)
+			r, g, b, a := p.RGBA()
 			img.Set(x, y, gocolor.RGBA{
-				R: uint8(clamp(p.R*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue)),
-				G: uint8(clamp(p.G*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue)),
-				B: uint8(clamp(p.B*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue)),
-				A: 0xff})
+				R: uint8(r),
+				G: uint8(g),
+				B: uint8(b),
+				A: uint8(a)})
 		}
 	}
 
@@ -144,75 +148,80 @@ func (c *Canvas) ToImagePaletted() *image.Paletted {
 
 func (c *Canvas) toPPM() string {
 
-	b := strings.Builder{}
-	b.WriteString(fmt.Sprintf("%s\n", ppmFileHeader))
-	b.WriteString(fmt.Sprintf("%d %d\n", c.width, c.height))
-	b.WriteString(fmt.Sprintf("%d\n", ppmMaxColorValue))
+	sb := strings.Builder{}
+	sb.WriteString(fmt.Sprintf("%s\n", ppmFileHeader))
+	sb.WriteString(fmt.Sprintf("%d %d\n", c.width, c.height))
+	sb.WriteString(fmt.Sprintf("%d\n", ppmMaxColorValue))
 
 	lineLength := 0
-	for i, p := range c.pixels {
+	for x := 0; x < c.width; x++ {
+		for y := 0; y < c.height; y++ {
+			col := c.pixels.At(x, y)
+			r, g, b, _ := col.RGBA()
 
-		rc := fmt.Sprintf("%d", clamp(p.R*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue))
-		gc := fmt.Sprintf("%d", clamp(p.G*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue))
-		bc := fmt.Sprintf("%d", clamp(p.B*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue))
-		rcl := len(rc)
-		gcl := len(gc)
-		bcl := len(bc)
+			// todo is this right after changing color repr
+			rc := fmt.Sprintf("%d", util.Clamp(float64(r)*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue))
+			gc := fmt.Sprintf("%d", util.Clamp(float64(g)*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue))
+			bc := fmt.Sprintf("%d", util.Clamp(float64(b)*float64(ppmMaxColorValue), ppmMinColorValue, ppmMaxColorValue))
+			rcl := len(rc)
+			gcl := len(gc)
+			bcl := len(bc)
 
-		if i%c.width == 0 && i != 0 {
-			// finished writing a row
-			b.WriteString("\n")
-			lineLength = 0
-		}
+			if y == c.height-1 {
+				// finished writing a row
+				sb.WriteString("\n")
+				lineLength = 0
+			}
 
-		// red
-		if lineLength == 0 {
-			// special case: first character of a line
-			b.WriteString(rc)
-			lineLength += rcl
-		} else {
-			if lineLength+rcl+1 > ppmMaxWidth {
+			// red
+			if lineLength == 0 {
+				// special case: first character of a line
+				sb.WriteString(rc)
+				lineLength += rcl
+			} else {
+				if lineLength+rcl+1 > ppmMaxWidth {
+					// not enough space in line. break it
+					sb.WriteString("\n")
+					lineLength = 0
+				} else {
+					// continue line
+					sb.WriteString(" ")
+					lineLength += 1
+				}
+				sb.WriteString(rc)
+				lineLength += rcl
+			}
+
+			// green
+			if lineLength+1+gcl > ppmMaxWidth {
 				// not enough space in line. break it
-				b.WriteString("\n")
+				sb.WriteString("\n")
 				lineLength = 0
 			} else {
 				// continue line
-				b.WriteString(" ")
+				sb.WriteString(" ")
 				lineLength += 1
 			}
-			b.WriteString(rc)
-			lineLength += rcl
-		}
+			sb.WriteString(gc)
+			lineLength += gcl
 
-		// green
-		if lineLength+1+gcl > ppmMaxWidth {
-			// not enough space in line. break it
-			b.WriteString("\n")
-			lineLength = 0
-		} else {
-			// continue line
-			b.WriteString(" ")
-			lineLength += 1
+			// blue
+			if lineLength+1+bcl > ppmMaxWidth {
+				// not enough space in line. break it
+				sb.WriteString("\n")
+				lineLength = 0
+			} else {
+				// continue line
+				sb.WriteString(" ")
+				lineLength += 1
+			}
+			sb.WriteString(bc)
+			lineLength += bcl
 		}
-		b.WriteString(gc)
-		lineLength += gcl
-
-		// blue
-		if lineLength+1+bcl > ppmMaxWidth {
-			// not enough space in line. break it
-			b.WriteString("\n")
-			lineLength = 0
-		} else {
-			// continue line
-			b.WriteString(" ")
-			lineLength += 1
-		}
-		b.WriteString(bc)
-		lineLength += bcl
-
 	}
-	b.WriteString("\n")
-	return b.String()
+
+	sb.WriteString("\n")
+	return sb.String()
 }
 
 func CanvasFromPPMZipFile(filepath string) (*Canvas, error) {
@@ -384,17 +393,4 @@ func whFromPPMLine(line string) (int, int, error) {
 	}
 
 	return width, height, nil
-}
-
-func clamp(f float64, min int, max int) int {
-	r := int(f + 0.5) // round it
-	if r <= min {
-		r = min
-	}
-
-	if r >= max {
-		r = max
-	}
-
-	return r
 }

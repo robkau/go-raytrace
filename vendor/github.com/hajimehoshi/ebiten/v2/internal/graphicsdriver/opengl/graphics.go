@@ -16,23 +16,13 @@ package opengl
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
-	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
-
-// NewGraphics creates an implementation of graphicsdriver.Graphics for OpenGL.
-// The returned graphics value is nil iff the error is not nil.
-func NewGraphics() (graphicsdriver.Graphics, error) {
-	if microsoftgdk.IsXbox() {
-		return nil, fmt.Errorf("opengl: OpenGL is not supported on Xbox")
-	}
-	g := &Graphics{}
-	g.init()
-	return g, nil
-}
 
 type activatedTexture struct {
 	textureNative textureNative
@@ -62,6 +52,16 @@ type Graphics struct {
 	activatedTextures []activatedTexture
 }
 
+func newGraphics(ctx gl.Context) *Graphics {
+	g := &Graphics{}
+	if isDebug {
+		g.context.ctx = &gl.DebugContext{Context: ctx}
+	} else {
+		g.context.ctx = ctx
+	}
+	return g
+}
+
 func (g *Graphics) Begin() error {
 	// Do nothing.
 	return nil
@@ -70,12 +70,17 @@ func (g *Graphics) Begin() error {
 func (g *Graphics) End(present bool) error {
 	// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
 	// TODO: examples/sprites worked without this. Is this really needed?
-	g.context.flush()
+	g.context.ctx.Flush()
+
+	// The last uniforms must be reset after swapping the buffer (#2517).
+	if present {
+		g.state.resetLastUniforms()
+	}
 	return nil
 }
 
 func (g *Graphics) SetTransparent(transparent bool) {
-	// Do nothings.
+	// Do nothing.
 }
 
 func (g *Graphics) checkSize(width, height int) {
@@ -160,11 +165,7 @@ func (g *Graphics) Reset() error {
 }
 
 func (g *Graphics) SetVertices(vertices []float32, indices []uint16) error {
-	// Note that the vertices passed to BufferSubData is not under GC management
-	// in opengl package due to unsafe-way.
-	// See BufferSubData in context_mobile.go.
-	g.context.arrayBufferSubData(vertices)
-	g.context.elementArrayBufferSubData(indices)
+	g.state.setVertices(&g.context, vertices, indices)
 	return nil
 }
 
@@ -180,7 +181,11 @@ func (g *Graphics) uniformVariableName(idx int) string {
 	return name
 }
 
-func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, offsets [graphics.ShaderImageCount - 1][2]float32, shaderID graphicsdriver.ShaderID, indexLen int, indexOffset int, mode graphicsdriver.CompositeMode, colorM graphicsdriver.ColorM, filter graphicsdriver.Filter, address graphicsdriver.Address, dstRegion, srcRegion graphicsdriver.Region, uniforms [][]float32, evenOdd bool) error {
+func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32, evenOdd bool) error {
+	if shaderID == graphicsdriver.InvalidShaderID {
+		return fmt.Errorf("opengl: shader ID is invalid")
+	}
+
 	destination := g.images[dstID]
 
 	g.drawCalled = true
@@ -188,162 +193,35 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 	if err := destination.setViewport(); err != nil {
 		return err
 	}
-	g.context.scissor(
-		int(dstRegion.X),
-		int(dstRegion.Y),
-		int(dstRegion.Width),
-		int(dstRegion.Height),
-	)
-	g.context.blendFunc(mode)
+	g.context.blend(blend)
 
-	var program program
-	if shaderID == graphicsdriver.InvalidShaderID {
-		program = g.state.programs[programKey{
-			useColorM: !colorM.IsIdentity(),
-			filter:    filter,
-			address:   address,
-		}]
+	shader := g.shaders[shaderID]
+	program := shader.p
 
-		dw, dh := destination.framebufferSize()
-		g.uniformVars = append(g.uniformVars, uniformVariable{
-			name:  "viewport_size",
-			value: []float32{float32(dw), float32(dh)},
-			typ:   shaderir.Type{Main: shaderir.Vec2},
-		}, uniformVariable{
-			name: "source_region",
-			value: []float32{
-				srcRegion.X,
-				srcRegion.Y,
-				srcRegion.X + srcRegion.Width,
-				srcRegion.Y + srcRegion.Height,
-			},
-			typ: shaderir.Type{Main: shaderir.Vec4},
-		})
-
-		if !colorM.IsIdentity() {
-			// ColorM's elements are immutable. It's OK to hold the reference without copying.
-			var esBody [16]float32
-			var esTranslate [4]float32
-			colorM.Elements(&esBody, &esTranslate)
-			g.uniformVars = append(g.uniformVars, uniformVariable{
-				name:  "color_matrix_body",
-				value: esBody[:],
-				typ:   shaderir.Type{Main: shaderir.Mat4},
-			}, uniformVariable{
-				name:  "color_matrix_translation",
-				value: esTranslate[:],
-				typ:   shaderir.Type{Main: shaderir.Vec4},
-			})
-		}
-
-		if filter != graphicsdriver.FilterNearest {
-			sw, sh := g.images[srcIDs[0]].framebufferSize()
-			g.uniformVars = append(g.uniformVars, uniformVariable{
-				name:  "source_size",
-				value: []float32{float32(sw), float32(sh)},
-				typ:   shaderir.Type{Main: shaderir.Vec2},
-			})
-		}
-
-		if filter == graphicsdriver.FilterScreen {
-			scale := float32(destination.width) / float32(g.images[srcIDs[0]].width)
-			g.uniformVars = append(g.uniformVars, uniformVariable{
-				name:  "scale",
-				value: []float32{scale},
-				typ:   shaderir.Type{Main: shaderir.Float},
-			})
-		}
+	ulen := len(shader.ir.Uniforms)
+	if cap(g.uniformVars) < ulen {
+		g.uniformVars = make([]uniformVariable, ulen)
 	} else {
-		shader := g.shaders[shaderID]
-		program = shader.p
+		g.uniformVars = g.uniformVars[:ulen]
+	}
 
-		ulen := graphics.PreservedUniformVariablesCount + len(uniforms)
-		if cap(g.uniformVars) < ulen {
-			g.uniformVars = make([]uniformVariable, ulen)
-		} else {
-			g.uniformVars = g.uniformVars[:ulen]
-		}
+	var idx int
+	for i, typ := range shader.ir.Uniforms {
+		n := typ.Uint32Count()
+		g.uniformVars[i].name = g.uniformVariableName(i)
+		g.uniformVars[i].value = uniforms[idx : idx+n]
+		g.uniformVars[i].typ = typ
+		idx += n
+	}
 
-		{
-			const idx = graphics.TextureDestinationSizeUniformVariableIndex
-			w, h := destination.framebufferSize()
-			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value = []float32{float32(w), float32(h)}
-			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-		}
-		{
-			sizes := make([]float32, 2*len(srcIDs))
-			for i, srcID := range srcIDs {
-				if img := g.images[srcID]; img != nil {
-					w, h := img.framebufferSize()
-					sizes[2*i] = float32(w)
-					sizes[2*i+1] = float32(h)
-				}
-
-			}
-			const idx = graphics.TextureSourceSizesUniformVariableIndex
-			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value = sizes
-			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-		}
-		dw, dh := destination.framebufferSize()
-		{
-			origin := []float32{float32(dstRegion.X) / float32(dw), float32(dstRegion.Y) / float32(dh)}
-			const idx = graphics.TextureDestinationRegionOriginUniformVariableIndex
-			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value = origin
-			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-		}
-		{
-			size := []float32{float32(dstRegion.Width) / float32(dw), float32(dstRegion.Height) / float32(dh)}
-			const idx = graphics.TextureDestinationRegionSizeUniformVariableIndex
-			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value = size
-			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-		}
-		{
-			voffsets := make([]float32, 2*len(offsets))
-			for i, o := range offsets {
-				voffsets[2*i] = o[0]
-				voffsets[2*i+1] = o[1]
-			}
-			const idx = graphics.TextureSourceOffsetsUniformVariableIndex
-			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value = voffsets
-			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-		}
-		{
-			origin := []float32{float32(srcRegion.X), float32(srcRegion.Y)}
-			const idx = graphics.TextureSourceRegionOriginUniformVariableIndex
-			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value = origin
-			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-		}
-		{
-			size := []float32{float32(srcRegion.Width), float32(srcRegion.Height)}
-			const idx = graphics.TextureSourceRegionSizeUniformVariableIndex
-			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value = size
-			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-		}
-		{
-			const idx = graphics.ProjectionMatrixUniformVariableIndex
-			g.uniformVars[idx].name = g.uniformVariableName(idx)
-			g.uniformVars[idx].value = []float32{
-				2 / float32(dw), 0, 0, 0,
-				0, 2 / float32(dh), 0, 0,
-				0, 0, 1, 0,
-				-1, -1, 0, 1,
-			}
-			g.uniformVars[idx].typ = shader.ir.Uniforms[idx]
-		}
-
-		for i, v := range uniforms {
-			const offset = graphics.PreservedUniformVariablesCount
-			g.uniformVars[i+offset].name = g.uniformVariableName(i + offset)
-			g.uniformVars[i+offset].value = v
-			g.uniformVars[i+offset].typ = shader.ir.Uniforms[i+offset]
-		}
+	// In OpenGL, the NDC's Y direction is upward, so flip the Y direction for the final framebuffer.
+	if destination.screen {
+		const idx = graphics.ProjectionMatrixUniformVariableIndex
+		// Invert the sign bits as float32 values.
+		g.uniformVars[idx].value[1] ^= 1 << 31
+		g.uniformVars[idx].value[5] ^= 1 << 31
+		g.uniformVars[idx].value[9] ^= 1 << 31
+		g.uniformVars[idx].value[13] ^= 1 << 31
 	}
 
 	var imgs [graphics.ShaderImageCount]textureVariable
@@ -368,14 +246,34 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 		if err := destination.ensureStencilBuffer(); err != nil {
 			return err
 		}
-		g.context.enableStencilTest()
-		g.context.beginStencilWithEvenOddRule()
-		g.context.drawElements(indexLen, indexOffset*2)
-		g.context.endStencilWithEvenOddRule()
+		g.context.ctx.Enable(gl.STENCIL_TEST)
 	}
-	g.context.drawElements(indexLen, indexOffset*2) // 2 is uint16 size in bytes
+
+	for _, dstRegion := range dstRegions {
+		g.context.ctx.Scissor(
+			int32(dstRegion.Region.X),
+			int32(dstRegion.Region.Y),
+			int32(dstRegion.Region.Width),
+			int32(dstRegion.Region.Height),
+		)
+		if evenOdd {
+			g.context.ctx.Clear(gl.STENCIL_BUFFER_BIT)
+			g.context.ctx.StencilFunc(gl.ALWAYS, 0x00, 0xff)
+			g.context.ctx.StencilOp(gl.KEEP, gl.KEEP, gl.INVERT)
+			g.context.ctx.ColorMask(false, false, false, false)
+
+			g.context.ctx.DrawElements(gl.TRIANGLES, int32(dstRegion.IndexCount), gl.UNSIGNED_SHORT, indexOffset*2)
+
+			g.context.ctx.StencilFunc(gl.NOTEQUAL, 0x00, 0xff)
+			g.context.ctx.StencilOp(gl.KEEP, gl.KEEP, gl.KEEP)
+			g.context.ctx.ColorMask(true, true, true, true)
+		}
+		g.context.ctx.DrawElements(gl.TRIANGLES, int32(dstRegion.IndexCount), gl.UNSIGNED_SHORT, indexOffset*2) // 2 is uint16 size in bytes
+		indexOffset += dstRegion.IndexCount
+	}
+
 	if evenOdd {
-		g.context.disableStencilTest()
+		g.context.ctx.Disable(gl.STENCIL_TEST)
 	}
 
 	return nil
@@ -385,16 +283,12 @@ func (g *Graphics) SetVsyncEnabled(enabled bool) {
 	// Do nothing
 }
 
-func (g *Graphics) SetFullscreen(fullscreen bool) {
-	// Do nothing
-}
-
-func (g *Graphics) FramebufferYDirection() graphicsdriver.YDirection {
-	return graphicsdriver.Upward
-}
-
 func (g *Graphics) NeedsRestoring() bool {
-	return g.context.needsRestoring()
+	// Though it is possible to have a logic to restore the graphics data for GPU, do not use it for performance (#1603).
+	if runtime.GOOS == "js" {
+		return false
+	}
+	return g.context.ctx.IsES()
 }
 
 func (g *Graphics) NeedsClearingScreen() bool {

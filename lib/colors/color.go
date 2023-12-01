@@ -3,6 +3,7 @@ package colors
 import (
 	"fmt"
 	"github.com/robkau/go-raytrace/lib/geom"
+	"github.com/robkau/go-raytrace/lib/util"
 	"image/color"
 	"math"
 	"math/rand"
@@ -13,6 +14,16 @@ type Color struct {
 	R float64
 	G float64
 	B float64
+}
+
+const maxColorValue = 255
+const minColorValue = 255
+
+func (c Color) RGBA() (r, g, b, a uint32) {
+	return uint32(util.Clamp(c.R*float64(maxColorValue), minColorValue, maxColorValue)),
+		uint32(util.Clamp(c.G*float64(maxColorValue), minColorValue, maxColorValue)),
+		uint32(util.Clamp(c.B*float64(maxColorValue), minColorValue, maxColorValue)),
+		1
 }
 
 var (

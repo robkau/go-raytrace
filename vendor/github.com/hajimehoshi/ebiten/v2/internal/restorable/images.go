@@ -15,8 +15,6 @@
 package restorable
 
 import (
-	"image"
-	"path/filepath"
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
@@ -32,6 +30,11 @@ var needsRestoringByGraphicsDriver bool
 // needsRestoring reports whether restoring process works or not.
 func needsRestoring() bool {
 	return forceRestoring || needsRestoringByGraphicsDriver
+}
+
+// AlwaysReadPixelsFromGPU reports whether ReadPixels always reads pixels from GPU or not.
+func AlwaysReadPixelsFromGPU() bool {
+	return !needsRestoring()
 }
 
 // EnableRestoringForTesting forces to enable restoring for testing.
@@ -53,11 +56,7 @@ var theImages = &images{
 	shaders: map[*Shader]struct{}{},
 }
 
-// ResolveStaleImages flushes the queued draw commands and resolves
-// all stale images.
-//
-// ResolveStaleImages is intended to be called at the end of a frame.
-func ResolveStaleImages(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
+func EndFrame(graphicsDriver graphicsdriver.Graphics, swapBuffersForGL func()) error {
 	if debug.IsDebug {
 		debug.Logf("Internal image sizes:\n")
 		imgs := make([]*graphicscommand.Image, 0, len(theImages.images))
@@ -66,8 +65,13 @@ func ResolveStaleImages(graphicsDriver graphicsdriver.Graphics, endFrame bool) e
 		}
 		graphicscommand.LogImagesInfo(imgs)
 	}
+	return resolveStaleImages(graphicsDriver, true, swapBuffersForGL)
+}
 
-	if err := graphicscommand.FlushCommands(graphicsDriver, endFrame); err != nil {
+// resolveStaleImages flushes the queued draw commands and resolves all stale images.
+// If endFrame is true, the current screen might be used to present when flushing the commands.
+func resolveStaleImages(graphicsDriver graphicsdriver.Graphics, endFrame bool, swapBuffersForGL func()) error {
+	if err := graphicscommand.FlushCommands(graphicsDriver, endFrame, swapBuffersForGL); err != nil {
 		return err
 	}
 	if !needsRestoring() {
@@ -111,11 +115,7 @@ func RestoreIfNeeded(graphicsDriver graphicsdriver.Graphics) error {
 		}
 	}
 
-	err := graphicscommand.ResetGraphicsDriverState(graphicsDriver)
-	if err == graphicsdriver.GraphicsNotReady {
-		return nil
-	}
-	if err != nil {
+	if err := graphicscommand.ResetGraphicsDriverState(graphicsDriver); err != nil {
 		return err
 	}
 	return theImages.restore(graphicsDriver)
@@ -124,13 +124,13 @@ func RestoreIfNeeded(graphicsDriver graphicsdriver.Graphics) error {
 // DumpImages dumps all the current images to the specified directory.
 //
 // This is for testing usage.
-func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) error {
+func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) (string, error) {
+	images := make([]*graphicscommand.Image, 0, len(theImages.images))
 	for img := range theImages.images {
-		if err := img.Dump(graphicsDriver, filepath.Join(dir, "*.png"), false, image.Rect(0, 0, img.width, img.height)); err != nil {
-			return err
-		}
+		images = append(images, img.image)
 	}
-	return nil
+
+	return graphicscommand.DumpImages(images, graphicsDriver, dir)
 }
 
 // add adds img to the images.
@@ -223,9 +223,7 @@ func (i *images) restore(graphicsDriver graphicsdriver.Graphics) error {
 	}
 	images := map[*Image]struct{}{}
 	for i := range i.images {
-		if !i.priority {
-			images[i] = struct{}{}
-		}
+		images[i] = struct{}{}
 	}
 	edges := map[edge]struct{}{}
 	for t := range images {
@@ -234,14 +232,9 @@ func (i *images) restore(graphicsDriver graphicsdriver.Graphics) error {
 		}
 	}
 
-	sorted := []*Image{}
-	for i := range i.images {
-		if i.priority {
-			sorted = append(sorted, i)
-		}
-	}
+	var sorted []*Image
 	for len(images) > 0 {
-		// current repesents images that have no incoming edges.
+		// current represents images that have no incoming edges.
 		current := map[*Image]struct{}{}
 		for i := range images {
 			current[i] = struct{}{}
@@ -297,7 +290,7 @@ func OnContextLost() {
 	theImages.contextLost = true
 }
 
-// canDetectContextLostExplicitly reports whether Ebiten can detect a context lost in an explicit way.
+// canDetectContextLostExplicitly reports whether Ebitengine can detect a context lost in an explicit way.
 // On Android, a context lost can be detected via GLSurfaceView.Renderer.onSurfaceCreated.
 // On iOS w/ OpenGL ES, this can be detected only when gomobile-build is used.
 var canDetectContextLostExplicitly = runtime.GOOS == "android"

@@ -76,12 +76,13 @@ func (c Camera) Render(w *World, rayBounces int, numGoRoutines int) *canvas.Canv
 			for j := i; j < i+pixelsPerWorker && j < c.HSize*c.VSize; j++ {
 				x := j % c.VSize
 				y := j / c.VSize
-
-				wr := c.rp.Get()
-				defer c.rp.Put(wr)
-				wr.Ray = c.rayForPixel(x, y)
-				c := w.ColorAt(wr, rayBounces)
-				image.SetPixel(x, y, c)
+				func() {
+					wr := c.rp.Get()
+					defer c.rp.Put(wr)
+					wr.Ray = c.rayForPixel(x, y)
+					c := w.ColorAt(wr, rayBounces)
+					image.SetPixel(x, y, c)
+				}()
 			}
 		}(i)
 	}
