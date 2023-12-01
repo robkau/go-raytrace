@@ -134,7 +134,8 @@ func RandomColor() Color {
 }
 
 func RandomAnyColor() Color {
-	return NewColor(rand.Float64(), rand.Float64(), rand.Float64())
+	return NewColor(
+		util.RandomSource.Float64(), util.RandomSource.Float64(), util.RandomSource.Float64())
 }
 
 func (c Color) Add(other Color) Color {

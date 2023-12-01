@@ -1,6 +1,6 @@
 package shapes
 
-import "math/rand"
+import "github.com/robkau/go-raytrace/lib/util"
 
 type Sequence interface {
 	Next() float64
@@ -34,5 +34,5 @@ func NewRandomSequence() Sequence {
 }
 
 func (r *randSeq) Next() float64 {
-	return rand.Float64()
+	return util.RandomSource.Float64()
 }
